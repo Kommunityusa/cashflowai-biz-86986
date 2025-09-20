@@ -1,170 +1,312 @@
 import { Header } from "@/components/layout/Header";
-import { Card } from "@/components/ui/card";
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  CreditCard,
-  Activity,
-  Users,
-  ArrowUpRight,
-  ArrowDownRight,
-  LogOut
-} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { AIInsights } from "@/components/AIInsights";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  DollarSign,
+  TrendingUp,
+  Activity,
+  CreditCard,
+  Download,
+  Plus,
+} from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
 
-const Dashboard = () => {
-  const { user, signOut } = useAuth();
-  const metrics = [
-    {
-      title: "Total Revenue",
-      value: "$45,231.89",
-      change: "+20.1%",
-      trend: "up",
-      icon: DollarSign,
-      description: "from last month"
-    },
-    {
-      title: "Total Expenses",
-      value: "$12,234.45",
-      change: "-5.4%",
-      trend: "down",
-      icon: CreditCard,
-      description: "from last month"
-    },
-    {
-      title: "Net Profit",
-      value: "$32,997.44",
-      change: "+32.4%",
-      trend: "up",
-      icon: TrendingUp,
-      description: "from last month"
-    },
-    {
-      title: "Active Clients",
-      value: "248",
-      change: "+12",
-      trend: "up",
-      icon: Users,
-      description: "new this month"
+export default function Dashboard() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    totalRevenue: 0,
+    totalExpenses: 0,
+    netProfit: 0,
+    transactionCount: 0,
+  });
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [categoryData, setCategoryData] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (user) {
+      fetchDashboardData();
     }
-  ];
+  }, [user]);
 
-  const recentTransactions = [
-    { id: 1, description: "Payment from Client ABC", amount: "+$2,500.00", date: "Today", type: "income" },
-    { id: 2, description: "Office Supplies", amount: "-$234.50", date: "Yesterday", type: "expense" },
-    { id: 3, description: "Software Subscription", amount: "-$99.00", date: "Mar 15", type: "expense" },
-    { id: 4, description: "Consulting Fee", amount: "+$5,000.00", date: "Mar 14", type: "income" },
-    { id: 5, description: "Internet Bill", amount: "-$89.99", date: "Mar 13", type: "expense" },
-  ];
+  const fetchDashboardData = async () => {
+    // Fetch transactions
+    const { data: transactions } = await supabase
+      .from('transactions')
+      .select('*, categories(name, color)')
+      .eq('user_id', user?.id)
+      .order('transaction_date', { ascending: false });
+
+    if (transactions) {
+      // Calculate stats
+      const revenue = transactions
+        .filter(t => t.type === 'income')
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      
+      const expenses = transactions
+        .filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+
+      setStats({
+        totalRevenue: revenue,
+        totalExpenses: expenses,
+        netProfit: revenue - expenses,
+        transactionCount: transactions.length,
+      });
+
+      // Set recent transactions (top 5)
+      setRecentTransactions(transactions.slice(0, 5));
+
+      // Prepare chart data (last 7 days)
+      const last7Days = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        return date.toISOString().split('T')[0];
+      }).reverse();
+
+      const chartPoints = last7Days.map(date => {
+        const dayTransactions = transactions.filter(
+          t => t.transaction_date === date
+        );
+        const dayRevenue = dayTransactions
+          .filter(t => t.type === 'income')
+          .reduce((sum, t) => sum + Number(t.amount), 0);
+        const dayExpenses = dayTransactions
+          .filter(t => t.type === 'expense')
+          .reduce((sum, t) => sum + Number(t.amount), 0);
+
+        return {
+          date: new Date(date).toLocaleDateString('en', { weekday: 'short' }),
+          revenue: dayRevenue,
+          expenses: dayExpenses,
+        };
+      });
+      setChartData(chartPoints);
+
+      // Prepare category breakdown
+      const categoryBreakdown = transactions
+        .filter(t => t.type === 'expense')
+        .reduce((acc: any, t) => {
+          const categoryName = t.categories?.name || 'Uncategorized';
+          const categoryColor = t.categories?.color || '#888888';
+          if (!acc[categoryName]) {
+            acc[categoryName] = { name: categoryName, value: 0, color: categoryColor };
+          }
+          acc[categoryName].value += Number(t.amount);
+          return acc;
+        }, {});
+
+      setCategoryData(Object.values(categoryBreakdown));
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
-        <div className="mb-8 flex justify-between items-start">
+      
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-            <p className="text-muted-foreground mt-2">Welcome back {user?.email}! Here's your financial overview.</p>
+            <h1 className="text-3xl font-bold">Dashboard</h1>
+            <p className="text-muted-foreground">
+              Welcome back! Here's your financial overview.
+            </p>
           </div>
-          <Button variant="outline" onClick={signOut}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
+          <Button onClick={() => navigate('/transactions')}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Transaction
           </Button>
         </div>
 
-        {/* Metrics Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {metrics.map((metric, index) => (
-            <Card key={index} className="p-6 hover:shadow-soft transition-shadow">
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-2 bg-gradient-primary rounded-lg">
-                  <metric.icon className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <div className={`flex items-center text-sm font-medium ${
-                  metric.trend === 'up' ? 'text-success' : 'text-destructive'
-                }`}>
-                  {metric.change}
-                  {metric.trend === 'up' ? (
-                    <ArrowUpRight className="h-4 w-4 ml-1" />
-                  ) : (
-                    <ArrowDownRight className="h-4 w-4 ml-1" />
-                  )}
-                </div>
+        {/* Stats Cards */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                ${stats.totalRevenue.toFixed(2)}
               </div>
-              <h3 className="text-2xl font-bold text-foreground mb-1">{metric.value}</h3>
-              <p className="text-sm text-muted-foreground">{metric.title}</p>
-              <p className="text-xs text-muted-foreground mt-1">{metric.description}</p>
-            </Card>
-          ))}
-        </div>
-
-        {/* Charts and Recent Activity */}
-        <div className="grid lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-foreground">Revenue Overview</h2>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm">Week</Button>
-                <Button variant="ghost" size="sm">Month</Button>
-                <Button variant="ghost" size="sm">Year</Button>
-              </div>
-            </div>
-            {/* Chart placeholder */}
-            <div className="h-64 bg-gradient-subtle rounded-lg flex items-center justify-center">
-              <Activity className="h-12 w-12 text-muted-foreground/30" />
-            </div>
+              <p className="text-xs text-muted-foreground">
+                <ArrowUpIcon className="inline h-3 w-3 text-green-500" />
+                From all income sources
+              </p>
+            </CardContent>
           </Card>
 
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold text-foreground mb-4">Recent Transactions</h2>
-            <div className="space-y-3">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                ${stats.totalExpenses.toFixed(2)}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                <ArrowDownIcon className="inline h-3 w-3 text-red-500" />
+                All business expenses
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                ${stats.netProfit.toFixed(2)}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {stats.netProfit >= 0 ? (
+                  <span className="text-green-500">Profitable</span>
+                ) : (
+                  <span className="text-red-500">Loss</span>
+                )}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Transactions</CardTitle>
+              <Activity className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.transactionCount}</div>
+              <p className="text-xs text-muted-foreground">
+                Total recorded transactions
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* AI Insights */}
+        <AIInsights />
+
+        {/* Charts */}
+        <div className="grid gap-4 md:grid-cols-2 mt-8">
+          {/* Revenue Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Revenue Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#10B981"
+                    name="Revenue"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="expenses"
+                    stroke="#EF4444"
+                    name="Expenses"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Category Breakdown */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Expense Categories</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={(entry) => `${entry.name}: $${entry.value.toFixed(0)}`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {categoryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Recent Transactions */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle>Recent Transactions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
               {recentTransactions.map((transaction) => (
-                <div key={transaction.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                <div
+                  key={transaction.id}
+                  className="flex items-center justify-between"
+                >
                   <div>
-                    <p className="text-sm font-medium text-foreground">{transaction.description}</p>
-                    <p className="text-xs text-muted-foreground">{transaction.date}</p>
+                    <p className="font-medium">{transaction.description}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(transaction.transaction_date).toLocaleDateString()} •{" "}
+                      {transaction.categories?.name || "Uncategorized"}
+                    </p>
                   </div>
-                  <span className={`text-sm font-medium ${
-                    transaction.type === 'income' ? 'text-success' : 'text-foreground'
-                  }`}>
-                    {transaction.amount}
-                  </span>
+                  <div
+                    className={`font-semibold ${
+                      transaction.type === "income"
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}
+                  >
+                    {transaction.type === "income" ? "+" : "-"}$
+                    {Number(transaction.amount).toFixed(2)}
+                  </div>
                 </div>
               ))}
+              {recentTransactions.length === 0 && (
+                <p className="text-muted-foreground text-center py-4">
+                  No transactions yet. Add your first transaction to get started!
+                </p>
+              )}
             </div>
-            <Button variant="ghost" className="w-full mt-4">
-              View All Transactions
-            </Button>
-          </Card>
-        </div>
-
-        {/* Quick Actions */}
-        <Card className="mt-6 p-6">
-          <h2 className="text-xl font-semibold text-foreground mb-4">Quick Actions</h2>
-          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
-            <Button variant="outline" className="justify-start">
-              <DollarSign className="h-4 w-4 mr-2" />
-              Record Income
-            </Button>
-            <Button variant="outline" className="justify-start">
-              <CreditCard className="h-4 w-4 mr-2" />
-              Add Expense
-            </Button>
-            <Button variant="outline" className="justify-start">
-              <Activity className="h-4 w-4 mr-2" />
-              Generate Report
-            </Button>
-            <Button variant="outline" className="justify-start">
-              <Users className="h-4 w-4 mr-2" />
-              Add Client
-            </Button>
-          </div>
+          </CardContent>
         </Card>
-      </main>
+      </div>
     </div>
   );
-};
-
-export default Dashboard;
+}

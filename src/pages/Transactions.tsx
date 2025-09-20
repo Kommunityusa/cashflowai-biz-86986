@@ -1,17 +1,8 @@
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
-import { useAuth } from "@/hooks/useAuth";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Search, 
-  Filter, 
-  Download,
-  Plus,
-  ArrowUpRight,
-  ArrowDownRight,
-  Calendar
-} from "lucide-react";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -19,199 +10,492 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Plus,
+  Download,
+  Upload,
+  Filter,
+  Search,
+  Edit,
+  Trash2,
+  Sparkles,
+} from "lucide-react";
 
-const Transactions = () => {
-  useAuth();
-  const transactions = [
-    { 
-      id: 1, 
-      date: "2024-03-20", 
-      description: "Client Payment - ABC Corp", 
-      category: "Income", 
-      amount: 2500.00, 
-      type: "income",
-      account: "Business Checking"
-    },
-    { 
-      id: 2, 
-      date: "2024-03-19", 
-      description: "Office Supplies - Staples", 
-      category: "Office", 
-      amount: -234.50, 
-      type: "expense",
-      account: "Business Credit Card"
-    },
-    { 
-      id: 3, 
-      date: "2024-03-18", 
-      description: "Software Subscription - Adobe", 
-      category: "Software", 
-      amount: -99.00, 
-      type: "expense",
-      account: "Business Checking"
-    },
-    { 
-      id: 4, 
-      date: "2024-03-17", 
-      description: "Consulting Fee - XYZ Ltd", 
-      category: "Income", 
-      amount: 5000.00, 
-      type: "income",
-      account: "Business Checking"
-    },
-    { 
-      id: 5, 
-      date: "2024-03-16", 
-      description: "Internet Service", 
-      category: "Utilities", 
-      amount: -89.99, 
-      type: "expense",
-      account: "Business Checking"
-    },
-    { 
-      id: 6, 
-      date: "2024-03-15", 
-      description: "Client Lunch Meeting", 
-      category: "Meals", 
-      amount: -156.75, 
-      type: "expense",
-      account: "Business Credit Card"
-    },
-    { 
-      id: 7, 
-      date: "2024-03-14", 
-      description: "Project Payment - Tech Startup", 
-      category: "Income", 
-      amount: 8500.00, 
-      type: "income",
-      account: "Business Checking"
-    },
-    { 
-      id: 8, 
-      date: "2024-03-13", 
-      description: "Cloud Storage - AWS", 
-      category: "Software", 
-      amount: -45.00, 
-      type: "expense",
-      account: "Business Credit Card"
+export default function Transactions() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState("all");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+  const [newTransaction, setNewTransaction] = useState({
+    description: "",
+    amount: "",
+    type: "expense",
+    category_id: "",
+    transaction_date: new Date().toISOString().split('T')[0],
+    notes: "",
+  });
+  const [isAICategorizing, setIsAICategorizing] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      fetchCategories();
+      fetchTransactions();
     }
-  ];
+  }, [user]);
+
+  const fetchCategories = async () => {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('user_id', user?.id)
+      .order('name');
+    
+    if (!error && data) {
+      setCategories(data);
+    }
+  };
+
+  const fetchTransactions = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*, categories(name, color)')
+      .eq('user_id', user?.id)
+      .order('transaction_date', { ascending: false });
+    
+    if (!error && data) {
+      setTransactions(data);
+    }
+    setLoading(false);
+  };
+
+  const handleAICategorize = async () => {
+    if (!newTransaction.description || !newTransaction.amount) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter description and amount first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAICategorizing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-categorize', {
+        body: {
+          description: newTransaction.description,
+          amount: newTransaction.amount,
+          type: newTransaction.type,
+          existingCategories: categories,
+        },
+      });
+
+      if (error) throw error;
+
+      const suggestedCategory = categories.find(
+        cat => cat.name === data.category && cat.type === newTransaction.type
+      );
+
+      if (suggestedCategory) {
+        setNewTransaction(prev => ({
+          ...prev,
+          category_id: suggestedCategory.id,
+        }));
+        
+        toast({
+          title: "Category Suggested",
+          description: `AI suggested: ${data.category}`,
+        });
+      }
+    } catch (error) {
+      console.error('Error categorizing:', error);
+      toast({
+        title: "Error",
+        description: "Failed to auto-categorize",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAICategorizing(false);
+    }
+  };
+
+  const handleAddTransaction = async () => {
+    if (!newTransaction.description || !newTransaction.amount || !newTransaction.category_id) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { error } = await supabase
+      .from('transactions')
+      .insert({
+        user_id: user?.id,
+        description: newTransaction.description,
+        amount: Number(newTransaction.amount),
+        type: newTransaction.type,
+        category_id: newTransaction.category_id,
+        transaction_date: newTransaction.transaction_date,
+        notes: newTransaction.notes,
+        status: 'completed',
+      });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add transaction",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "Transaction added successfully",
+      });
+      setIsAddDialogOpen(false);
+      setNewTransaction({
+        description: "",
+        amount: "",
+        type: "expense",
+        category_id: "",
+        transaction_date: new Date().toISOString().split('T')[0],
+        notes: "",
+      });
+      fetchTransactions();
+    }
+  };
+
+  const handleDeleteTransaction = async (id: string) => {
+    const { error } = await supabase
+      .from('transactions')
+      .delete()
+      .eq('id', id);
+
+    if (!error) {
+      toast({
+        title: "Success",
+        description: "Transaction deleted",
+      });
+      fetchTransactions();
+    }
+  };
+
+  const filteredTransactions = transactions.filter(transaction => {
+    const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = filterType === "all" || transaction.type === filterType;
+    const matchesCategory = filterCategory === "all" || transaction.category_id === filterCategory;
+    return matchesSearch && matchesType && matchesCategory;
+  });
+
+  const exportTransactions = () => {
+    const csv = [
+      ['Date', 'Description', 'Category', 'Type', 'Amount'],
+      ...filteredTransactions.map(t => [
+        t.transaction_date,
+        t.description,
+        t.categories?.name || 'Uncategorized',
+        t.type,
+        t.amount
+      ])
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'transactions.csv';
+    a.click();
+  };
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Transactions</h1>
-          <p className="text-muted-foreground mt-2">View and manage all your business transactions</p>
+      
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold">Transactions</h1>
+            <p className="text-muted-foreground">
+              Manage your income and expenses
+            </p>
+          </div>
         </div>
 
-        {/* Actions Bar */}
-        <Card className="p-4 mb-6">
-          <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1 flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input 
-                  placeholder="Search transactions..." 
-                  className="pl-10"
-                />
-              </div>
-              <Select defaultValue="all">
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="income">Income</SelectItem>
-                  <SelectItem value="office">Office</SelectItem>
-                  <SelectItem value="software">Software</SelectItem>
-                  <SelectItem value="utilities">Utilities</SelectItem>
-                  <SelectItem value="meals">Meals</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="icon">
-                <Calendar className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="icon">
-                <Filter className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
-              <Button variant="gradient">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Transaction
-              </Button>
-            </div>
+        {/* Filters and Actions */}
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <div className="flex-1 flex gap-2">
+            <Input
+              placeholder="Search transactions..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-sm"
+            />
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="income">Income</SelectItem>
+                <SelectItem value="expense">Expense</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterCategory} onValueChange={setFilterCategory}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map(cat => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </Card>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={exportTransactions}>
+              <Download className="mr-2 h-4 w-4" />
+              Export
+            </Button>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Transaction
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Transaction</DialogTitle>
+                  <DialogDescription>
+                    Add a new income or expense transaction to your records.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Input 
+                      id="description" 
+                      placeholder="Enter transaction description"
+                      value={newTransaction.description}
+                      onChange={(e) => setNewTransaction(prev => ({
+                        ...prev,
+                        description: e.target.value
+                      }))}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="amount">Amount</Label>
+                    <Input 
+                      id="amount" 
+                      type="number" 
+                      placeholder="0.00"
+                      value={newTransaction.amount}
+                      onChange={(e) => setNewTransaction(prev => ({
+                        ...prev,
+                        amount: e.target.value
+                      }))}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="type">Type</Label>
+                    <Select
+                      value={newTransaction.type}
+                      onValueChange={(value) => setNewTransaction(prev => ({
+                        ...prev,
+                        type: value,
+                        category_id: "",
+                      }))}
+                    >
+                      <SelectTrigger id="type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="income">Income</SelectItem>
+                        <SelectItem value="expense">Expense</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="category">Category</Label>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleAICategorize}
+                        disabled={isAICategorizing}
+                        className="text-primary"
+                      >
+                        <Sparkles className="h-4 w-4 mr-1" />
+                        {isAICategorizing ? "Categorizing..." : "AI Categorize"}
+                      </Button>
+                    </div>
+                    <Select
+                      value={newTransaction.category_id}
+                      onValueChange={(value) => setNewTransaction(prev => ({
+                        ...prev,
+                        category_id: value
+                      }))}
+                    >
+                      <SelectTrigger id="category">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories
+                          .filter(cat => cat.type === newTransaction.type)
+                          .map(cat => (
+                            <SelectItem key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="date">Date</Label>
+                    <Input 
+                      id="date" 
+                      type="date"
+                      value={newTransaction.transaction_date}
+                      onChange={(e) => setNewTransaction(prev => ({
+                        ...prev,
+                        transaction_date: e.target.value
+                      }))}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="notes">Notes (Optional)</Label>
+                    <Input 
+                      id="notes" 
+                      placeholder="Additional notes"
+                      value={newTransaction.notes}
+                      onChange={(e) => setNewTransaction(prev => ({
+                        ...prev,
+                        notes: e.target.value
+                      }))}
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3">
+                  <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleAddTransaction}>
+                    Add Transaction
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
 
         {/* Transactions Table */}
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-muted/50 border-b border-border">
-                <tr>
-                  <th className="text-left p-4 font-medium text-muted-foreground">Date</th>
-                  <th className="text-left p-4 font-medium text-muted-foreground">Description</th>
-                  <th className="text-left p-4 font-medium text-muted-foreground">Category</th>
-                  <th className="text-left p-4 font-medium text-muted-foreground">Account</th>
-                  <th className="text-right p-4 font-medium text-muted-foreground">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.map((transaction) => (
-                  <tr key={transaction.id} className="border-b border-border hover:bg-muted/30 transition-colors">
-                    <td className="p-4 text-sm text-muted-foreground">
-                      {new Date(transaction.date).toLocaleDateString()}
-                    </td>
-                    <td className="p-4">
-                      <p className="text-sm font-medium text-foreground">{transaction.description}</p>
-                    </td>
-                    <td className="p-4">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                        {transaction.category}
-                      </span>
-                    </td>
-                    <td className="p-4 text-sm text-muted-foreground">
-                      {transaction.account}
-                    </td>
-                    <td className="p-4 text-right">
-                      <div className={`flex items-center justify-end text-sm font-medium ${
-                        transaction.type === 'income' ? 'text-success' : 'text-foreground'
-                      }`}>
-                        {transaction.type === 'income' ? '+' : ''}${Math.abs(transaction.amount).toFixed(2)}
-                        {transaction.type === 'income' ? (
-                          <ArrowUpRight className="h-4 w-4 ml-1" />
-                        ) : (
-                          <ArrowDownRight className="h-4 w-4 ml-1" />
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8">
+                    Loading transactions...
+                  </TableCell>
+                </TableRow>
+              ) : filteredTransactions.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8">
+                    No transactions found. Add your first transaction to get started!
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredTransactions.map((transaction) => (
+                  <TableRow key={transaction.id}>
+                    <TableCell>
+                      {new Date(transaction.transaction_date).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{transaction.description}</p>
+                        {transaction.notes && (
+                          <p className="text-sm text-muted-foreground">{transaction.notes}</p>
                         )}
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          
-          {/* Pagination */}
-          <div className="p-4 border-t border-border flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Showing 1 to 8 of 156 transactions
-            </p>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm">Previous</Button>
-              <Button variant="outline" size="sm">Next</Button>
-            </div>
-          </div>
-        </Card>
-      </main>
+                    </TableCell>
+                    <TableCell>
+                      <span 
+                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+                        style={{
+                          backgroundColor: transaction.categories?.color + '20',
+                          color: transaction.categories?.color || '#888',
+                        }}
+                      >
+                        {transaction.categories?.name || 'Uncategorized'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`capitalize ${
+                        transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {transaction.type}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      ${Number(transaction.amount).toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteTransaction(transaction.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
     </div>
   );
-};
-
-export default Transactions;
+}
