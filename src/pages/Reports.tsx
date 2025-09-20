@@ -1,4 +1,5 @@
 import { Header } from "@/components/layout/Header";
+import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -20,6 +21,7 @@ import {
 } from "@/components/ui/select";
 
 const Reports = () => {
+  useAuth();
   const reportTypes = [
     {
       icon: FileText,

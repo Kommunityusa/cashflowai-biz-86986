@@ -71,10 +71,10 @@ export function Header() {
           <div className="hidden md:flex items-center space-x-4">
             {isLandingPage ? (
               <>
-                <Link to="/dashboard">
+                <Link to="/auth">
                   <Button variant="ghost">Sign In</Button>
                 </Link>
-                <Link to="/dashboard">
+                <Link to="/auth">
                   <Button variant="gradient">Start Free Trial</Button>
                 </Link>
               </>
@@ -112,10 +112,10 @@ export function Header() {
                       {item.name}
                     </a>
                   ))}
-                  <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                  <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full">Sign In</Button>
                   </Link>
-                  <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                  <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="gradient" className="w-full">Start Free Trial</Button>
                   </Link>
                 </>

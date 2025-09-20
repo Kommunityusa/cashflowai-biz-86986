@@ -1,4 +1,5 @@
 import { Header } from "@/components/layout/Header";
+import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,7 @@ import {
 } from "@/components/ui/select";
 
 const Transactions = () => {
+  useAuth();
   const transactions = [
     { 
       id: 1, 

@@ -8,11 +8,14 @@ import {
   Activity,
   Users,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 const Dashboard = () => {
+  const { user, signOut } = useAuth();
   const metrics = [
     {
       title: "Total Revenue",
@@ -60,9 +63,15 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground mt-2">Welcome back! Here's your financial overview.</p>
+        <div className="mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-muted-foreground mt-2">Welcome back {user?.email}! Here's your financial overview.</p>
+          </div>
+          <Button variant="outline" onClick={signOut}>
+            <LogOut className="h-4 w-4 mr-2" />
+            Sign Out
+          </Button>
         </div>
 
         {/* Metrics Grid */}
