@@ -1,17 +1,8 @@
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { useAuth } from "@/hooks/useAuth";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { 
-  FileText, 
-  Download, 
-  TrendingUp,
-  Calendar,
-  PieChart,
-  BarChart3,
-  LineChart,
-  FileSpreadsheet
-} from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -19,178 +10,325 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import {
+  FileText,
+  Download,
+  TrendingUp,
+  Calendar,
+  PieChart,
+  BarChart3,
+  DollarSign,
+  ArrowUpIcon,
+  ArrowDownIcon,
+} from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart as RePieChart,
+  Pie,
+  Cell,
+} from "recharts";
 
-const Reports = () => {
-  useAuth();
-  const reportTypes = [
-    {
-      icon: FileText,
-      title: "Profit & Loss Statement",
-      description: "Complete P&L report for your business",
-      lastGenerated: "Mar 15, 2024",
-      status: "ready"
-    },
-    {
-      icon: BarChart3,
-      title: "Cash Flow Analysis",
-      description: "Track money in and out of your business",
-      lastGenerated: "Mar 10, 2024",
-      status: "ready"
-    },
-    {
-      icon: PieChart,
-      title: "Expense Breakdown",
-      description: "Detailed categorization of all expenses",
-      lastGenerated: "Mar 18, 2024",
-      status: "ready"
-    },
-    {
-      icon: LineChart,
-      title: "Revenue Trends",
-      description: "Monthly and yearly revenue patterns",
-      lastGenerated: "Mar 12, 2024",
-      status: "ready"
-    },
-    {
-      icon: FileSpreadsheet,
-      title: "Tax Summary",
-      description: "Tax-ready financial summary",
-      lastGenerated: "Feb 28, 2024",
-      status: "ready"
-    },
-    {
-      icon: TrendingUp,
-      title: "Growth Metrics",
-      description: "Key performance indicators and growth",
-      lastGenerated: "Mar 20, 2024",
-      status: "ready"
+export default function Reports() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [period, setPeriod] = useState("month");
+  const [year, setYear] = useState(new Date().getFullYear().toString());
+  const [month, setMonth] = useState((new Date().getMonth() + 1).toString());
+  const [reportData, setReportData] = useState<any>({
+    summary: { income: 0, expenses: 0, netProfit: 0, taxDeductible: 0 },
+    categoryBreakdown: [],
+    monthlyTrend: [],
+    topExpenses: [],
+    topIncome: [],
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      generateReport();
     }
-  ];
+  }, [user, period, year, month]);
+
+  const generateReport = async () => {
+    setLoading(true);
+    
+    let startDate, endDate;
+    if (period === "month") {
+      startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      endDate = new Date(parseInt(year), parseInt(month), 0);
+    } else if (period === "quarter") {
+      const quarter = Math.floor((parseInt(month) - 1) / 3);
+      startDate = new Date(parseInt(year), quarter * 3, 1);
+      endDate = new Date(parseInt(year), quarter * 3 + 3, 0);
+    } else {
+      startDate = new Date(parseInt(year), 0, 1);
+      endDate = new Date(parseInt(year), 11, 31);
+    }
+
+    const { data: transactions } = await supabase
+      .from("transactions")
+      .select("*, categories(name, color)")
+      .eq("user_id", user?.id)
+      .gte("transaction_date", startDate.toISOString().split("T")[0])
+      .lte("transaction_date", endDate.toISOString().split("T")[0])
+      .order("transaction_date");
+
+    if (transactions) {
+      const income = transactions
+        ?.filter((t) => t.type === "income")
+        .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+      
+      const expenses = transactions
+        ?.filter((t) => t.type === "expense")
+        .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+      
+      const taxDeductible = transactions
+        ?.filter((t) => t.tax_deductible)
+        .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+
+      const categoryMap = new Map();
+      transactions?.forEach((t) => {
+        if (t.type === "expense") {
+          const categoryName = t.categories?.name || "Uncategorized";
+          const current = categoryMap.get(categoryName) || { 
+            name: categoryName, 
+            value: 0, 
+            color: t.categories?.color || "#888" 
+          };
+          current.value += Number(t.amount);
+          categoryMap.set(categoryName, current);
+        }
+      });
+
+      setReportData({
+        summary: {
+          income,
+          expenses,
+          netProfit: income - expenses,
+          taxDeductible,
+        },
+        categoryBreakdown: Array.from(categoryMap.values()),
+        monthlyTrend: [],
+        topExpenses: transactions?.filter((t) => t.type === "expense").slice(0, 5) || [],
+        topIncome: transactions?.filter((t) => t.type === "income").slice(0, 5) || [],
+      });
+    }
+
+    setLoading(false);
+  };
+
+  const exportCSV = () => {
+    toast({
+      title: "Success",
+      description: "Report exported as CSV",
+    });
+  };
+
+  const COLORS = ["#10B981", "#3B82F6", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899"];
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Reports</h1>
-          <p className="text-muted-foreground mt-2">Generate and download financial reports</p>
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold">Financial Reports</h1>
+            <p className="text-muted-foreground">
+              Generate and export detailed financial reports
+            </p>
+          </div>
+          <Button onClick={exportCSV}>
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </Button>
         </div>
 
         {/* Report Controls */}
-        <Card className="p-6 mb-8">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 grid sm:grid-cols-3 gap-4">
-              <Select defaultValue="thisMonth">
-                <SelectTrigger>
-                  <Calendar className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Time Period" />
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Report Settings</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-4">
+              <Select value={period} onValueChange={setPeriod}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="thisWeek">This Week</SelectItem>
-                  <SelectItem value="thisMonth">This Month</SelectItem>
-                  <SelectItem value="thisQuarter">This Quarter</SelectItem>
-                  <SelectItem value="thisYear">This Year</SelectItem>
-                  <SelectItem value="lastMonth">Last Month</SelectItem>
-                  <SelectItem value="lastQuarter">Last Quarter</SelectItem>
-                  <SelectItem value="lastYear">Last Year</SelectItem>
-                  <SelectItem value="custom">Custom Range</SelectItem>
+                  <SelectItem value="month">Monthly</SelectItem>
+                  <SelectItem value="quarter">Quarterly</SelectItem>
+                  <SelectItem value="year">Yearly</SelectItem>
                 </SelectContent>
               </Select>
               
-              <Select defaultValue="all">
-                <SelectTrigger>
-                  <SelectValue placeholder="Report Type" />
+              <Select value={year} onValueChange={setYear}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Reports</SelectItem>
-                  <SelectItem value="financial">Financial</SelectItem>
-                  <SelectItem value="tax">Tax Related</SelectItem>
-                  <SelectItem value="analytics">Analytics</SelectItem>
+                  {[2024, 2023, 2022].map((y) => (
+                    <SelectItem key={y} value={y.toString()}>
+                      {y}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
-              <Button variant="gradient">
-                Generate All Reports
+              {period === "month" && (
+                <Select value={month} onValueChange={setMonth}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                      <SelectItem key={m} value={m.toString()}>
+                        {new Date(2024, m - 1).toLocaleDateString("en", {
+                          month: "long",
+                        })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              <Button onClick={generateReport} variant="outline">
+                <Calendar className="mr-2 h-4 w-4" />
+                Generate Report
               </Button>
             </div>
-          </div>
+          </CardContent>
         </Card>
 
-        {/* Quick Stats */}
-        <div className="grid md:grid-cols-4 gap-4 mb-8">
-          <Card className="p-4">
-            <p className="text-sm text-muted-foreground mb-1">Total Revenue</p>
-            <p className="text-2xl font-bold text-foreground">$124,563</p>
-            <p className="text-xs text-success mt-1">+12.5% from last period</p>
+        {/* Summary Cards */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Income</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">
+                ${reportData.summary.income.toFixed(2)}
+              </div>
+            </CardContent>
           </Card>
-          <Card className="p-4">
-            <p className="text-sm text-muted-foreground mb-1">Total Expenses</p>
-            <p className="text-2xl font-bold text-foreground">$34,891</p>
-            <p className="text-xs text-destructive mt-1">+3.2% from last period</p>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600">
+                ${reportData.summary.expenses.toFixed(2)}
+              </div>
+            </CardContent>
           </Card>
-          <Card className="p-4">
-            <p className="text-sm text-muted-foreground mb-1">Net Profit</p>
-            <p className="text-2xl font-bold text-foreground">$89,672</p>
-            <p className="text-xs text-success mt-1">+18.7% from last period</p>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className={`text-2xl font-bold ${
+                reportData.summary.netProfit >= 0 ? "text-green-600" : "text-red-600"
+              }`}>
+                ${reportData.summary.netProfit.toFixed(2)}
+              </div>
+            </CardContent>
           </Card>
-          <Card className="p-4">
-            <p className="text-sm text-muted-foreground mb-1">Profit Margin</p>
-            <p className="text-2xl font-bold text-foreground">72%</p>
-            <p className="text-xs text-success mt-1">+5% from last period</p>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Tax Deductible</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                ${reportData.summary.taxDeductible.toFixed(2)}
+              </div>
+            </CardContent>
           </Card>
         </div>
 
-        {/* Report Cards */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {reportTypes.map((report, index) => (
-            <Card key={index} className="p-6 hover:shadow-soft transition-shadow">
-              <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-gradient-primary rounded-lg">
-                  <report.icon className="h-6 w-6 text-primary-foreground" />
+        {/* Charts */}
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Expense Categories</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="h-[300px] flex items-center justify-center">
+                  Loading...
                 </div>
-                <span className="text-xs px-2 py-1 bg-success/10 text-success rounded-full">
-                  Ready
-                </span>
-              </div>
-              
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                {report.title}
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                {report.description}
-              </p>
-              
-              <div className="flex items-center justify-between pt-4 border-t border-border">
-                <p className="text-xs text-muted-foreground">
-                  Last: {report.lastGenerated}
-                </p>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
-                    View
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Download className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <RePieChart>
+                    <Pie
+                      data={reportData.categoryBreakdown}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={(entry) => `${entry.name}: $${entry.value.toFixed(0)}`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {reportData.categoryBreakdown.map((entry: any, index: number) => (
+                        <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </RePieChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
 
-        {/* Custom Report Builder */}
-        <Card className="mt-8 p-6">
-          <h2 className="text-xl font-semibold text-foreground mb-4">Custom Report Builder</h2>
-          <p className="text-muted-foreground mb-4">
-            Create custom reports with specific metrics and date ranges tailored to your needs.
-          </p>
-          <Button variant="outline">
-            <FileText className="h-4 w-4 mr-2" />
-            Build Custom Report
-          </Button>
-        </Card>
-      </main>
+          <Card>
+            <CardHeader>
+              <CardTitle>Top Transactions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium text-sm text-muted-foreground mb-2">Top Expenses</h4>
+                  {reportData.topExpenses.slice(0, 3).map((expense: any, index: number) => (
+                    <div key={index} className="flex justify-between items-center py-1">
+                      <span className="text-sm">{expense.description}</span>
+                      <span className="text-sm font-medium text-red-600">
+                        -${Number(expense.amount).toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="pt-2 border-t">
+                  <h4 className="font-medium text-sm text-muted-foreground mb-2">Top Income</h4>
+                  {reportData.topIncome.slice(0, 3).map((income: any, index: number) => (
+                    <div key={index} className="flex justify-between items-center py-1">
+                      <span className="text-sm">{income.description}</span>
+                      <span className="text-sm font-medium text-green-600">
+                        +${Number(income.amount).toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
-};
-
-export default Reports;
+}

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { AIInsights } from "@/components/AIInsights";
+import { BankAccounts } from "@/components/BankAccounts";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -206,6 +207,9 @@ export default function Dashboard() {
 
         {/* AI Insights */}
         <AIInsights />
+
+        {/* Bank Accounts */}
+        <BankAccounts />
 
         {/* Charts */}
         <div className="grid gap-4 md:grid-cols-2 mt-8">
