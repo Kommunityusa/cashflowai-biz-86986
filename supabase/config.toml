@@ -180,3 +180,6 @@ verify_jwt = true
 
 [functions.ai-budget]
 verify_jwt = true
+
+[functions.plaid]
+verify_jwt = true

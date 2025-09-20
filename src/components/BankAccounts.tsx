@@ -21,6 +21,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { PlaidLinkButton } from "@/components/PlaidLinkButton";
 import {
   Building,
   Plus,
@@ -28,6 +29,7 @@ import {
   RefreshCw,
   DollarSign,
   CreditCard,
+  Link,
 } from "lucide-react";
 
 export function BankAccounts() {
@@ -144,6 +146,50 @@ export function BankAccounts() {
     }
   };
 
+  const syncTransactions = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data, error } = await supabase.functions.invoke("plaid", {
+        body: { action: "sync_transactions" },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!error && data) {
+        toast({
+          title: "Success",
+          description: `Synced ${data.transactions_synced} new transactions`,
+        });
+        fetchAccounts();
+      }
+    } catch (error) {
+      console.error("Error syncing:", error);
+    }
+  };
+
+  const removeConnection = async (id: string, hasPlaid: boolean) => {
+    if (hasPlaid) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        await supabase.functions.invoke("plaid", {
+          body: { action: "remove_connection", account_id: id },
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+      } catch (error) {
+        console.error("Error removing Plaid connection:", error);
+      }
+    } else {
+      await deleteAccount(id);
+    }
+  };
+
   const totalBalance = accounts.reduce((sum, acc) => sum + Number(acc.current_balance || 0), 0);
 
   return (
@@ -154,20 +200,22 @@ export function BankAccounts() {
             <Building className="h-5 w-5" />
             Bank Accounts
           </CardTitle>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Account
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add Bank Account</DialogTitle>
-                <DialogDescription>
-                  Manually add a bank account to track your balances
-                </DialogDescription>
-              </DialogHeader>
+          <div className="flex gap-2">
+            <PlaidLinkButton onSuccess={fetchAccounts} />
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Manually
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Bank Account</DialogTitle>
+                  <DialogDescription>
+                    Manually add a bank account to track your balances
+                  </DialogDescription>
+                </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label htmlFor="account_name">Account Name *</Label>
@@ -285,8 +333,12 @@ export function BankAccounts() {
                 </span>
               </div>
             </div>
+            <Button variant="outline" onClick={syncTransactions}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Sync All Accounts
+            </Button>
             
-            <div className="space-y-3">
+            <div className="space-y-3 mt-4">
               {accounts.map((account) => (
                 <div
                   key={account.id}
@@ -302,8 +354,14 @@ export function BankAccounts() {
                       <div>
                         <p className="font-medium">{account.account_name}</p>
                         <p className="text-sm text-muted-foreground">
-                          {account.bank_name} • ****{account.account_number_last4 || "----"}
-                        </p>
+                      {account.bank_name} • ****{account.account_number_last4 || "----"}
+                      {account.plaid_account_id && (
+                        <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                          <Link className="inline h-3 w-3 mr-1" />
+                          Connected
+                        </span>
+                      )}
+                    </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -325,7 +383,7 @@ export function BankAccounts() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => deleteAccount(account.id)}
+                        onClick={() => removeConnection(account.id, !!account.plaid_account_id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
