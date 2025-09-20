@@ -310,6 +310,7 @@ export function BankAccounts() {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
