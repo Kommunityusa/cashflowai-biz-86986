@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Lightbulb, Sparkles, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { withRateLimit } from "@/utils/rateLimiter";
+import { logAuditEvent } from "@/utils/auditLogger";
 
 interface Insight {
   title: string;
@@ -17,33 +19,54 @@ export function AIInsights() {
 
   const fetchInsights = async () => {
     setLoading(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error("Not authenticated");
+    
+    const result = await withRateLimit(
+      'ai_insights',
+      async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+            throw new Error("Not authenticated");
+          }
+
+          const { data, error } = await supabase.functions.invoke('ai-insights', {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          });
+
+          if (error) throw error;
+
+          // Log audit event
+          await logAuditEvent({
+            action: 'VIEW_INSIGHTS',
+            details: { timestamp: new Date().toISOString() }
+          });
+
+          // Handle the response properly
+          const insightsData = data.insights || data;
+          setInsights(Array.isArray(insightsData) ? insightsData : []);
+          return true;
+        } catch (error) {
+          console.error('Error fetching insights:', error);
+          toast({
+            title: "Error",
+            description: "Failed to fetch AI insights",
+            variant: "destructive",
+          });
+          return false;
+        }
+      },
+      (retryAfter) => {
+        toast({
+          title: "Rate Limit Exceeded",
+          description: `Too many AI requests. Please wait ${retryAfter} seconds.`,
+          variant: "destructive",
+        });
       }
-
-      const { data, error } = await supabase.functions.invoke('ai-insights', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (error) throw error;
-
-      // Handle the response properly
-      const insightsData = data.insights || data;
-      setInsights(Array.isArray(insightsData) ? insightsData : []);
-    } catch (error) {
-      console.error('Error fetching insights:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch AI insights",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+    );
+    
+    setLoading(false);
   };
 
   useEffect(() => {

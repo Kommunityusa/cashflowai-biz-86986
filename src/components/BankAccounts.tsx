@@ -31,6 +31,8 @@ import {
   CreditCard,
   Link,
 } from "lucide-react";
+import { withRateLimit } from "@/utils/rateLimiter";
+import { logAuditEvent } from "@/utils/auditLogger";
 
 export function BankAccounts() {
   const { user } = useAuth();

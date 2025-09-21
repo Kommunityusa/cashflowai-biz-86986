@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { AIInsights } from "@/components/AIInsights";
 import { BankAccounts } from "@/components/BankAccounts";
 import { SecurityMonitor } from "@/components/SecurityMonitor";
+import { RateLimitStatus } from "@/components/RateLimitStatus";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -321,6 +322,9 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+        
+        {/* Rate Limit Status */}
+        <RateLimitStatus />
       </div>
     </div>
   );

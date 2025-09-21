@@ -30,6 +30,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { logAuditEvent } from "@/utils/auditLogger";
+import { withRateLimit } from "@/utils/rateLimiter";
 import {
   Plus,
   Download,
@@ -156,37 +157,50 @@ export default function Transactions() {
       return;
     }
 
-    const { error } = await supabase
-      .from('transactions')
-      .insert({
-        user_id: user?.id,
-        description: newTransaction.description,
-        amount: Number(newTransaction.amount),
-        type: newTransaction.type,
-        category_id: newTransaction.category_id,
-        transaction_date: newTransaction.transaction_date,
-        notes: newTransaction.notes,
-        status: 'completed',
-      });
+    // Apply rate limiting
+    const result = await withRateLimit(
+      'transaction_create',
+      async () => {
+        const { error } = await supabase
+          .from('transactions')
+          .insert({
+            user_id: user?.id,
+            description: newTransaction.description,
+            amount: Number(newTransaction.amount),
+            type: newTransaction.type,
+            category_id: newTransaction.category_id,
+            transaction_date: newTransaction.transaction_date,
+            notes: newTransaction.notes,
+            status: 'completed',
+          });
 
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to add transaction",
-        variant: "destructive",
-      });
-    } else {
-      // Log audit event
-      await logAuditEvent({
-        action: 'CREATE_TRANSACTION',
-        entityType: 'transaction',
-        details: {
-          amount: Number(newTransaction.amount),
-          type: newTransaction.type,
-          category_id: newTransaction.category_id,
+        if (error) {
+          throw error;
         }
-      });
-      
+
+        // Log audit event
+        await logAuditEvent({
+          action: 'CREATE_TRANSACTION',
+          entityType: 'transaction',
+          details: {
+            amount: Number(newTransaction.amount),
+            type: newTransaction.type,
+            category_id: newTransaction.category_id,
+          }
+        });
+
+        return true;
+      },
+      (retryAfter) => {
+        toast({
+          title: "Rate Limit Exceeded",
+          description: `Too many transactions created. Please wait ${retryAfter} seconds.`,
+          variant: "destructive",
+        });
+      }
+    );
+
+    if (result) {
       toast({
         title: "Success",
         description: "Transaction added successfully",

@@ -189,3 +189,6 @@ verify_jwt = false
 
 [functions.encryption]
 verify_jwt = true
+
+[functions.rate-limit]
+verify_jwt = false
