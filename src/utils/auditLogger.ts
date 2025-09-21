@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 export type AuditAction = 
   | 'LOGIN'
   | 'LOGOUT'
+  | 'VIEW_DASHBOARD'
   | 'VIEW_TRANSACTIONS'
   | 'CREATE_TRANSACTION'
   | 'UPDATE_TRANSACTION'
@@ -13,7 +14,8 @@ export type AuditAction =
   | 'GENERATE_REPORT'
   | 'UPDATE_SETTINGS'
   | 'VIEW_INSIGHTS'
-  | 'EXPORT_DATA';
+  | 'EXPORT_DATA'
+  | 'VIEW_AUDIT_LOGS';
 
 interface AuditLogData {
   action: AuditAction;

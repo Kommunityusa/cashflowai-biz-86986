@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EncryptionSettings } from "@/components/EncryptionSettings";
+import { AuditLogs } from "@/components/AuditLogs";
 
 const Settings = () => {
   useAuth();
@@ -124,6 +125,8 @@ const Settings = () => {
                 <Button variant="outline">Enable 2FA</Button>
               </div>
             </Card>
+            
+            <AuditLogs />
           </TabsContent>
 
           <TabsContent value="billing" className="space-y-6">

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { logAuditEvent } from "@/utils/auditLogger";
 import {
   FileText,
   Download,
@@ -60,6 +61,17 @@ export default function Reports() {
 
   const generateReport = async () => {
     setLoading(true);
+    
+    // Log report generation
+    await logAuditEvent({
+      action: 'GENERATE_REPORT',
+      entityType: 'report',
+      details: {
+        period,
+        year,
+        month: period === 'month' ? month : undefined,
+      }
+    });
     
     let startDate, endDate;
     if (period === "month") {

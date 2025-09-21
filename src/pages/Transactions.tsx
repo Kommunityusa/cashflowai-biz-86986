@@ -29,6 +29,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { logAuditEvent } from "@/utils/auditLogger";
 import {
   Plus,
   Download,
@@ -175,6 +176,17 @@ export default function Transactions() {
         variant: "destructive",
       });
     } else {
+      // Log audit event
+      await logAuditEvent({
+        action: 'CREATE_TRANSACTION',
+        entityType: 'transaction',
+        details: {
+          amount: Number(newTransaction.amount),
+          type: newTransaction.type,
+          category_id: newTransaction.category_id,
+        }
+      });
+      
       toast({
         title: "Success",
         description: "Transaction added successfully",
@@ -199,6 +211,13 @@ export default function Transactions() {
       .eq('id', id);
 
     if (!error) {
+      // Log audit event
+      await logAuditEvent({
+        action: 'DELETE_TRANSACTION',
+        entityType: 'transaction',
+        entityId: id,
+      });
+      
       toast({
         title: "Success",
         description: "Transaction deleted",

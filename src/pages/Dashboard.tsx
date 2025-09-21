@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { AIInsights } from "@/components/AIInsights";
 import { BankAccounts } from "@/components/BankAccounts";
+import { SecurityMonitor } from "@/components/SecurityMonitor";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
+import { logAuditEvent } from "@/utils/auditLogger";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -48,6 +50,11 @@ export default function Dashboard() {
   useEffect(() => {
     if (user) {
       fetchDashboardData();
+      // Log dashboard view
+      logAuditEvent({
+        action: 'VIEW_DASHBOARD',
+        details: { timestamp: new Date().toISOString() }
+      });
     }
   }, [user]);
 
@@ -127,6 +134,8 @@ export default function Dashboard() {
       <Header />
       
       <div className="container mx-auto px-4 py-8">
+        {/* Security Monitoring */}
+        <SecurityMonitor />
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold">Dashboard</h1>
