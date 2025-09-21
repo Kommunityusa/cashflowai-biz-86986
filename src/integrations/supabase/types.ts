@@ -53,52 +53,64 @@ export type Database = {
       bank_accounts: {
         Row: {
           account_name: string
+          account_number_encrypted: string | null
           account_number_last4: string | null
           account_type: string | null
           bank_name: string | null
           created_at: string
           current_balance: number | null
+          encryption_enabled: boolean | null
           id: string
           is_active: boolean | null
           last_synced_at: string | null
           plaid_access_token: string | null
+          plaid_access_token_encrypted: string | null
           plaid_account_id: string | null
           plaid_item_id: string | null
           routing_number: string | null
+          routing_number_encrypted: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           account_name: string
+          account_number_encrypted?: string | null
           account_number_last4?: string | null
           account_type?: string | null
           bank_name?: string | null
           created_at?: string
           current_balance?: number | null
+          encryption_enabled?: boolean | null
           id?: string
           is_active?: boolean | null
           last_synced_at?: string | null
           plaid_access_token?: string | null
+          plaid_access_token_encrypted?: string | null
           plaid_account_id?: string | null
           plaid_item_id?: string | null
           routing_number?: string | null
+          routing_number_encrypted?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           account_name?: string
+          account_number_encrypted?: string | null
           account_number_last4?: string | null
           account_type?: string | null
           bank_name?: string | null
           created_at?: string
           current_balance?: number | null
+          encryption_enabled?: boolean | null
           id?: string
           is_active?: boolean | null
           last_synced_at?: string | null
           plaid_access_token?: string | null
+          plaid_access_token_encrypted?: string | null
           plaid_account_id?: string | null
           plaid_item_id?: string | null
           routing_number?: string | null
+          routing_number_encrypted?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -136,6 +148,33 @@ export type Database = {
           name?: string
           type?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      encryption_keys: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean | null
+          key_hash: string
+          rotated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          key_hash: string
+          rotated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          key_hash?: string
+          rotated_at?: string | null
           user_id?: string
         }
         Relationships: []
@@ -231,8 +270,11 @@ export type Database = {
           category_id: string | null
           created_at: string
           description: string
+          description_encrypted: string | null
+          encryption_enabled: boolean | null
           id: string
           notes: string | null
+          notes_encrypted: string | null
           plaid_category: Json | null
           plaid_transaction_id: string | null
           receipt_url: string | null
@@ -243,6 +285,7 @@ export type Database = {
           updated_at: string
           user_id: string
           vendor_name: string | null
+          vendor_name_encrypted: string | null
         }
         Insert: {
           amount: number
@@ -250,8 +293,11 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           description: string
+          description_encrypted?: string | null
+          encryption_enabled?: boolean | null
           id?: string
           notes?: string | null
+          notes_encrypted?: string | null
           plaid_category?: Json | null
           plaid_transaction_id?: string | null
           receipt_url?: string | null
@@ -262,6 +308,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           vendor_name?: string | null
+          vendor_name_encrypted?: string | null
         }
         Update: {
           amount?: number
@@ -269,8 +316,11 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           description?: string
+          description_encrypted?: string | null
+          encryption_enabled?: boolean | null
           id?: string
           notes?: string | null
+          notes_encrypted?: string | null
           plaid_category?: Json | null
           plaid_transaction_id?: string | null
           receipt_url?: string | null
@@ -281,6 +331,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           vendor_name?: string | null
+          vendor_name_encrypted?: string | null
         }
         Relationships: [
           {

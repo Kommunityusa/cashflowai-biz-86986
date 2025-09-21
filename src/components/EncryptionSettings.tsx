@@ -1,134 +1,85 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { SecureStorage } from "@/utils/encryption";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Shield, Lock, Unlock, AlertTriangle, CheckCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { encryptData, decryptData, SecureStorage, generateEncryptionKey } from "@/utils/encryption";
+import { 
+  Shield, 
+  Key, 
+  Lock, 
+  RefreshCw, 
+  Database,
+  CreditCard,
+  FileText,
+  AlertTriangle,
+  CheckCircle2,
+  Info
+} from "lucide-react";
 
 export function EncryptionSettings() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasEncryptionKey, setHasEncryptionKey] = useState(false);
+  const [encryptionStatus, setEncryptionStatus] = useState<any>(null);
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [encryptionStatus, setEncryptionStatus] = useState({
-    sensitive_data_encrypted: false,
-    encryption_version: 1,
-    last_encrypted_at: null as string | null,
-  });
-  const [autoEncrypt, setAutoEncrypt] = useState(true);
 
   useEffect(() => {
-    fetchEncryptionStatus();
+    checkEncryptionStatus();
   }, []);
 
-  const fetchEncryptionStatus = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-
+  const checkEncryptionStatus = async () => {
     try {
-      const response = await fetch(
-        `https://nbrcdphgadabjndynyvy.supabase.co/functions/v1/encryption`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            action: 'get_encryption_status',
-            data: {},
-          }),
-        }
-      );
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-      if (response.ok) {
-        const { status } = await response.json();
-        setEncryptionStatus(status);
+      const storedKey = SecureStorage.getKey(user.id);
+      setHasEncryptionKey(!!storedKey);
+
+      const response = await supabase.functions.invoke('encryption', {
+        body: { action: 'get_encryption_status' }
+      });
+
+      if (response.data) {
+        setEncryptionStatus(response.data);
       }
     } catch (error) {
-      console.error('Error fetching encryption status:', error);
+      console.error('Error checking encryption status:', error);
     }
   };
 
-  const handleEncryptData = async () => {
-    setLoading(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to encrypt data",
-        variant: "destructive",
-      });
-      setLoading(false);
-      return;
-    }
-
+  const generateEncryptionKey = async () => {
+    setIsLoading(true);
     try {
-      // Get profile data to encrypt
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('tax_id, phone')
-        .eq('user_id', session.user.id)
-        .single();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-      if (profile?.tax_id || profile?.phone) {
-        const response = await fetch(
-          `https://nbrcdphgadabjndynyvy.supabase.co/functions/v1/encryption`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({
-              action: 'encrypt_profile_data',
-              data: {
-                taxId: profile.tax_id || '',
-                phone: profile.phone || '',
-              },
-            }),
-          }
-        );
+      const response = await supabase.functions.invoke('encryption', {
+        body: { action: 'generate_key' }
+      });
 
-        if (response.ok) {
-          toast({
-            title: "Success",
-            description: "Your sensitive data has been encrypted",
-          });
-          fetchEncryptionStatus();
-        } else {
-          throw new Error('Failed to encrypt data');
-        }
-      } else {
+      if (response.data?.key) {
+        SecureStorage.setKey(user.id, response.data.key);
+        setHasEncryptionKey(true);
+        
         toast({
-          title: "Info",
-          description: "No sensitive data to encrypt",
+          title: "Encryption Key Generated",
+          description: "Your encryption key has been securely generated",
         });
+
+        await checkEncryptionStatus();
       }
     } catch (error) {
-      console.error('Encryption error:', error);
+      console.error('Error generating encryption key:', error);
       toast({
-        title: "Error",
-        description: "Failed to encrypt data",
+        title: "Generation Failed",
+        description: "Failed to generate encryption key",
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGenerateLocalKey = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const key = generateEncryptionKey();
-      SecureStorage.setKey(user.id, key);
-      toast({
-        title: "Success",
-        description: "Local encryption key generated and stored securely",
-      });
+      setIsLoading(false);
     }
   };
 
@@ -140,93 +91,68 @@ export function EncryptionSettings() {
           Data Encryption
         </CardTitle>
         <CardDescription>
-          Manage encryption settings for sensitive financial data
+          Protect your sensitive financial data with encryption
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Encryption Status */}
-        <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-          <div className="flex items-center gap-3">
-            {encryptionStatus.sensitive_data_encrypted ? (
-              <Lock className="h-5 w-5 text-green-500" />
-            ) : (
-              <Unlock className="h-5 w-5 text-yellow-500" />
-            )}
-            <div>
-              <p className="font-medium">
-                {encryptionStatus.sensitive_data_encrypted 
-                  ? "Data is Encrypted" 
-                  : "Data is Not Encrypted"}
-              </p>
-              {encryptionStatus.last_encrypted_at && (
-                <p className="text-sm text-muted-foreground">
-                  Last encrypted: {new Date(encryptionStatus.last_encrypted_at).toLocaleDateString()}
-                </p>
+      <CardContent className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium">
+                Encryption Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {hasEncryptionKey ? (
+                <Badge variant="outline" className="bg-primary/10">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  Active
+                </Badge>
+              ) : (
+                <Badge variant="destructive">
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  No Key
+                </Badge>
               )}
-            </div>
-          </div>
-          <Button
-            onClick={handleEncryptData}
-            disabled={loading || encryptionStatus.sensitive_data_encrypted}
-            variant={encryptionStatus.sensitive_data_encrypted ? "secondary" : "default"}
-          >
-            {loading ? "Encrypting..." : "Encrypt Now"}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium">
+                Protected Data
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-sm">
+                <span className="flex items-center gap-1">
+                  <CreditCard className="h-3 w-3" />
+                  Bank Accounts: {encryptionStatus?.encryptedBankAccounts || 0}/{encryptionStatus?.totalBankAccounts || 0}
+                </span>
+              </div>
+              <div className="text-sm">
+                <span className="flex items-center gap-1">
+                  <FileText className="h-3 w-3" />
+                  Transactions: {encryptionStatus?.encryptedTransactions || 0}/{encryptionStatus?.totalTransactions || 0}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {!hasEncryptionKey && (
+          <Button onClick={generateEncryptionKey} disabled={isLoading} className="w-full">
+            <Key className="h-4 w-4 mr-2" />
+            Generate Encryption Key
           </Button>
-        </div>
+        )}
 
-        {/* Auto-Encryption Setting */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <Label htmlFor="auto-encrypt">Automatic Encryption</Label>
-            <p className="text-sm text-muted-foreground">
-              Automatically encrypt sensitive data when added
-            </p>
-          </div>
-          <Switch
-            id="auto-encrypt"
-            checked={autoEncrypt}
-            onCheckedChange={setAutoEncrypt}
-          />
-        </div>
-
-        {/* Encryption Details */}
         <Alert>
-          <AlertTriangle className="h-4 w-4" />
+          <Info className="h-4 w-4" />
           <AlertDescription>
-            <strong>What gets encrypted:</strong>
-            <ul className="mt-2 ml-4 list-disc text-sm">
-              <li>Tax IDs and SSNs</li>
-              <li>Bank account access tokens</li>
-              <li>Sensitive transaction notes</li>
-              <li>Uploaded financial documents</li>
-            </ul>
+            Encryption protects your sensitive data. Your key is stored securely in your browser session.
           </AlertDescription>
         </Alert>
-
-        {/* Local Encryption Key */}
-        <div className="border-t pt-4">
-          <h4 className="text-sm font-medium mb-2">Client-Side Encryption</h4>
-          <p className="text-sm text-muted-foreground mb-3">
-            Generate a local encryption key for additional security
-          </p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleGenerateLocalKey}
-          >
-            Generate Local Key
-          </Button>
-        </div>
-
-        {/* Encryption Status Indicator */}
-        {encryptionStatus.sensitive_data_encrypted && (
-          <Alert className="border-green-200 bg-green-50">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800">
-              Your sensitive data is protected with AES-256 encryption
-            </AlertDescription>
-          </Alert>
-        )}
       </CardContent>
     </Card>
   );
