@@ -16,6 +16,7 @@ import {
   HelpCircle
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EncryptionSettings } from "@/components/EncryptionSettings";
 
 const Settings = () => {
   useAuth();
@@ -29,8 +30,9 @@ const Settings = () => {
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
+          <TabsList className="grid w-full grid-cols-5 lg:w-[700px]">
             <TabsTrigger value="profile">Profile</TabsTrigger>
+            <TabsTrigger value="security">Security</TabsTrigger>
             <TabsTrigger value="billing">Billing</TabsTrigger>
             <TabsTrigger value="integrations">Integrations</TabsTrigger>
             <TabsTrigger value="preferences">Preferences</TabsTrigger>
@@ -97,6 +99,30 @@ const Settings = () => {
               </div>
               
               <Button className="mt-6" variant="gradient">Save Changes</Button>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="security" className="space-y-6">
+            <EncryptionSettings />
+            
+            <Card className="p-6">
+              <div className="flex items-center mb-6">
+                <div className="p-3 bg-gradient-primary rounded-lg mr-4">
+                  <Shield className="h-6 w-6 text-primary-foreground" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-foreground">Two-Factor Authentication</h2>
+                  <p className="text-sm text-muted-foreground">Add an extra layer of security to your account</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-foreground">2FA Status</p>
+                  <p className="text-sm text-muted-foreground">Currently disabled</p>
+                </div>
+                <Button variant="outline">Enable 2FA</Button>
+              </div>
             </Card>
           </TabsContent>
 

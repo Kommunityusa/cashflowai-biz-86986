@@ -186,3 +186,6 @@ verify_jwt = true
 
 [functions.audit]
 verify_jwt = false
+
+[functions.encryption]
+verify_jwt = true
