@@ -7,6 +7,7 @@ import { BankAccounts } from "@/components/BankAccounts";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -33,6 +34,7 @@ import {
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  useSessionTimeout(); // Enable session timeout monitoring
   const [stats, setStats] = useState({
     totalRevenue: 0,
     totalExpenses: 0,

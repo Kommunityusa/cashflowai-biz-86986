@@ -6,9 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrendingUp, AlertCircle } from "lucide-react";
+import { TrendingUp, AlertCircle, Check, X, Eye, EyeOff } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Session, User } from "@supabase/supabase-js";
+import { validatePassword } from "@/utils/passwordValidation";
+import { Progress } from "@/components/ui/progress";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -19,6 +21,8 @@ export default function Auth() {
   const [message, setMessage] = useState<string | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState(validatePassword(""));
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -52,6 +56,14 @@ export default function Auth() {
     e.preventDefault();
     setError(null);
     setMessage(null);
+    
+    // Validate password strength
+    const strength = validatePassword(password);
+    if (strength.score < 3) {
+      setError("Please use a stronger password. Your password should meet at least 3 of the requirements.");
+      return;
+    }
+    
     setLoading(true);
 
     const redirectUrl = `${window.location.origin}/`;
@@ -60,7 +72,10 @@ export default function Auth() {
       email,
       password,
       options: {
-        emailRedirectTo: redirectUrl
+        emailRedirectTo: redirectUrl,
+        data: {
+          email_verified: false
+        }
       }
     });
 
@@ -71,9 +86,10 @@ export default function Auth() {
         setError(error.message);
       }
     } else {
-      setMessage("Check your email for the confirmation link!");
+      setMessage("Check your email for the confirmation link to verify your account!");
       setEmail("");
       setPassword("");
+      setPasswordStrength(validatePassword(""));
     }
     
     setLoading(false);
@@ -178,15 +194,86 @@ export default function Auth() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Password</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      disabled={loading}
-                    />
+                    <div className="relative">
+                      <Input
+                        id="signup-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          setPasswordStrength(validatePassword(e.target.value));
+                        }}
+                        required
+                        disabled={loading}
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    
+                    {password && (
+                      <div className="space-y-2 mt-3">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Password Strength:</span>
+                          <span className={passwordStrength.color}>{passwordStrength.message}</span>
+                        </div>
+                        <Progress value={(passwordStrength.score / 5) * 100} className="h-2" />
+                        
+                        <div className="space-y-1 mt-2">
+                          <div className="flex items-center gap-2 text-xs">
+                            {passwordStrength.requirements.minLength ? 
+                              <Check className="h-3 w-3 text-green-500" /> : 
+                              <X className="h-3 w-3 text-muted-foreground" />
+                            }
+                            <span className={passwordStrength.requirements.minLength ? "text-green-500" : "text-muted-foreground"}>
+                              At least 8 characters
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs">
+                            {passwordStrength.requirements.hasUpperCase ? 
+                              <Check className="h-3 w-3 text-green-500" /> : 
+                              <X className="h-3 w-3 text-muted-foreground" />
+                            }
+                            <span className={passwordStrength.requirements.hasUpperCase ? "text-green-500" : "text-muted-foreground"}>
+                              One uppercase letter
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs">
+                            {passwordStrength.requirements.hasLowerCase ? 
+                              <Check className="h-3 w-3 text-green-500" /> : 
+                              <X className="h-3 w-3 text-muted-foreground" />
+                            }
+                            <span className={passwordStrength.requirements.hasLowerCase ? "text-green-500" : "text-muted-foreground"}>
+                              One lowercase letter
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs">
+                            {passwordStrength.requirements.hasNumber ? 
+                              <Check className="h-3 w-3 text-green-500" /> : 
+                              <X className="h-3 w-3 text-muted-foreground" />
+                            }
+                            <span className={passwordStrength.requirements.hasNumber ? "text-green-500" : "text-muted-foreground"}>
+                              One number
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs">
+                            {passwordStrength.requirements.hasSpecialChar ? 
+                              <Check className="h-3 w-3 text-green-500" /> : 
+                              <X className="h-3 w-3 text-muted-foreground" />
+                            }
+                            <span className={passwordStrength.requirements.hasSpecialChar ? "text-green-500" : "text-muted-foreground"}>
+                              One special character
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <Button
                     type="submit"
