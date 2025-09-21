@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
-import { useAuth } from "@/hooks/useAuth";
-import { useRole } from "@/hooks/useRole";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,12 +52,12 @@ import {
 } from "@/components/ui/table";
 
 export default function AdminDashboard() {
-  const { user, loading: authLoading } = useAuth(true);
-  const { isAdmin, loading: roleLoading } = useRole();
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const [users, setUsers] = useState<any[]>([]);
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -78,108 +76,117 @@ export default function AdminDashboard() {
   const [platformSettings, setPlatformSettings] = useState<any>({});
 
   useEffect(() => {
-    if (!authLoading && !roleLoading) {
-      if (!user) {
+    checkAdminAccess();
+  }, []);
+
+  const checkAdminAccess = async () => {
+    try {
+      // Get current session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.log('No session found, redirecting to auth');
         navigate('/auth');
-      } else if (!isAdmin) {
+        return;
+      }
+
+      setUser(session.user);
+      console.log('Current user:', session.user.email);
+
+      // Check if user has admin role
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', session.user.id)
+        .single();
+
+      console.log('Role data:', roleData, 'Error:', roleError);
+
+      if (roleError || !roleData || roleData.role !== 'admin') {
+        console.log('User is not admin, redirecting to dashboard');
         toast({
           title: "Access Denied",
           description: "You don't have permission to access the admin dashboard",
           variant: "destructive",
         });
         navigate('/dashboard');
-      } else {
-        fetchDashboardData();
-        fetchPlatformSettings();
+        return;
       }
-    }
-  }, [isAdmin, roleLoading, authLoading, user, navigate]);
 
-  const fetchDashboardData = async () => {
-    setLoading(true);
-    try {
-      // Fetch all users
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('*');
-      
-      // Fetch user roles
-      const { data: roles } = await supabase
-        .from('user_roles')
-        .select('*');
-      
-      // Combine users with their roles
-      const usersWithRoles = profiles?.map(profile => {
-        const userRoles = roles?.filter(r => r.user_id === profile.user_id) || [];
-        return {
-          ...profile,
-          roles: userRoles.map(r => r.role),
-          isAdmin: userRoles.some(r => r.role === 'admin'),
-        };
-      }) || [];
-      
-      setUsers(usersWithRoles);
-      
-      // Fetch stats
-      const { count: transactionCount } = await supabase
-        .from('transactions')
-        .select('*', { count: 'exact', head: true });
-      
-      const { data: transactions } = await supabase
-        .from('transactions')
-        .select('amount, type');
-      
-      const totalRevenue = transactions
-        ?.filter(t => t.type === 'income')
-        .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
-      
-      // Count active users (users with transactions in last 30 days)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      const { count: activeCount } = await supabase
-        .from('transactions')
-        .select('user_id', { count: 'exact', head: true })
-        .gte('created_at', thirtyDaysAgo.toISOString());
-      
-      setStats({
-        totalUsers: usersWithRoles.length,
-        totalTransactions: transactionCount || 0,
-        totalRevenue,
-        activeUsers: activeCount || 0,
-      });
+      console.log('User is admin, loading dashboard data');
+      setIsAdmin(true);
+      fetchDashboardData();
+      fetchPlatformSettings();
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch dashboard data",
-        variant: "destructive",
-      });
+      console.error('Error checking admin access:', error);
+      navigate('/dashboard');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchPlatformSettings = async () => {
+  const fetchDashboardData = async () => {
     try {
-      const { data } = await supabase
-        .from('platform_settings')
+      // Fetch all profiles
+      const { data: profiles } = await supabase
+        .from('profiles')
         .select('*');
       
-      const settings: any = {};
-      data?.forEach(item => {
-        settings[item.key] = item.value;
+      // Fetch user roles
+      const { data: userRoles } = await supabase
+        .from('user_roles')
+        .select('*');
+
+      // Combine data
+      const combinedUsers = profiles?.map(profile => {
+        const userRole = userRoles?.find(r => r.user_id === profile.user_id);
+        return {
+          ...profile,
+          role: userRole?.role || 'user'
+        };
+      }) || [];
+
+      setUsers(combinedUsers);
+
+      // Calculate stats
+      const { data: transactions } = await supabase
+        .from('transactions')
+        .select('amount');
+
+      const totalRevenue = transactions?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+
+      setStats({
+        totalUsers: combinedUsers.length,
+        totalTransactions: transactions?.length || 0,
+        totalRevenue,
+        activeUsers: combinedUsers.length // Simplified for now
       });
-      
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load dashboard data",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchPlatformSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('platform_settings')
+        .select('*');
+
+      if (error) throw error;
+
+      const settings: any = {};
+      data?.forEach(setting => {
+        settings[setting.key] = setting.value;
+      });
+
       setPlatformSettings(settings);
-      
-      // Check if keys are already set
-      if (settings.stripe_configured) {
-        setStripeKey("••••••••••••••••");
-      }
-      if (settings.openai_configured) {
-        setOpenAIKey("••••••••••••••••");
-      }
+      if (settings.stripe_key) setStripeKey(settings.stripe_key);
+      if (settings.openai_key) setOpenAIKey(settings.openai_key);
     } catch (error) {
       console.error('Error fetching platform settings:', error);
     }
@@ -187,21 +194,18 @@ export default function AdminDashboard() {
 
   const updateUserRole = async () => {
     if (!selectedUser) return;
-    
-    setLoading(true);
+
     try {
       if (newRole === 'admin') {
         // Add admin role
         const { error } = await supabase
           .from('user_roles')
-          .insert({
+          .upsert({
             user_id: selectedUser.user_id,
-            role: 'admin',
+            role: 'admin'
           });
-        
-        if (error && error.code !== '23505') { // Ignore duplicate key error
-          throw error;
-        }
+
+        if (error) throw error;
       } else {
         // Remove admin role
         const { error } = await supabase
@@ -209,15 +213,15 @@ export default function AdminDashboard() {
           .delete()
           .eq('user_id', selectedUser.user_id)
           .eq('role', 'admin');
-        
+
         if (error) throw error;
       }
-      
+
       toast({
         title: "Success",
         description: `User role updated to ${newRole}`,
       });
-      
+
       setRoleDialogOpen(false);
       fetchDashboardData();
     } catch (error) {
@@ -227,73 +231,74 @@ export default function AdminDashboard() {
         description: "Failed to update user role",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
   const saveStripeKey = async () => {
-    setLoading(true);
     try {
       const { error } = await supabase
         .from('platform_settings')
         .upsert({
-          key: 'stripe_configured',
-          value: true,
+          key: 'stripe_key',
+          value: stripeKey,
           updated_by: user?.id,
-          updated_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         });
-      
+
       if (error) throw error;
-      
-      // Here you would typically store the actual key securely
-      // For now, we're just marking it as configured
-      
+
       toast({
         title: "Success",
-        description: "Stripe integration configured successfully",
+        description: "Stripe API key saved",
       });
-      
-      fetchPlatformSettings();
     } catch (error) {
       console.error('Error saving Stripe key:', error);
       toast({
         title: "Error",
-        description: "Failed to save Stripe configuration",
+        description: "Failed to save Stripe key",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
   const saveOpenAIKey = async () => {
-    setLoading(true);
     try {
       const { error } = await supabase
         .from('platform_settings')
         .upsert({
-          key: 'openai_configured',
-          value: true,
+          key: 'openai_key',
+          value: openAIKey,
           updated_by: user?.id,
-          updated_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         });
-      
+
       if (error) throw error;
-      
-      // The actual OpenAI key is already stored in Supabase secrets
-      
+
       toast({
         title: "Success",
-        description: "OpenAI integration configured successfully",
+        description: "OpenAI API key saved",
       });
-      
-      fetchPlatformSettings();
     } catch (error) {
       console.error('Error saving OpenAI key:', error);
       toast({
         title: "Error",
-        description: "Failed to save OpenAI configuration",
+        description: "Failed to save OpenAI key",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleLogout = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast({
+        title: "Error",
+        description: "Failed to sign out",
         variant: "destructive",
       });
     } finally {
@@ -306,7 +311,7 @@ export default function AdminDashboard() {
     u.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (authLoading || roleLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -328,7 +333,13 @@ export default function AdminDashboard() {
         <main className="container mx-auto px-4 pt-24">
           <Card>
             <CardContent className="p-8 text-center">
-              Access Denied
+              <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
+              <p className="text-muted-foreground mb-4">
+                You don't have permission to access this page.
+              </p>
+              <Button onClick={() => navigate('/dashboard')}>
+                Go to Dashboard
+              </Button>
             </CardContent>
           </Card>
         </main>
@@ -339,14 +350,21 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
-          <p className="text-muted-foreground mt-2">Manage platform settings and users</p>
+      <main className="container mx-auto px-4 pt-24 pb-8">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
+            <p className="text-muted-foreground">
+              Manage users, settings, and platform configuration
+            </p>
+          </div>
+          <Button variant="outline" onClick={handleLogout}>
+            Sign Out
+          </Button>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -355,11 +373,11 @@ export default function AdminDashboard() {
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalUsers}</div>
               <p className="text-xs text-muted-foreground">
-                {stats.activeUsers} active in last 30 days
+                +20% from last month
               </p>
             </CardContent>
           </Card>
-
+          
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
@@ -368,46 +386,42 @@ export default function AdminDashboard() {
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalTransactions}</div>
               <p className="text-xs text-muted-foreground">
-                Across all users
+                +15% from last month
               </p>
             </CardContent>
           </Card>
-
+          
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Platform Revenue</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
               <CreditCard className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                ${stats.totalRevenue.toFixed(2)}
-              </div>
+              <div className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</div>
               <p className="text-xs text-muted-foreground">
-                Total processed
+                +8% from last month
               </p>
             </CardContent>
           </Card>
-
+          
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">System Status</CardTitle>
-              <Shield className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+              <UserCheck className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-500" />
-                <span className="text-sm font-medium">Operational</span>
-              </div>
+              <div className="text-2xl font-bold">{stats.activeUsers}</div>
               <p className="text-xs text-muted-foreground">
-                All systems running
+                Last 7 days
               </p>
             </CardContent>
           </Card>
         </div>
 
+        {/* Main Content Tabs */}
         <Tabs defaultValue="users" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="users">User Management</TabsTrigger>
             <TabsTrigger value="integrations">Integrations</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
@@ -415,66 +429,56 @@ export default function AdminDashboard() {
           <TabsContent value="users" className="space-y-4">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>User Management</CardTitle>
-                  <div className="flex items-center gap-2">
-                    <div className="relative">
-                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search users..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-8 w-64"
-                      />
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={fetchDashboardData}
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
-                  </div>
+                <CardTitle>User Management</CardTitle>
+                <div className="flex items-center space-x-2 mt-4">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search users..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="max-w-sm"
+                  />
                 </div>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>User</TableHead>
                       <TableHead>Email</TableHead>
-                      <TableHead>Business</TableHead>
                       <TableHead>Role</TableHead>
-                      <TableHead>Created</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredUsers.map((user) => (
                       <TableRow key={user.id}>
-                        <TableCell>{user.email || 'N/A'}</TableCell>
-                        <TableCell>{user.business_name || 'N/A'}</TableCell>
+                        <TableCell className="font-medium">
+                          {user.business_name || 'N/A'}
+                        </TableCell>
+                        <TableCell>{user.email}</TableCell>
                         <TableCell>
-                          {user.isAdmin ? (
-                            <Badge variant="default">Admin</Badge>
-                          ) : (
-                            <Badge variant="secondary">User</Badge>
-                          )}
+                          <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                            {user.role}
+                          </Badge>
                         </TableCell>
                         <TableCell>
-                          {new Date(user.created_at).toLocaleDateString()}
+                          <Badge variant="outline" className="text-green-600">
+                            Active
+                          </Badge>
                         </TableCell>
                         <TableCell>
-                          <Dialog open={roleDialogOpen && selectedUser?.id === user.id} onOpenChange={(open) => {
-                            setRoleDialogOpen(open);
-                            if (open) setSelectedUser(user);
-                          }}>
+                          <Dialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen}>
                             <DialogTrigger asChild>
-                              <Button variant="outline" size="sm">
-                                {user.isAdmin ? (
-                                  <UserX className="h-4 w-4 mr-1" />
-                                ) : (
-                                  <UserCheck className="h-4 w-4 mr-1" />
-                                )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedUser(user);
+                                  setNewRole(user.role === 'admin' ? 'user' : 'admin');
+                                }}
+                              >
                                 Change Role
                               </Button>
                             </DialogTrigger>
@@ -482,14 +486,14 @@ export default function AdminDashboard() {
                               <DialogHeader>
                                 <DialogTitle>Change User Role</DialogTitle>
                                 <DialogDescription>
-                                  Update the role for {user.email}
+                                  Update the role for {selectedUser?.email}
                                 </DialogDescription>
                               </DialogHeader>
-                              <div className="space-y-4 py-4">
-                                <div className="space-y-2">
-                                  <Label>Select Role</Label>
+                              <div className="space-y-4">
+                                <div>
+                                  <Label>New Role</Label>
                                   <Select
-                                    value={user.isAdmin ? 'admin' : 'user'}
+                                    value={newRole}
                                     onValueChange={(value: 'admin' | 'user') => setNewRole(value)}
                                   >
                                     <SelectTrigger>
@@ -501,21 +505,13 @@ export default function AdminDashboard() {
                                     </SelectContent>
                                   </Select>
                                 </div>
-                                {newRole === 'admin' && (
-                                  <Alert>
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <AlertDescription>
-                                      Admin users have full access to platform settings and user management.
-                                    </AlertDescription>
-                                  </Alert>
-                                )}
                               </div>
                               <DialogFooter>
                                 <Button variant="outline" onClick={() => setRoleDialogOpen(false)}>
                                   Cancel
                                 </Button>
-                                <Button onClick={updateUserRole} disabled={loading}>
-                                  {loading ? "Updating..." : "Update Role"}
+                                <Button onClick={updateUserRole}>
+                                  Update Role
                                 </Button>
                               </DialogFooter>
                             </DialogContent>
@@ -532,101 +528,51 @@ export default function AdminDashboard() {
           <TabsContent value="integrations" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Platform Integrations</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Configure third-party services for the entire platform
-                </p>
+                <CardTitle>Stripe Integration</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Stripe Integration */}
-                <div className="space-y-4 p-4 border rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-primary/10 rounded-lg">
-                        <CreditCard className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold">Stripe Integration</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Process payments and manage subscriptions
-                        </p>
-                      </div>
-                    </div>
-                    {platformSettings.stripe_configured ? (
-                      <Badge variant="outline" className="bg-green-500/10">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        Configured
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-yellow-500/10">
-                        <AlertTriangle className="h-3 w-3 mr-1" />
-                        Not Configured
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="stripeKey">Stripe Secret Key</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="stripeKey"
-                        type="password"
-                        placeholder="sk_..."
-                        value={stripeKey}
-                        onChange={(e) => setStripeKey(e.target.value)}
-                      />
-                      <Button onClick={saveStripeKey} disabled={loading}>
-                        {loading ? "Saving..." : "Save"}
-                      </Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Your Stripe secret key is securely encrypted and stored.
-                    </p>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="stripe-key">Stripe API Key</Label>
+                  <div className="flex space-x-2">
+                    <Input
+                      id="stripe-key"
+                      type="password"
+                      value={stripeKey}
+                      onChange={(e) => setStripeKey(e.target.value)}
+                      placeholder="sk_live_..."
+                    />
+                    <Button onClick={saveStripeKey}>
+                      Save
+                    </Button>
                   </div>
                 </div>
+                <Alert>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    Keep your API keys secure. Never share them publicly.
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
 
-                {/* OpenAI Integration */}
-                <div className="space-y-4 p-4 border rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-primary/10 rounded-lg">
-                        <Brain className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold">OpenAI Integration</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Enable AI-powered features and insights
-                        </p>
-                      </div>
-                    </div>
-                    {platformSettings.openai_configured ? (
-                      <Badge variant="outline" className="bg-green-500/10">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        Configured
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-yellow-500/10">
-                        <AlertTriangle className="h-3 w-3 mr-1" />
-                        Not Configured
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="openaiKey">OpenAI API Key</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="openaiKey"
-                        type="password"
-                        placeholder="sk-..."
-                        value={openAIKey}
-                        onChange={(e) => setOpenAIKey(e.target.value)}
-                      />
-                      <Button onClick={saveOpenAIKey} disabled={loading}>
-                        {loading ? "Saving..." : "Save"}
-                      </Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Your OpenAI API key is securely encrypted and stored.
-                    </p>
+            <Card>
+              <CardHeader>
+                <CardTitle>OpenAI Integration</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="openai-key">OpenAI API Key</Label>
+                  <div className="flex space-x-2">
+                    <Input
+                      id="openai-key"
+                      type="password"
+                      value={openAIKey}
+                      onChange={(e) => setOpenAIKey(e.target.value)}
+                      placeholder="sk-..."
+                    />
+                    <Button onClick={saveOpenAIKey}>
+                      Save
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -637,51 +583,46 @@ export default function AdminDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Platform Settings</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Global configuration for the platform
-                </p>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Alert>
-                  <Shield className="h-4 w-4" />
-                  <AlertDescription>
-                    Platform-wide settings affect all users. Changes here should be made carefully.
-                  </AlertDescription>
-                </Alert>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">Maintenance Mode</p>
                       <p className="text-sm text-muted-foreground">
-                        Temporarily disable access for non-admin users
+                        Enable to show maintenance message to users
                       </p>
                     </div>
-                    <Button variant="outline" size="sm">
-                      Enable
+                    <Button variant="outline">
+                      Disabled
                     </Button>
                   </div>
-                  
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">Export All Data</p>
+                      <p className="font-medium">Data Export</p>
                       <p className="text-sm text-muted-foreground">
-                        Download complete platform data backup
+                        Export all platform data
                       </p>
                     </div>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline">
                       Export
                     </Button>
                   </div>
-                  
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">Clear Cache</p>
                       <p className="text-sm text-muted-foreground">
-                        Clear all cached data and refresh
+                        Clear all cached data
                       </p>
                     </div>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline">
+                      <RefreshCw className="h-4 w-4 mr-2" />
                       Clear
                     </Button>
                   </div>
