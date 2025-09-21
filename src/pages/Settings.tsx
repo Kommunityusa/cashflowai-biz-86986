@@ -90,8 +90,8 @@ const Settings = () => {
       
       if (data) {
         setProfileData({
-          firstName: data.first_name || "",
-          lastName: data.last_name || "",
+          firstName: (data as any).first_name || "",
+          lastName: (data as any).last_name || "",
           email: user?.email || "",
           phone: data.phone || "",
           businessName: data.business_name || "",

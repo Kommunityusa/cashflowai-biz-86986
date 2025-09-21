@@ -218,8 +218,10 @@ export type Database = {
           country: string | null
           created_at: string
           currency: string | null
+          first_name: string | null
           fiscal_year_start: number | null
           id: string
+          last_name: string | null
           phone: string | null
           state: string | null
           tax_id: string | null
@@ -235,8 +237,10 @@ export type Database = {
           country?: string | null
           created_at?: string
           currency?: string | null
+          first_name?: string | null
           fiscal_year_start?: number | null
           id?: string
+          last_name?: string | null
           phone?: string | null
           state?: string | null
           tax_id?: string | null
@@ -252,8 +256,10 @@ export type Database = {
           country?: string | null
           created_at?: string
           currency?: string | null
+          first_name?: string | null
           fiscal_year_start?: number | null
           id?: string
+          last_name?: string | null
           phone?: string | null
           state?: string | null
           tax_id?: string | null
