@@ -31,6 +31,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { logAuditEvent } from "@/utils/auditLogger";
 import { withRateLimit } from "@/utils/rateLimiter";
+import { SecureStorage } from "@/utils/encryption";
 import {
   Plus,
   Download,
@@ -40,6 +41,7 @@ import {
   Edit,
   Trash2,
   Sparkles,
+  Lock,
 } from "lucide-react";
 
 export default function Transactions() {
@@ -161,7 +163,10 @@ export default function Transactions() {
     const result = await withRateLimit(
       'transaction_create',
       async () => {
-        const { error } = await supabase
+        // Check if encryption is enabled
+        const encryptionKey = SecureStorage.getKey(user?.id || '');
+        
+        const { data: insertedTransaction, error } = await supabase
           .from('transactions')
           .insert({
             user_id: user?.id,
@@ -172,10 +177,32 @@ export default function Transactions() {
             transaction_date: newTransaction.transaction_date,
             notes: newTransaction.notes,
             status: 'completed',
-          });
+          })
+          .select()
+          .single();
 
         if (error) {
           throw error;
+        }
+
+        // If encryption key exists, encrypt sensitive data
+        if (encryptionKey && insertedTransaction) {
+          try {
+            await supabase.functions.invoke('encryption', {
+              body: {
+                action: 'encrypt_transaction',
+                data: {
+                  transactionId: insertedTransaction.id,
+                  description: newTransaction.description,
+                  vendorName: null,
+                  notes: newTransaction.notes,
+                  key: encryptionKey
+                }
+              }
+            });
+          } catch (encryptError) {
+            console.error('Encryption failed:', encryptError);
+          }
         }
 
         // Log audit event

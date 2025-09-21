@@ -6,6 +6,7 @@ import { AIInsights } from "@/components/AIInsights";
 import { BankAccounts } from "@/components/BankAccounts";
 import { SecurityMonitor } from "@/components/SecurityMonitor";
 import { RateLimitStatus } from "@/components/RateLimitStatus";
+import { EncryptionStatus } from "@/components/EncryptionStatus";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -323,8 +324,14 @@ export default function Dashboard() {
           </CardContent>
         </Card>
         
-        {/* Rate Limit Status */}
-        <RateLimitStatus />
+        {/* Security Status Cards */}
+        <div className="grid gap-4 md:grid-cols-2">
+          {/* Encryption Status */}
+          <EncryptionStatus />
+          
+          {/* Rate Limit Status */}
+          <RateLimitStatus />
+        </div>
       </div>
     </div>
   );

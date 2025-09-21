@@ -30,8 +30,11 @@ import {
   DollarSign,
   CreditCard,
   Link,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import { withRateLimit } from "@/utils/rateLimiter";
+import { SecureStorage } from "@/utils/encryption";
 import { logAuditEvent } from "@/utils/auditLogger";
 
 export function BankAccounts() {
@@ -80,7 +83,10 @@ export function BankAccounts() {
       return;
     }
 
-    const { error } = await supabase.from("bank_accounts").insert({
+    // Check if encryption is enabled
+    const encryptionKey = SecureStorage.getKey(user?.id || '');
+    
+    const { data: insertedAccount, error } = await supabase.from("bank_accounts").insert({
       user_id: user?.id,
       account_name: newAccount.account_name,
       bank_name: newAccount.bank_name,
@@ -89,7 +95,7 @@ export function BankAccounts() {
       routing_number: newAccount.routing_number,
       current_balance: newAccount.current_balance ? Number(newAccount.current_balance) : 0,
       is_active: true,
-    });
+    }).select().single();
 
     if (error) {
       toast({
@@ -98,10 +104,39 @@ export function BankAccounts() {
         variant: "destructive",
       });
     } else {
-      toast({
-        title: "Success",
-        description: "Bank account added successfully",
-      });
+      // If encryption key exists, encrypt sensitive data
+      if (encryptionKey && insertedAccount) {
+        try {
+          await supabase.functions.invoke('encryption', {
+            body: {
+              action: 'encrypt_bank_account',
+              data: {
+                bankAccountId: insertedAccount.id,
+                accountNumber: newAccount.account_number_last4,
+                routingNumber: newAccount.routing_number,
+                key: encryptionKey
+              }
+            }
+          });
+          
+          toast({
+            title: "Success",
+            description: "Bank account added and encrypted",
+          });
+        } catch (encryptError) {
+          console.error('Encryption failed:', encryptError);
+          toast({
+            title: "Success",
+            description: "Bank account added successfully",
+          });
+        }
+      } else {
+        toast({
+          title: "Success",
+          description: "Bank account added successfully",
+        });
+      }
+      
       setIsAddDialogOpen(false);
       setNewAccount({
         account_name: "",
