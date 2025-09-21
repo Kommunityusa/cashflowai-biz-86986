@@ -54,7 +54,7 @@ import {
 } from "@/components/ui/table";
 
 export default function AdminDashboard() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth(true);
   const { isAdmin, loading: roleLoading } = useRole();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -78,18 +78,22 @@ export default function AdminDashboard() {
   const [platformSettings, setPlatformSettings] = useState<any>({});
 
   useEffect(() => {
-    if (!roleLoading && !isAdmin) {
-      toast({
-        title: "Access Denied",
-        description: "You don't have permission to access the admin dashboard",
-        variant: "destructive",
-      });
-      navigate('/dashboard');
-    } else if (isAdmin) {
-      fetchDashboardData();
-      fetchPlatformSettings();
+    if (!authLoading && !roleLoading) {
+      if (!user) {
+        navigate('/auth');
+      } else if (!isAdmin) {
+        toast({
+          title: "Access Denied",
+          description: "You don't have permission to access the admin dashboard",
+          variant: "destructive",
+        });
+        navigate('/dashboard');
+      } else {
+        fetchDashboardData();
+        fetchPlatformSettings();
+      }
     }
-  }, [isAdmin, roleLoading, navigate]);
+  }, [isAdmin, roleLoading, authLoading, user, navigate]);
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -302,14 +306,29 @@ export default function AdminDashboard() {
     u.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (roleLoading || !isAdmin) {
+  if (authLoading || roleLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
         <main className="container mx-auto px-4 pt-24">
           <Card>
             <CardContent className="p-8 text-center">
-              {roleLoading ? "Loading..." : "Access Denied"}
+              Loading...
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 pt-24">
+          <Card>
+            <CardContent className="p-8 text-center">
+              Access Denied
             </CardContent>
           </Card>
         </main>

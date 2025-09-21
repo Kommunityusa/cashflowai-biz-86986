@@ -19,11 +19,16 @@ export function useRole() {
   }, [user]);
 
   const checkUserRole = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', user?.id);
+        .eq('user_id', user.id);
 
       if (error) {
         console.error('Error fetching user role:', error);
@@ -34,6 +39,7 @@ export function useRole() {
       const userRoles = data?.map(r => r.role) || [];
       setRoles(userRoles);
       setIsAdmin(userRoles.includes('admin'));
+      console.log('User roles for', user.email, ':', userRoles);
     } catch (error) {
       console.error('Error checking user role:', error);
     } finally {
