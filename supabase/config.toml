@@ -183,3 +183,6 @@ verify_jwt = true
 
 [functions.plaid]
 verify_jwt = true
+
+[functions.audit]
+verify_jwt = false

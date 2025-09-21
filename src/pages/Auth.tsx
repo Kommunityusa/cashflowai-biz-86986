@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Session, User } from "@supabase/supabase-js";
 import { validatePassword } from "@/utils/passwordValidation";
 import { Progress } from "@/components/ui/progress";
+import { checkRateLimit, logLoginAttempt, logAuditEvent } from "@/utils/auditLogger";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -99,6 +100,14 @@ export default function Auth() {
     e.preventDefault();
     setError(null);
     setMessage(null);
+    
+    // Check rate limit before attempting login
+    const rateLimitCheck = await checkRateLimit(email);
+    if (rateLimitCheck.limited) {
+      setError(rateLimitCheck.message || "Too many login attempts. Please try again later.");
+      return;
+    }
+    
     setLoading(true);
 
     const { error } = await supabase.auth.signInWithPassword({
@@ -107,11 +116,20 @@ export default function Auth() {
     });
 
     if (error) {
+      let errorMessage = "Invalid email or password. Please try again.";
       if (error.message.includes("Invalid login credentials")) {
-        setError("Invalid email or password. Please try again.");
+        errorMessage = "Invalid email or password. Please try again.";
       } else {
-        setError(error.message);
+        errorMessage = error.message;
       }
+      setError(errorMessage);
+      
+      // Log failed login attempt
+      await logLoginAttempt(email, false, errorMessage);
+    } else {
+      // Log successful login
+      await logLoginAttempt(email, true);
+      await logAuditEvent({ action: 'LOGIN' });
     }
     
     setLoading(false);
