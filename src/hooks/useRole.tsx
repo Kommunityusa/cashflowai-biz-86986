@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
 export function useRole() {
-  const { user } = useAuth();
+  const { user } = useAuth(false); // Don't require auth to check role
   const [isAdmin, setIsAdmin] = useState(false);
   const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
