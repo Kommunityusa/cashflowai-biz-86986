@@ -37,12 +37,12 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="font-semibold text-foreground mb-4">Support</h4>
+            <h4 className="font-semibold text-foreground mb-4">Legal & Security</h4>
             <ul className="space-y-2">
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">Help Center</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">Contact</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">Privacy</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">Terms</a></li>
+              <li><Link to="/privacy" className="text-muted-foreground hover:text-primary transition-colors text-sm">Privacy Policy</Link></li>
+              <li><Link to="/terms" className="text-muted-foreground hover:text-primary transition-colors text-sm">Terms of Service</Link></li>
+              <li><Link to="/security" className="text-muted-foreground hover:text-primary transition-colors text-sm">Security</Link></li>
+              <li><a href="mailto:support@cashflowai.com" className="text-muted-foreground hover:text-primary transition-colors text-sm">Contact Support</a></li>
             </ul>
           </div>
         </div>
