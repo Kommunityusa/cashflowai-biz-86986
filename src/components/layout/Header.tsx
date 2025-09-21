@@ -1,10 +1,13 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, Menu, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { TrendingUp, Menu, X, Shield } from "lucide-react";
 import { useState } from "react";
+import { useRole } from "@/hooks/useRole";
 
 export const Header = () => {
   const location = useLocation();
+  const { isAdmin } = useRole();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isLandingPage = location.pathname === "/";
 
@@ -63,6 +66,19 @@ export const Header = () => {
                     {item.name}
                   </Link>
                 ))}
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    className={`transition-colors flex items-center gap-1 ${
+                      location.pathname === '/admin'
+                        ? "text-primary font-medium"
+                        : "text-muted-foreground hover:text-primary"
+                    }`}
+                  >
+                    <Shield className="h-4 w-4" />
+                    Admin
+                  </Link>
+                )}
               </>
             )}
           </div>
@@ -79,7 +95,14 @@ export const Header = () => {
                 </Link>
               </>
             ) : (
-              <Button variant="outline">Upgrade to Pro</Button>
+              <>
+                {isAdmin && (
+                  <Badge variant="outline" className="bg-primary/10">
+                    Admin
+                  </Badge>
+                )}
+                <Button variant="outline">Upgrade to Pro</Button>
+              </>
             )}
           </div>
 
@@ -135,7 +158,28 @@ export const Header = () => {
                       {item.name}
                     </Link>
                   ))}
-                  <Button variant="outline" className="w-full">Upgrade to Pro</Button>
+                  {isAdmin && (
+                    <Link
+                      to="/admin"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`transition-colors flex items-center gap-1 ${
+                        location.pathname === '/admin'
+                          ? "text-primary font-medium"
+                          : "text-muted-foreground hover:text-primary"
+                      }`}
+                    >
+                      <Shield className="h-4 w-4" />
+                      Admin Dashboard
+                    </Link>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <Button variant="outline" className="flex-1">Upgrade to Pro</Button>
+                    {isAdmin && (
+                      <Badge variant="outline" className="ml-2 bg-primary/10">
+                        Admin
+                      </Badge>
+                    )}
+                  </div>
                 </>
               )}
             </div>

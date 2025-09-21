@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { useAuth } from "@/hooks/useAuth";
+import { useRole } from "@/hooks/useRole";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Settings = () => {
   const { user } = useAuth();
+  const { isAdmin } = useRole();
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -550,100 +552,75 @@ const Settings = () => {
           </TabsContent>
 
           <TabsContent value="integrations" className="space-y-6">
-            <Card className="p-6">
-              <div className="flex items-center mb-6">
-                <div className="p-3 bg-gradient-primary rounded-lg mr-4">
-                  <Link2 className="h-6 w-6 text-primary-foreground" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-foreground">Bank Connections</h2>
-                  <p className="text-sm text-muted-foreground">Connect your bank accounts for automatic sync</p>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                  <div>
-                    <p className="font-medium text-foreground">Connect with Plaid</p>
-                    <p className="text-sm text-muted-foreground">Securely link your bank accounts</p>
+            {isAdmin ? (
+              <Card className="p-6">
+                <Alert className="mb-4">
+                  <Shield className="h-4 w-4" />
+                  <AlertDescription>
+                    Platform integrations are managed by administrators. Visit the{' '}
+                    <Button variant="link" className="p-0 h-auto" onClick={() => navigate('/admin')}>
+                      Admin Dashboard
+                    </Button>
+                    {' '}to configure Stripe and OpenAI integrations.
+                  </AlertDescription>
+                </Alert>
+                
+                <div className="flex items-center mb-6">
+                  <div className="p-3 bg-gradient-primary rounded-lg mr-4">
+                    <Link2 className="h-6 w-6 text-primary-foreground" />
                   </div>
-                  <PlaidLinkButton />
+                  <div>
+                    <h2 className="text-xl font-semibold text-foreground">Bank Connections</h2>
+                    <p className="text-sm text-muted-foreground">Connect your bank accounts for automatic sync</p>
+                  </div>
                 </div>
                 
-                <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                  <div>
-                    <p className="font-medium text-foreground">Stripe Integration</p>
-                    <p className="text-sm text-muted-foreground">Process payments and subscriptions</p>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                    <div>
+                      <p className="font-medium text-foreground">Connect with Plaid</p>
+                      <p className="text-sm text-muted-foreground">Securely link your bank accounts</p>
+                    </div>
+                    <PlaidLinkButton />
                   </div>
-                  <Dialog open={stripeOpen} onOpenChange={setStripeOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline">Configure</Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Stripe Integration</DialogTitle>
-                        <DialogDescription>
-                          Connect your Stripe account to process payments.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <Alert>
-                        <AlertDescription>
-                          Stripe integration is coming soon. You'll be able to connect your Stripe account to process payments and manage subscriptions.
-                        </AlertDescription>
-                      </Alert>
-                      <DialogFooter>
-                        <Button variant="outline" onClick={() => setStripeOpen(false)}>
-                          Close
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
                 </div>
-                
-                <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                  <div>
-                    <p className="font-medium text-foreground">OpenAI API</p>
-                    <p className="text-sm text-muted-foreground">Enable AI-powered features</p>
+              </Card>
+            ) : (
+              <>
+                <Card className="p-6">
+                  <div className="flex items-center mb-6">
+                    <div className="p-3 bg-gradient-primary rounded-lg mr-4">
+                      <Link2 className="h-6 w-6 text-primary-foreground" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold text-foreground">Bank Connections</h2>
+                      <p className="text-sm text-muted-foreground">Connect your bank accounts for automatic sync</p>
+                    </div>
                   </div>
-                  <Dialog open={openAIOpen} onOpenChange={setOpenAIOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline">Set API Key</Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>OpenAI API Configuration</DialogTitle>
-                        <DialogDescription>
-                          Enter your OpenAI API key to enable AI-powered features.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="apiKey">API Key</Label>
-                          <Input 
-                            id="apiKey" 
-                            type="password"
-                            placeholder="sk-..."
-                          />
-                        </div>
-                        <Alert>
-                          <AlertDescription>
-                            Your API key is already configured and working. AI features are enabled.
-                          </AlertDescription>
-                        </Alert>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                      <div>
+                        <p className="font-medium text-foreground">Connect with Plaid</p>
+                        <p className="text-sm text-muted-foreground">Securely link your bank accounts</p>
                       </div>
-                      <DialogFooter>
-                        <Button variant="outline" onClick={() => setOpenAIOpen(false)}>
-                          Cancel
-                        </Button>
-                        <Button onClick={handleOpenAISetup}>
-                          Save
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </div>
-            </Card>
+                      <PlaidLinkButton />
+                    </div>
+                  </div>
+                </Card>
+                
+                <Card className="p-6">
+                  <div className="flex items-center mb-4">
+                    <Shield className="h-5 w-5 text-muted-foreground mr-2" />
+                    <h3 className="font-semibold">Platform Integrations</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Stripe and OpenAI integrations are managed by platform administrators.
+                    Contact your administrator to enable these features.
+                  </p>
+                </Card>
+              </>
+            )}
           </TabsContent>
 
           <TabsContent value="preferences" className="space-y-6">
