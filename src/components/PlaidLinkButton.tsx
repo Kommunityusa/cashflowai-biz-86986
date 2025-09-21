@@ -19,9 +19,15 @@ export function PlaidLinkButton({ onSuccess }: PlaidLinkButtonProps) {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        throw new Error("Not authenticated");
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to connect your bank account",
+          variant: "destructive",
+        });
+        return;
       }
 
+      console.log("Creating Plaid link token...");
       const { data, error } = await supabase.functions.invoke("plaid", {
         body: { action: "create_link_token" },
         headers: {
@@ -29,14 +35,22 @@ export function PlaidLinkButton({ onSuccess }: PlaidLinkButtonProps) {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Plaid error:", error);
+        throw error;
+      }
       
+      if (!data?.link_token) {
+        throw new Error("No link token received from Plaid");
+      }
+      
+      console.log("Link token created successfully");
       setLinkToken(data.link_token);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating link token:", error);
       toast({
-        title: "Error",
-        description: "Failed to initialize bank connection",
+        title: "Connection Error",
+        description: error.message || "Failed to initialize bank connection. Please ensure Plaid is configured.",
         variant: "destructive",
       });
     } finally {

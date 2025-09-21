@@ -45,8 +45,23 @@ serve(async (req) => {
 
     console.log(`Plaid action: ${action}`);
 
+    // Check if Plaid credentials are configured
+    if (!plaidClientId || !plaidSecret) {
+      console.error('Plaid credentials not configured');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Plaid integration is not configured. Please add PLAID_CLIENT_ID and PLAID_SECRET to your Supabase Edge Function secrets.' 
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
     switch (action) {
       case 'create_link_token': {
+        console.log('Creating link token for user:', user.id);
         // Create a link token for Plaid Link initialization
         const response = await fetch(`${PLAID_ENV}/link/token/create`, {
           method: 'POST',
@@ -63,8 +78,6 @@ serve(async (req) => {
             products: ['transactions', 'accounts'],
             country_codes: ['US'],
             language: 'en',
-            redirect_uri: '',
-            android_package_name: '',
           }),
         });
 
@@ -75,6 +88,7 @@ serve(async (req) => {
           throw new Error(data.error_message || 'Failed to create link token');
         }
 
+        console.log('Link token created successfully');
         return new Response(
           JSON.stringify({ link_token: data.link_token }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
