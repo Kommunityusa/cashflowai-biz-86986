@@ -204,3 +204,6 @@ verify_jwt = true
 
 [functions.auto-encrypt]
 verify_jwt = false
+
+[functions.ai-chat]
+verify_jwt = true

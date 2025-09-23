@@ -25,6 +25,7 @@ import {
   Calendar,
   FileText,
   Briefcase,
+  Bot,
 } from "lucide-react";
 import {
   LineChart,
@@ -271,6 +272,10 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate('/ai-assistant')}>
+              <Bot className="mr-2 h-4 w-4" />
+              AI Assistant
+            </Button>
             <Button variant="outline" onClick={() => navigate('/reports')}>
               <FileText className="mr-2 h-4 w-4" />
               Reports
@@ -574,6 +579,25 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
+          </CardContent>
+        </Card>
+        
+        {/* AI Assistant Card */}
+        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bot className="h-5 w-5 text-primary" />
+              AI Financial Assistant
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-4">
+              Get instant help with financial planning, budgeting advice, and business insights powered by AI.
+            </p>
+            <Button onClick={() => navigate('/ai-assistant')} className="w-full">
+              <Bot className="mr-2 h-4 w-4" />
+              Chat with AI Assistant
+            </Button>
           </CardContent>
         </Card>
         
