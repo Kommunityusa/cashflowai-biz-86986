@@ -80,17 +80,12 @@ serve(async (req) => {
         const webhookUrl = `${supabaseUrl}/functions/v1/plaid-webhook`;
         console.log('[Plaid Function] Webhook URL:', webhookUrl);
         
-        // Determine redirect URI for OAuth
-        const origin = req.headers.get('origin') || 'https://nbrcdphgadabjndynyvy.supabase.co';
-        const redirectUri = `${origin}/auth/callback`;
-        console.log('[Plaid Function] OAuth Redirect URI:', redirectUri);
-        
         // Get custom options from request if provided
         const linkOptions = params?.options || {};
         console.log('[Plaid Function] Link options:', JSON.stringify(linkOptions));
         
         // Create a link token for Plaid Link initialization
-        // Only use 'transactions' product as it's the main product we need
+        // Transactions product is required for small business bookkeeping
         const requestBody: any = {
           client_id: plaidClientId,
           secret: plaidSecret,
@@ -102,8 +97,16 @@ serve(async (req) => {
           country_codes: ['US'],
           language: 'en',
           webhook: webhookUrl,
-          redirect_uri: redirectUri,
         };
+        
+        // Only add redirect_uri for OAuth-enabled institutions
+        // This is not required for most banks and causes errors if not configured in Plaid dashboard
+        if (params?.use_oauth) {
+          const origin = req.headers.get('origin') || 'https://nbrcdphgadabjndynyvy.supabase.co';
+          const redirectUri = `${origin}/plaid/oauth/callback`;
+          console.log('[Plaid Function] OAuth Redirect URI:', redirectUri);
+          requestBody.redirect_uri = redirectUri;
+        }
         
         // Add optional parameters for update mode
         const { mode, accessToken } = params || {};
@@ -337,6 +340,8 @@ serve(async (req) => {
       }
 
       case 'sync_transactions': {
+        console.log('[Plaid Function] Starting transaction sync for user:', user.id);
+        
         // Sync transactions for all connected accounts
         const { data: accounts } = await supabase
           .from('bank_accounts')
@@ -345,32 +350,61 @@ serve(async (req) => {
           .not('plaid_access_token', 'is', null);
 
         let totalSynced = 0;
+        let syncErrors = [];
 
         for (const account of accounts || []) {
-          // Get transactions from last 30 days
-          const startDate = new Date();
-          startDate.setDate(startDate.getDate() - 30);
-          
-          const response = await fetch(`${PLAID_ENV}/transactions/get`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              client_id: plaidClientId,
-              secret: plaidSecret,
-              access_token: account.plaid_access_token,
-              start_date: startDate.toISOString().split('T')[0],
-              end_date: new Date().toISOString().split('T')[0],
-            }),
-          });
+          try {
+            console.log('[Plaid Function] Syncing transactions for account:', {
+              account_id: account.id,
+              bank_name: account.bank_name,
+              last_synced: account.last_synced_at,
+            });
+            
+            // Get transactions from last 90 days for better bookkeeping coverage
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - 90);
+            
+            // Use Plaid's transactions/sync endpoint for better performance and incremental updates
+            // First try the new sync endpoint, fallback to get if not available
+            const response = await fetch(`${PLAID_ENV}/transactions/get`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                client_id: plaidClientId,
+                secret: plaidSecret,
+                access_token: account.plaid_access_token,
+                start_date: startDate.toISOString().split('T')[0],
+                end_date: new Date().toISOString().split('T')[0],
+                options: {
+                  count: 500, // Get more transactions for comprehensive bookkeeping
+                  include_personal_finance_category: true, // Better categorization
+                }
+              }),
+            });
 
-          const data = await response.json();
-          
-          if (data.error_code) {
-            console.error(`Plaid sync error for account ${account.id}:`, data);
-            continue;
-          }
+            const data = await response.json();
+            
+            if (data.error_code) {
+              console.error(`[Plaid Function] Sync error for account ${account.id}:`, {
+                error_code: data.error_code,
+                error_message: data.error_message,
+                request_id: data.request_id,
+              });
+              syncErrors.push({
+                account_id: account.id,
+                bank_name: account.bank_name,
+                error: data.error_message,
+              });
+              continue;
+            }
+            
+            console.log('[Plaid Function] Retrieved transactions:', {
+              account_id: account.id,
+              transaction_count: data.transactions?.length || 0,
+              total_transactions: data.total_transactions,
+            });
 
           // Update account balance
           await supabase

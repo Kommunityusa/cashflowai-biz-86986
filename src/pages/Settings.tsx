@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { PlaidLinkButton } from "@/components/PlaidLinkButton";
+import { PlaidSetupGuide } from "@/components/PlaidSetupGuide";
 import { 
   User, 
   Building,
@@ -547,6 +548,8 @@ const Settings = () => {
                     </div>
                   </div>
                 </Card>
+                
+                <PlaidSetupGuide />
                 
                 <Card className="p-6">
                   <div className="flex items-center mb-4">
