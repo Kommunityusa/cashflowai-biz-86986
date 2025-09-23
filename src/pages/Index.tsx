@@ -12,9 +12,10 @@ const Index = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // If user is logged in, redirect to dashboard
-    if (user && !loading) {
-      navigate("/dashboard");
+    // If user is logged in and not loading, redirect to dashboard immediately
+    if (!loading && user) {
+      console.log('User detected on landing page, redirecting to dashboard...');
+      navigate("/dashboard", { replace: true });
     }
   }, [user, loading, navigate]);
 
@@ -22,7 +23,22 @@ const Index = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // If user is logged in but hasn't redirected yet, show loading
+  if (user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Redirecting to dashboard...</p>
+        </div>
       </div>
     );
   }
