@@ -96,6 +96,11 @@ serve(async (req) => {
           requestBody.access_token = accessToken;
         }
         
+        const plaidEnv = Deno.env.get('PLAID_ENV') || 'sandbox';
+        const PLAID_ENV = plaidEnv === 'production' ? 'https://production.plaid.com' : 
+                          plaidEnv === 'development' ? 'https://development.plaid.com' : 
+                          'https://sandbox.plaid.com';
+        
         const response = await fetch(`${PLAID_ENV}/link/token/create`, {
           method: 'POST',
           headers: {

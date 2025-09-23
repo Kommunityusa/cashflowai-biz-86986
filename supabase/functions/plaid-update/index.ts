@@ -32,7 +32,10 @@ serve(async (req) => {
 
     const plaidClientId = Deno.env.get('PLAID_CLIENT_ID');
     const plaidSecret = Deno.env.get('PLAID_SECRET');
-    const PLAID_ENV = 'https://production.plaid.com';
+    const plaidEnv = Deno.env.get('PLAID_ENV') || 'sandbox';
+    const PLAID_ENV = plaidEnv === 'production' ? 'https://production.plaid.com' : 
+                      plaidEnv === 'development' ? 'https://development.plaid.com' : 
+                      'https://sandbox.plaid.com';
 
     if (!plaidClientId || !plaidSecret) {
       throw new Error('Plaid credentials not configured');

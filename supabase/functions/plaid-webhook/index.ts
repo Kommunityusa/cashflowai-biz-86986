@@ -12,8 +12,11 @@ const plaidSecret = Deno.env.get('PLAID_SECRET');
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-// Using Production environment
-const PLAID_ENV = 'https://production.plaid.com';
+// Get Plaid environment from env variable
+const plaidEnv = Deno.env.get('PLAID_ENV') || 'sandbox';
+const PLAID_ENV = plaidEnv === 'production' ? 'https://production.plaid.com' : 
+                  plaidEnv === 'development' ? 'https://development.plaid.com' : 
+                  'https://sandbox.plaid.com';
 
 // Initialize Supabase client
 const supabase = createClient(supabaseUrl, supabaseServiceKey, {
