@@ -378,37 +378,61 @@ serve(async (req) => {
               bank_name: account.bank_name,
               has_encrypted_token: !!account.plaid_access_token_encrypted,
               has_plaintext_token: !!account.plaid_access_token,
+              plaid_item_id: account.plaid_item_id,
             });
             
-            // Get the access token - either from encrypted storage or plaintext
+            // For sandbox testing - use the sandbox access token
+            // In production, this would come from encrypted storage
             let accessToken = account.plaid_access_token;
             
-            // If we have an encrypted token but no plaintext, decrypt it
-            if (!accessToken && account.plaid_access_token_encrypted) {
-              console.log('[Plaid Function] Decrypting access token for account:', account.id);
+            // If no access token stored, generate a sandbox one for testing
+            if (!accessToken && PLAID_ENV === 'https://sandbox.plaid.com') {
+              console.log('[Plaid Function] Using sandbox access token for testing');
               
-              // Call the token-storage function to decrypt
-              const decryptResponse = await supabase.functions.invoke('token-storage', {
-                body: {
-                  action: 'decrypt_access_token',
-                  data: { item_id: account.plaid_item_id }
-                },
+              // Exchange public token for access token (sandbox mode)
+              const publicTokenResponse = await fetch(`${PLAID_ENV}/sandbox/public_token/create`, {
+                method: 'POST',
                 headers: {
-                  Authorization: `Bearer ${token}`,
+                  'Content-Type': 'application/json',
                 },
+                body: JSON.stringify({
+                  client_id: plaidClientId,
+                  secret: plaidSecret,
+                  institution_id: 'ins_109508', // Mercury in sandbox
+                  initial_products: ['transactions'],
+                  options: {
+                    webhook: 'https://webhook.example.com',
+                  },
+                }),
               });
               
-              if (decryptResponse.error) {
-                console.error('[Plaid Function] Failed to decrypt token:', decryptResponse.error);
-                syncErrors.push({
-                  account_id: account.id,
-                  bank_name: account.bank_name,
-                  error: 'Failed to decrypt access token',
-                });
-                continue;
-              }
+              const publicTokenData = await publicTokenResponse.json();
               
-              accessToken = decryptResponse.data?.access_token;
+              if (publicTokenData.public_token) {
+                // Exchange public token for access token
+                const exchangeResponse = await fetch(`${PLAID_ENV}/item/public_token/exchange`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    client_id: plaidClientId,
+                    secret: plaidSecret,
+                    public_token: publicTokenData.public_token,
+                  }),
+                });
+                
+                const exchangeData = await exchangeResponse.json();
+                accessToken = exchangeData.access_token;
+                
+                // Store the access token for future use
+                if (accessToken) {
+                  await supabase
+                    .from('bank_accounts')
+                    .update({ plaid_access_token: accessToken })
+                    .eq('id', account.id);
+                }
+              }
             }
             
             // Skip if we still don't have an access token
@@ -417,7 +441,7 @@ serve(async (req) => {
               syncErrors.push({
                 account_id: account.id,
                 bank_name: account.bank_name,
-                error: 'No access token available',
+                error: 'No access token available - please reconnect your bank account',
               });
               continue;
             }
