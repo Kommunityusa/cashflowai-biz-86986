@@ -453,12 +453,24 @@ serve(async (req) => {
               totalSynced++;
             }
           }
+          } catch (error) {
+            console.error('[Plaid Function] Error syncing account:', {
+              account_id: account.id,
+              error: error.message,
+            });
+            syncErrors.push({
+              account_id: account.id,
+              bank_name: account.bank_name,
+              error: error.message || 'Unknown error',
+            });
+          }
         }
 
         return new Response(
           JSON.stringify({ 
             success: true, 
-            transactions_synced: totalSynced 
+            transactions_synced: totalSynced,
+            errors: syncErrors.length > 0 ? syncErrors : undefined
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
