@@ -526,6 +526,7 @@ serve(async (req) => {
             request_id: removeData.request_id,
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
       default:
