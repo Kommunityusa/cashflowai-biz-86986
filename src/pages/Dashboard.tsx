@@ -48,7 +48,7 @@ export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   useSessionTimeout();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Start with false
   const [stats, setStats] = useState({
     totalRevenue: 0,
     totalExpenses: 0,
@@ -62,17 +62,17 @@ export default function Dashboard() {
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!authLoading) {
-      if (user) {
-        fetchDashboardData();
-        logAuditEvent({
-          action: 'VIEW_DASHBOARD',
-          details: { timestamp: new Date().toISOString() }
-        });
-      } else {
-        // If no user after loading, redirect to auth
-        navigate("/auth");
-      }
+    // Only fetch data when we have a user and auth is not loading
+    if (!authLoading && user) {
+      console.log('Dashboard: User authenticated, fetching data for:', user.email);
+      fetchDashboardData();
+      logAuditEvent({
+        action: 'VIEW_DASHBOARD',
+        details: { timestamp: new Date().toISOString() }
+      });
+    } else if (!authLoading && !user) {
+      console.log('Dashboard: No user found, redirecting to auth');
+      navigate("/auth");
     }
   }, [user, authLoading, navigate]);
 
@@ -281,6 +281,27 @@ export default function Dashboard() {
   };
 
   const COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+
+  // Don't render anything while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground">Loading dashboard...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // If no user after auth loading completes
+  if (!user) {
+    return null; // useAuth will redirect to /auth
+  }
+
 
   return (
     <div className="min-h-screen bg-background">

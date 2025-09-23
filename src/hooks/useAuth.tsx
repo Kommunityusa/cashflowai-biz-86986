@@ -39,19 +39,28 @@ export function useAuth(requireAuth: boolean = true) {
   useEffect(() => {
     let mounted = true;
 
-    // Check for existing session first
     const initializeAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log('Initial session check:', session?.user?.email);
+        // Get the current session
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+        }
+        
+        console.log('Initial session check:', session?.user?.email || 'No user');
         
         if (mounted) {
           setSession(session);
           setUser(session?.user ?? null);
+          
+          // Only set loading to false after we've checked the session
           setLoading(false);
           
           // Check subscription for existing session
-          await checkSubscription(session);
+          if (session) {
+            checkSubscription(session).catch(console.error);
+          }
           
           // Redirect to auth if required and no session
           if (requireAuth && !session) {
@@ -59,31 +68,37 @@ export function useAuth(requireAuth: boolean = true) {
           }
         }
       } catch (error) {
-        console.error('Error getting session:', error);
+        console.error('Error in initializeAuth:', error);
         if (mounted) {
           setLoading(false);
+          if (requireAuth) {
+            navigate("/auth");
+          }
         }
       }
     };
 
+    // Initialize auth immediately
     initializeAuth();
 
-    // Then set up auth state listener
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, 'User:', session?.user?.email);
+      (event, session) => {
+        console.log('Auth state changed:', event, 'User:', session?.user?.email || 'No user');
         
         if (mounted) {
           setSession(session);
           setUser(session?.user ?? null);
           
           // Use setTimeout to avoid deadlock
-          setTimeout(() => {
-            checkSubscription(session);
-          }, 0);
+          if (session) {
+            setTimeout(() => {
+              checkSubscription(session).catch(console.error);
+            }, 0);
+          }
           
-          // Redirect to auth if required and no session
-          if (requireAuth && !session) {
+          // Redirect based on auth state
+          if (requireAuth && !session && event === 'SIGNED_OUT') {
             navigate("/auth");
           }
         }
