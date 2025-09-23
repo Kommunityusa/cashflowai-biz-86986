@@ -106,6 +106,11 @@ export function TransactionSync({ onSyncComplete }: TransactionSyncProps) {
     setSyncing(true);
     setSyncStatus(prev => ({ ...prev, inProgress: true }));
     
+    // Create a timeout promise
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("Sync operation timed out. Please try again.")), 30000); // 30 second timeout
+    });
+    
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -129,13 +134,16 @@ export function TransactionSync({ onSyncComplete }: TransactionSyncProps) {
         return;
       }
 
-      // Call the Plaid sync function
-      const { data, error } = await supabase.functions.invoke("plaid", {
+      // Call the Plaid sync function with timeout
+      const syncPromise = supabase.functions.invoke("plaid", {
         body: { action: "sync_transactions" },
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
       });
+      
+      const result = await Promise.race([syncPromise, timeoutPromise]);
+      const { data, error } = result as any;
 
       if (error) throw error;
 
@@ -163,6 +171,10 @@ export function TransactionSync({ onSyncComplete }: TransactionSyncProps) {
 
       // Now categorize the new transactions if any were synced
       if (data.transactions_synced > 0) {
+        toast({
+          title: "Categorizing Transactions",
+          description: "AI is now categorizing your new transactions...",
+        });
         await handleAICategorization();
       }
       
@@ -175,11 +187,20 @@ export function TransactionSync({ onSyncComplete }: TransactionSyncProps) {
       }
     } catch (error: any) {
       console.error('Sync error:', error);
-      toast({
-        title: "Sync Failed",
-        description: error.message || "Failed to sync transactions",
-        variant: "destructive",
-      });
+      
+      if (error.message?.includes("timed out")) {
+        toast({
+          title: "Sync Timeout",
+          description: "The sync operation is taking longer than expected. Large transaction volumes may take a few minutes. Please try again.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Sync Failed",
+          description: error.message || "Failed to sync transactions. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setSyncing(false);
       setSyncStatus(prev => ({ ...prev, inProgress: false }));

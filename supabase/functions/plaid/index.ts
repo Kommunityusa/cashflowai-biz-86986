@@ -531,41 +531,72 @@ serve(async (req) => {
             })
             .eq('id', account.id);
 
-          // Save transactions
+          // Batch process transactions for better performance
+          console.log(`[Plaid Function] Processing ${data.transactions.length} transactions for account ${account.id}`);
+          
+          // Get all existing transaction IDs in one query
+          const transactionIds = data.transactions.map(t => t.transaction_id);
+          const { data: existingTransactions } = await supabase
+            .from('transactions')
+            .select('plaid_transaction_id')
+            .in('plaid_transaction_id', transactionIds);
+          
+          const existingIds = new Set(existingTransactions?.map(t => t.plaid_transaction_id) || []);
+          
+          // Get all user categories once
+          const { data: userCategories } = await supabase
+            .from('categories')
+            .select('id, name, type')
+            .eq('user_id', user.id);
+          
+          // Filter out existing transactions and prepare batch insert
+          const newTransactions = [];
           for (const transaction of data.transactions) {
-            // Check if transaction already exists
-            const { data: existing } = await supabase
-              .from('transactions')
-              .select('id')
-              .eq('plaid_transaction_id', transaction.transaction_id)
-              .maybeSingle();
-
-            if (!existing) {
-              // Find matching category
-              const { data: categories } = await supabase
-                .from('categories')
-                .select('id')
-                .eq('user_id', user.id)
-                .eq('type', transaction.amount > 0 ? 'expense' : 'income')
-                .ilike('name', `%${transaction.category?.[0] || 'Other'}%`)
-                .limit(1);
-
-              await supabase.from('transactions').insert({
+            if (!existingIds.has(transaction.transaction_id)) {
+              // Find matching category efficiently
+              const txType = transaction.amount > 0 ? 'expense' : 'income';
+              const categoryName = transaction.category?.[0]?.toLowerCase() || 'other';
+              const matchingCategory = userCategories?.find(cat => 
+                cat.type === txType && 
+                cat.name.toLowerCase().includes(categoryName)
+              );
+              
+              newTransactions.push({
                 user_id: user.id,
                 bank_account_id: account.id,
                 plaid_transaction_id: transaction.transaction_id,
-                description: transaction.name,
+                description: transaction.name || transaction.merchant_name || 'Unknown',
                 vendor_name: transaction.merchant_name,
                 amount: Math.abs(transaction.amount),
-                type: transaction.amount > 0 ? 'expense' : 'income',
+                type: txType,
                 transaction_date: transaction.date,
                 plaid_category: transaction.category,
-                category_id: categories?.[0]?.id || null,
+                category_id: matchingCategory?.id || null,
                 status: 'completed',
               });
-              
-              totalSynced++;
             }
+          }
+          
+          // Batch insert new transactions (split into chunks to avoid payload limits)
+          if (newTransactions.length > 0) {
+            const CHUNK_SIZE = 100;
+            for (let i = 0; i < newTransactions.length; i += CHUNK_SIZE) {
+              const chunk = newTransactions.slice(i, i + CHUNK_SIZE);
+              const { error: insertError } = await supabase
+                .from('transactions')
+                .insert(chunk);
+              
+              if (insertError) {
+                console.error(`[Plaid Function] Error inserting transactions batch:`, insertError);
+                throw insertError;
+              }
+              
+              totalSynced += chunk.length;
+            }
+            
+            console.log(`[Plaid Function] Inserted ${newTransactions.length} new transactions for account ${account.id}`);
+          } else {
+            console.log(`[Plaid Function] No new transactions to insert for account ${account.id}`);
           }
           } catch (error) {
             console.error('[Plaid Function] Error syncing account:', {
