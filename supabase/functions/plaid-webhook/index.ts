@@ -41,9 +41,9 @@ async function verifyPlaidWebhook(
   }
 }
 
-// Sync transactions for a specific item
+// Enhanced sync transactions for small business bookkeeping
 async function syncTransactions(accessToken: string, userId: string, accountId: string) {
-  console.log('[WEBHOOK] Syncing transactions for account:', accountId);
+  console.log('[WEBHOOK] Syncing business transactions for account:', accountId);
   
   try {
     // Get transactions from last 30 days
@@ -70,8 +70,9 @@ async function syncTransactions(accessToken: string, userId: string, accountId: 
     }
 
     let totalSynced = 0;
+    let taxDeductibleCount = 0;
 
-    // Process added transactions
+    // Process added transactions with enhanced business categorization
     for (const transaction of data.added || []) {
       // Check if transaction already exists
       const { data: existing } = await supabase
@@ -81,58 +82,136 @@ async function syncTransactions(accessToken: string, userId: string, accountId: 
         .maybeSingle();
 
       if (!existing) {
-        // Find matching category
-        const { data: categories } = await supabase
+        // Enhanced business categorization
+        const isIncome = transaction.amount < 0; // Plaid uses negative for money in
+        const type = isIncome ? 'income' : 'expense';
+        
+        // Business category mapping
+        let categoryName = isIncome ? 'Other Income' : 'Other Expenses';
+        let isTaxDeductible = false;
+        
+        // Map Plaid categories to business categories
+        if (transaction.category && transaction.category.length > 0) {
+          const mainCategory = transaction.category[0].toUpperCase();
+          
+          // Business expense categories
+          if (!isIncome) {
+            if (mainCategory.includes('TRAVEL')) {
+              categoryName = 'Travel';
+              isTaxDeductible = true;
+            } else if (mainCategory.includes('OFFICE') || mainCategory.includes('SHOPS')) {
+              categoryName = 'Office Supplies';
+              isTaxDeductible = true;
+            } else if (mainCategory.includes('SERVICE') || mainCategory.includes('SUBSCRIPTION')) {
+              categoryName = 'Software';
+              isTaxDeductible = true;
+            } else if (mainCategory.includes('INSURANCE')) {
+              categoryName = 'Insurance';
+              isTaxDeductible = true;
+            } else if (mainCategory.includes('UTILITIES')) {
+              categoryName = 'Utilities';
+              isTaxDeductible = true;
+            } else if (mainCategory.includes('RENT')) {
+              categoryName = 'Rent';
+              isTaxDeductible = true;
+            }
+          } else {
+            // Income categories
+            if (mainCategory.includes('DEPOSIT') || mainCategory.includes('TRANSFER')) {
+              categoryName = 'Sales';
+            } else if (mainCategory.includes('INTEREST') || mainCategory.includes('DIVIDEND')) {
+              categoryName = 'Investments';
+            }
+          }
+        }
+
+        // Check for tax-deductible keywords in transaction name
+        const taxKeywords = ['office', 'software', 'subscription', 'insurance', 'travel', 'equipment'];
+        if (!isTaxDeductible && !isIncome) {
+          isTaxDeductible = taxKeywords.some(keyword => 
+            transaction.name.toLowerCase().includes(keyword)
+          );
+        }
+
+        // Find or use default category
+        const { data: category } = await supabase
           .from('categories')
           .select('id')
           .eq('user_id', userId)
-          .eq('type', transaction.amount > 0 ? 'expense' : 'income')
-          .ilike('name', `%${transaction.category?.[0] || 'Other'}%`)
-          .limit(1);
+          .eq('type', type)
+          .eq('name', categoryName)
+          .maybeSingle();
 
+        // Insert transaction with business fields
         await supabase.from('transactions').insert({
           user_id: userId,
           bank_account_id: accountId,
           plaid_transaction_id: transaction.transaction_id,
           description: transaction.name,
-          vendor_name: transaction.merchant_name,
+          vendor_name: transaction.merchant_name || transaction.name.split(' ')[0],
           amount: Math.abs(transaction.amount),
-          type: transaction.amount > 0 ? 'expense' : 'income',
+          type: type,
           transaction_date: transaction.date,
           plaid_category: transaction.category,
-          category_id: categories?.[0]?.id || null,
-          status: 'completed',
+          category_id: category?.id || null,
+          status: transaction.pending ? 'pending' : 'completed',
+          tax_deductible: isTaxDeductible,
+          notes: transaction.pending ? 'Pending - awaiting bank clearance' : null,
         });
         
         totalSynced++;
+        if (isTaxDeductible) taxDeductibleCount++;
       }
     }
 
-    // Process modified transactions
+    // Process modified transactions with re-categorization
     for (const transaction of data.modified || []) {
+      const isIncome = transaction.amount < 0;
+      const type = isIncome ? 'income' : 'expense';
+      
       await supabase
         .from('transactions')
         .update({
           description: transaction.name,
-          vendor_name: transaction.merchant_name,
+          vendor_name: transaction.merchant_name || transaction.name.split(' ')[0],
           amount: Math.abs(transaction.amount),
-          type: transaction.amount > 0 ? 'expense' : 'income',
+          type: type,
           transaction_date: transaction.date,
           plaid_category: transaction.category,
+          status: transaction.pending ? 'pending' : 'completed',
         })
         .eq('plaid_transaction_id', transaction.transaction_id);
     }
 
-    // Process removed transactions
+    // Process removed transactions - archive instead of delete for audit trail
     for (const transactionId of data.removed || []) {
       await supabase
         .from('transactions')
-        .delete()
+        .update({
+          status: 'cancelled',
+          notes: 'Transaction cancelled by bank'
+        })
         .eq('plaid_transaction_id', transactionId);
     }
 
-    console.log(`[WEBHOOK] Synced ${totalSynced} new transactions`);
-    return { success: true, totalSynced };
+    console.log(`[WEBHOOK] Synced ${totalSynced} transactions (${taxDeductibleCount} tax-deductible)`);
+    
+    // Log audit event for significant sync
+    if (totalSynced > 0) {
+      await supabase.from('audit_logs').insert({
+        user_id: userId,
+        action: 'PLAID_TRANSACTION_SYNC',
+        entity_type: 'bank_account',
+        entity_id: accountId,
+        details: {
+          total_synced: totalSynced,
+          tax_deductible: taxDeductibleCount,
+          sync_type: 'webhook'
+        }
+      });
+    }
+
+    return { success: true, totalSynced, taxDeductibleCount };
   } catch (error) {
     console.error('[WEBHOOK] Error syncing transactions:', error);
     return { error: error.message };
