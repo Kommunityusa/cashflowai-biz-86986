@@ -295,6 +295,23 @@ serve(async (req) => {
           timestamp: new Date().toISOString(),
         });
 
+        // Store the access token in the new plaid_access_tokens table
+        const { error: tokenError } = await supabase
+          .from('plaid_access_tokens')
+          .upsert({
+            user_id: user.id,
+            item_id: itemId,
+            access_token: accessToken,
+          }, {
+            onConflict: 'item_id'
+          });
+          
+        if (tokenError) {
+          console.error('[Plaid Function] Failed to store access token:', tokenError);
+        } else {
+          console.log('[Plaid Function] Access token stored successfully for item:', itemId);
+        }
+
         // Save accounts to database
         console.log('[Plaid] Saving accounts to database:', {
           item_id: itemId,
@@ -319,15 +336,15 @@ serve(async (req) => {
           
           if (error) {
             console.error('[Plaid Error] Failed to save account:', {
-              account_id: account.account_id,
               error: error.message,
+              account_id: account.account_id,
               user_id: user.id,
             });
           } else {
             console.log('[Plaid Success] Account saved:', {
               account_id: account.account_id,
               account_name: account.name,
-              item_id: itemId,
+              bank_name: metadata?.institution?.name,
             });
           }
         }
@@ -376,75 +393,29 @@ serve(async (req) => {
             console.log('[Plaid Function] Processing account:', {
               account_id: account.id,
               bank_name: account.bank_name,
-              has_encrypted_token: !!account.plaid_access_token_encrypted,
-              has_plaintext_token: !!account.plaid_access_token,
               plaid_item_id: account.plaid_item_id,
             });
             
-            // For sandbox testing - use the sandbox access token
-            // In production, this would come from encrypted storage
-            let accessToken = account.plaid_access_token;
-            
-            // If no access token stored, generate a sandbox one for testing
-            if (!accessToken && PLAID_ENV === 'https://sandbox.plaid.com') {
-              console.log('[Plaid Function] Using sandbox access token for testing');
+            // Get the access token from the plaid_access_tokens table
+            const { data: tokenData, error: tokenFetchError } = await supabase
+              .from('plaid_access_tokens')
+              .select('access_token')
+              .eq('item_id', account.plaid_item_id)
+              .eq('user_id', user.id)
+              .single();
               
-              // Exchange public token for access token (sandbox mode)
-              const publicTokenResponse = await fetch(`${PLAID_ENV}/sandbox/public_token/create`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  client_id: plaidClientId,
-                  secret: plaidSecret,
-                  institution_id: 'ins_109508', // Mercury in sandbox
-                  initial_products: ['transactions'],
-                  options: {
-                    webhook: 'https://webhook.example.com',
-                  },
-                }),
-              });
-              
-              const publicTokenData = await publicTokenResponse.json();
-              
-              if (publicTokenData.public_token) {
-                // Exchange public token for access token
-                const exchangeResponse = await fetch(`${PLAID_ENV}/item/public_token/exchange`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    client_id: plaidClientId,
-                    secret: plaidSecret,
-                    public_token: publicTokenData.public_token,
-                  }),
-                });
-                
-                const exchangeData = await exchangeResponse.json();
-                accessToken = exchangeData.access_token;
-                
-                // Store the access token for future use
-                if (accessToken) {
-                  await supabase
-                    .from('bank_accounts')
-                    .update({ plaid_access_token: accessToken })
-                    .eq('id', account.id);
-                }
-              }
-            }
-            
-            // Skip if we still don't have an access token
-            if (!accessToken) {
-              console.error('[Plaid Function] No access token available for account:', account.id);
+            if (tokenFetchError || !tokenData?.access_token) {
+              console.error('[Plaid Function] No access token found for item:', account.plaid_item_id);
               syncErrors.push({
                 account_id: account.id,
                 bank_name: account.bank_name,
-                error: 'No access token available - please reconnect your bank account',
+                error: 'Access token not found - please reconnect your bank account',
               });
               continue;
             }
+            
+            const accessToken = tokenData.access_token;
+            console.log('[Plaid Function] Access token retrieved for account:', account.id);
             
             console.log('[Plaid Function] Syncing transactions for account:', {
               account_id: account.id,
@@ -466,7 +437,7 @@ serve(async (req) => {
               body: JSON.stringify({
                 client_id: plaidClientId,
                 secret: plaidSecret,
-                access_token: accessToken, // Use the decrypted token
+                access_token: accessToken, // Use the retrieved token
                 start_date: startDate.toISOString().split('T')[0],
                 end_date: new Date().toISOString().split('T')[0],
                 options: {
