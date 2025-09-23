@@ -95,16 +95,14 @@ serve(async (req) => {
             days_requested: 730, // Request 2 years of transaction history
           },
           // Enable account filters for better UX
-          ...(linkOptions.accountSubtypes && {
-            account_filters: {
-              depository: linkOptions.accountSubtypes.depository || {
-                account_subtypes: ['checking', 'savings']
-              },
-              credit: linkOptions.accountSubtypes.credit || {
-                account_subtypes: ['credit_card']
-              },
+          account_filters: {
+            depository: {
+              account_subtypes: ['checking', 'savings']
+            },
+            credit: {
+              account_subtypes: ['credit_card']
             }
-          }),
+          },
         };
         
         // Add optional parameters for update mode
