@@ -27,13 +27,18 @@ export function Hero() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link to="/dashboard">
+              <Link to="/auth">
                 <Button size="xl" variant="gradient" className="group">
                   Start Free Trial
                   <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
-              <Button size="xl" variant="outline" className="group">
+              <Button 
+                size="xl" 
+                variant="outline" 
+                className="group"
+                onClick={() => window.open("https://www.youtube.com/watch?v=dQw4w9WgXcQ", "_blank")}
+              >
                 <Play className="mr-2 h-5 w-5" />
                 Watch Demo
               </Button>

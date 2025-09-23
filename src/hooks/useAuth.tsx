@@ -8,14 +8,44 @@ export function useAuth(requireAuth: boolean = true) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [subscriptionPlan, setSubscriptionPlan] = useState<"free" | "pro">("free");
+  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
+
+  // Check subscription status
+  const checkSubscription = async (userSession: Session | null) => {
+    if (!userSession) {
+      setSubscriptionPlan("free");
+      return;
+    }
+
+    try {
+      setSubscriptionLoading(true);
+      const { data, error } = await supabase.functions.invoke("check-subscription", {
+        headers: {
+          Authorization: `Bearer ${userSession.access_token}`,
+        },
+      });
+
+      if (!error && data) {
+        setSubscriptionPlan(data.plan || "free");
+      }
+    } catch (error) {
+      console.error("Error checking subscription:", error);
+    } finally {
+      setSubscriptionLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         console.log('Auth state changed:', event, 'User:', session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
+        
+        // Check subscription when auth state changes
+        await checkSubscription(session);
         
         // Redirect to auth if required and no session
         if (requireAuth && !session) {
@@ -25,10 +55,13 @@ export function useAuth(requireAuth: boolean = true) {
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      
+      // Check subscription for existing session
+      await checkSubscription(session);
       
       // Redirect to auth if required and no session
       if (requireAuth && !session) {
@@ -44,5 +77,5 @@ export function useAuth(requireAuth: boolean = true) {
     navigate("/");
   };
 
-  return { session, user, loading, signOut };
+  return { session, user, loading, signOut, subscriptionPlan, subscriptionLoading };
 }

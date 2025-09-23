@@ -1,47 +1,94 @@
 import { Button } from "@/components/ui/button";
 import { Check, X } from "lucide-react";
-
-const plans = [
-  {
-    name: "Free",
-    price: "$0",
-    period: "forever",
-    description: "Perfect for freelancers and solopreneurs",
-    features: [
-      { text: "1 bank account connection", included: true },
-      { text: "Basic transaction categorization", included: true },
-      { text: "Monthly reports", included: true },
-      { text: "Up to 100 transactions/month", included: true },
-      { text: "Email support", included: true },
-      { text: "Advanced AI features", included: false },
-      { text: "Unlimited transactions", included: false },
-      { text: "Priority support", included: false },
-    ],
-    cta: "Get Started",
-    variant: "outline" as const,
-  },
-  {
-    name: "Pro",
-    price: "$25",
-    period: "/month",
-    description: "For growing businesses that need more",
-    popular: true,
-    features: [
-      { text: "Unlimited bank connections", included: true },
-      { text: "Advanced AI categorization", included: true },
-      { text: "Real-time reports & analytics", included: true },
-      { text: "Unlimited transactions", included: true },
-      { text: "Priority email & chat support", included: true },
-      { text: "Tax preparation reports", included: true },
-      { text: "Custom categories & rules", included: true },
-      { text: "API access", included: true },
-    ],
-    cta: "Start Free Trial",
-    variant: "gradient" as const,
-  },
-];
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 export function Pricing() {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleGetStarted = () => {
+    navigate("/auth");
+  };
+
+  const handleUpgrade = async () => {
+    try {
+      setIsLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        navigate("/auth");
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+      
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (error) {
+      console.error("Checkout error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to start checkout process. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const plans = [
+    {
+      name: "Free",
+      price: "$0",
+      period: "forever",
+      description: "Perfect for freelancers and solopreneurs",
+      features: [
+        { text: "1 bank account connection", included: true },
+        { text: "Basic transaction categorization", included: true },
+        { text: "Monthly reports", included: true },
+        { text: "Up to 100 transactions/month", included: true },
+        { text: "Email support", included: true },
+        { text: "Advanced AI features", included: false },
+        { text: "Unlimited transactions", included: false },
+        { text: "Priority support", included: false },
+      ],
+      cta: "Get Started",
+      variant: "outline" as const,
+      onClick: handleGetStarted,
+    },
+    {
+      name: "Pro",
+      price: "$25",
+      period: "/month",
+      description: "For growing businesses that need more",
+      popular: true,
+      features: [
+        { text: "Unlimited bank connections", included: true },
+        { text: "Advanced AI categorization", included: true },
+        { text: "Real-time reports & analytics", included: true },
+        { text: "Unlimited transactions", included: true },
+        { text: "Priority email & chat support", included: true },
+        { text: "Tax preparation reports", included: true },
+        { text: "Custom categories & rules", included: true },
+        { text: "API access", included: true },
+      ],
+      cta: "Start Free Trial",
+      variant: "gradient" as const,
+      onClick: handleUpgrade,
+    },
+  ];
+
   return (
     <section id="pricing" className="py-20 bg-gradient-subtle">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -104,8 +151,10 @@ export function Pricing() {
                 variant={plan.variant} 
                 size="lg" 
                 className="w-full"
+                onClick={plan.onClick}
+                disabled={isLoading && plan.name === "Pro"}
               >
-                {plan.cta}
+                {isLoading && plan.name === "Pro" ? "Loading..." : plan.cta}
               </Button>
             </div>
           ))}
