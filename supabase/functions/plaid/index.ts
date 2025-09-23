@@ -101,9 +101,13 @@ serve(async (req) => {
           products: ['transactions'],
           country_codes: ['US'],
           language: 'en',
-          webhook: webhookUrl,
-          redirect_uri: redirectUri,
         };
+        
+        // Only add webhook and redirect_uri if not in sandbox mode for testing
+        if (plaidEnv !== 'sandbox') {
+          requestBody.webhook = webhookUrl;
+          requestBody.redirect_uri = redirectUri;
+        }
         
         // Add optional parameters for update mode
         const { mode, accessToken } = params || {};
@@ -139,16 +143,29 @@ serve(async (req) => {
             error_type: data.error_type,
             request_id: data.request_id,
             user_id: user.id,
+            environment: plaidEnv,
             timestamp: new Date().toISOString(),
           });
+          
+          // Provide user-friendly error messages based on error code
+          let userMessage = data.error_message || 'Failed to create link token';
+          
+          if (data.error_code === 'INVALID_FIELD') {
+            userMessage = 'Bank connection configuration error. Please contact support.';
+          } else if (data.error_code === 'INVALID_API_KEYS') {
+            userMessage = 'Bank connection service is not properly configured. Please contact support.';
+          } else if (data.error_code === 'INVALID_PRODUCT') {
+            userMessage = 'The requested banking features are not available. Please contact support.';
+          }
           
           // Return more detailed error information
           return new Response(
             JSON.stringify({ 
-              error: data.error_message || 'Failed to create link token',
+              error: userMessage,
               error_code: data.error_code,
               error_type: data.error_type,
               request_id: data.request_id,
+              environment: plaidEnv,
             }),
             { 
               status: 400,
