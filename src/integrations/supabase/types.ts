@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_insights: {
+        Row: {
+          action_taken: boolean | null
+          created_at: string
+          data: Json | null
+          description: string
+          expires_at: string | null
+          id: string
+          insight_type: string
+          is_actionable: boolean | null
+          is_read: boolean | null
+          priority: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          action_taken?: boolean | null
+          created_at?: string
+          data?: Json | null
+          description: string
+          expires_at?: string | null
+          id?: string
+          insight_type: string
+          is_actionable?: boolean | null
+          is_read?: boolean | null
+          priority?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          action_taken?: boolean | null
+          created_at?: string
+          data?: Json | null
+          description?: string
+          expires_at?: string | null
+          id?: string
+          insight_type?: string
+          is_actionable?: boolean | null
+          is_read?: boolean | null
+          priority?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -119,6 +164,56 @@ export type Database = {
         }
         Relationships: []
       }
+      budgets: {
+        Row: {
+          alert_threshold: number | null
+          amount: number
+          category_id: string | null
+          created_at: string
+          end_date: string | null
+          id: string
+          is_active: boolean | null
+          period: string
+          start_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alert_threshold?: number | null
+          amount: number
+          category_id?: string | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          period: string
+          start_date: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alert_threshold?: number | null
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          period?: string
+          start_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budgets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           color: string | null
@@ -178,6 +273,149 @@ export type Database = {
           is_active?: boolean | null
           key_hash?: string
           rotated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      financial_reports: {
+        Row: {
+          created_at: string
+          data: Json
+          file_url: string | null
+          generated_at: string
+          id: string
+          notes: string | null
+          period_end: string
+          period_start: string
+          report_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data: Json
+          file_url?: string | null
+          generated_at?: string
+          id?: string
+          notes?: string | null
+          period_end: string
+          period_start: string
+          report_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          file_url?: string | null
+          generated_at?: string
+          id?: string
+          notes?: string | null
+          period_end?: string
+          period_start?: string
+          report_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      invoice_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string
+          quantity: number
+          total: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          invoice_id: string
+          quantity?: number
+          total: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id?: string
+          quantity?: number
+          total?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          client_address: string | null
+          client_email: string | null
+          client_name: string
+          created_at: string
+          discount_amount: number | null
+          due_date: string
+          id: string
+          invoice_number: string
+          issue_date: string
+          notes: string | null
+          paid_at: string | null
+          sent_at: string | null
+          status: string
+          subtotal: number
+          tax_amount: number | null
+          terms: string | null
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_address?: string | null
+          client_email?: string | null
+          client_name: string
+          created_at?: string
+          discount_amount?: number | null
+          due_date: string
+          id?: string
+          invoice_number: string
+          issue_date?: string
+          notes?: string | null
+          paid_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number | null
+          terms?: string | null
+          total_amount?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_address?: string | null
+          client_email?: string | null
+          client_name?: string
+          created_at?: string
+          discount_amount?: number | null
+          due_date?: string
+          id?: string
+          invoice_number?: string
+          issue_date?: string
+          notes?: string | null
+          paid_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number | null
+          terms?: string | null
+          total_amount?: number
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -335,77 +573,227 @@ export type Database = {
         }
         Relationships: []
       }
-      transactions: {
+      recurring_transactions: {
         Row: {
           amount: number
+          auto_create: boolean | null
+          category_id: string | null
+          created_at: string
+          description: string
+          end_date: string | null
+          frequency: string
+          id: string
+          is_active: boolean | null
+          last_processed: string | null
+          next_due_date: string
+          start_date: string
+          type: string
+          updated_at: string
+          user_id: string
+          vendor_name: string | null
+        }
+        Insert: {
+          amount: number
+          auto_create?: boolean | null
+          category_id?: string | null
+          created_at?: string
+          description: string
+          end_date?: string | null
+          frequency: string
+          id?: string
+          is_active?: boolean | null
+          last_processed?: string | null
+          next_due_date: string
+          start_date: string
+          type: string
+          updated_at?: string
+          user_id: string
+          vendor_name?: string | null
+        }
+        Update: {
+          amount?: number
+          auto_create?: boolean | null
+          category_id?: string | null
+          created_at?: string
+          description?: string
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean | null
+          last_processed?: string | null
+          next_due_date?: string
+          start_date?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+          vendor_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_transactions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tax_settings: {
+        Row: {
+          business_structure: string | null
+          created_at: string
+          ein: string | null
+          id: string
+          quarterly_estimates: boolean | null
+          state: string | null
+          state_tax_id: string | null
+          tax_rate: number | null
+          tax_year: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          business_structure?: string | null
+          created_at?: string
+          ein?: string | null
+          id?: string
+          quarterly_estimates?: boolean | null
+          state?: string | null
+          state_tax_id?: string | null
+          tax_rate?: number | null
+          tax_year?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          business_structure?: string | null
+          created_at?: string
+          ein?: string | null
+          id?: string
+          quarterly_estimates?: boolean | null
+          state?: string | null
+          state_tax_id?: string | null
+          tax_rate?: number | null
+          tax_year?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          ai_confidence_score: number | null
+          ai_processed_at: string | null
+          ai_suggested_category_id: string | null
+          amount: number
+          attachment_urls: string[] | null
           bank_account_id: string | null
+          business_purpose: string | null
           category_id: string | null
           created_at: string
           description: string
           description_encrypted: string | null
           encryption_enabled: boolean | null
           id: string
+          is_recurring: boolean | null
+          mileage: number | null
+          needs_review: boolean | null
           notes: string | null
           notes_encrypted: string | null
           plaid_category: Json | null
           plaid_transaction_id: string | null
           receipt_url: string | null
+          reconciled_at: string | null
+          recurring_frequency: string | null
+          reference_number: string | null
           status: string | null
           tax_deductible: boolean | null
           transaction_date: string
           type: string
           updated_at: string
           user_id: string
+          vendor_id: string | null
           vendor_name: string | null
           vendor_name_encrypted: string | null
         }
         Insert: {
+          ai_confidence_score?: number | null
+          ai_processed_at?: string | null
+          ai_suggested_category_id?: string | null
           amount: number
+          attachment_urls?: string[] | null
           bank_account_id?: string | null
+          business_purpose?: string | null
           category_id?: string | null
           created_at?: string
           description: string
           description_encrypted?: string | null
           encryption_enabled?: boolean | null
           id?: string
+          is_recurring?: boolean | null
+          mileage?: number | null
+          needs_review?: boolean | null
           notes?: string | null
           notes_encrypted?: string | null
           plaid_category?: Json | null
           plaid_transaction_id?: string | null
           receipt_url?: string | null
+          reconciled_at?: string | null
+          recurring_frequency?: string | null
+          reference_number?: string | null
           status?: string | null
           tax_deductible?: boolean | null
           transaction_date?: string
           type: string
           updated_at?: string
           user_id: string
+          vendor_id?: string | null
           vendor_name?: string | null
           vendor_name_encrypted?: string | null
         }
         Update: {
+          ai_confidence_score?: number | null
+          ai_processed_at?: string | null
+          ai_suggested_category_id?: string | null
           amount?: number
+          attachment_urls?: string[] | null
           bank_account_id?: string | null
+          business_purpose?: string | null
           category_id?: string | null
           created_at?: string
           description?: string
           description_encrypted?: string | null
           encryption_enabled?: boolean | null
           id?: string
+          is_recurring?: boolean | null
+          mileage?: number | null
+          needs_review?: boolean | null
           notes?: string | null
           notes_encrypted?: string | null
           plaid_category?: Json | null
           plaid_transaction_id?: string | null
           receipt_url?: string | null
+          reconciled_at?: string | null
+          recurring_frequency?: string | null
+          reference_number?: string | null
           status?: string | null
           tax_deductible?: boolean | null
           transaction_date?: string
           type?: string
           updated_at?: string
           user_id?: string
+          vendor_id?: string | null
           vendor_name?: string | null
           vendor_name_encrypted?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "transactions_ai_suggested_category_id_fkey"
+            columns: ["ai_suggested_category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transactions_bank_account_id_fkey"
             columns: ["bank_account_id"]
@@ -418,6 +806,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]
@@ -443,9 +838,79 @@ export type Database = {
         }
         Relationships: []
       }
+      vendors: {
+        Row: {
+          address: string | null
+          category_id: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          is_1099_required: boolean | null
+          name: string
+          notes: string | null
+          tax_id: string | null
+          total_paid_ytd: number | null
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          category_id?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          is_1099_required?: boolean | null
+          name: string
+          notes?: string | null
+          tax_id?: string | null
+          total_paid_ytd?: number | null
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          category_id?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          is_1099_required?: boolean | null
+          name?: string
+          notes?: string | null
+          tax_id?: string | null
+          total_paid_ytd?: number | null
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendors_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      transaction_summaries: {
+        Row: {
+          average_amount: number | null
+          category_name: string | null
+          month: string | null
+          total_amount: number | null
+          transaction_count: number | null
+          type: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_user_roles: {
@@ -472,6 +937,12 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      transaction_status:
+        | "pending"
+        | "completed"
+        | "failed"
+        | "cancelled"
+        | "reconciled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -600,6 +1071,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      transaction_status: [
+        "pending",
+        "completed",
+        "failed",
+        "cancelled",
+        "reconciled",
+      ],
     },
   },
 } as const
