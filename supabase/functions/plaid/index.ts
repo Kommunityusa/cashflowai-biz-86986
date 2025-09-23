@@ -101,11 +101,12 @@ serve(async (req) => {
         
         // Only add redirect_uri for OAuth-enabled institutions
         // This is not required for most banks and causes errors if not configured in Plaid dashboard
+        let oauthRedirectUri = null;
         if (params?.use_oauth) {
           const origin = req.headers.get('origin') || 'https://nbrcdphgadabjndynyvy.supabase.co';
-          const redirectUri = `${origin}/plaid/oauth/callback`;
-          console.log('[Plaid Function] OAuth Redirect URI:', redirectUri);
-          requestBody.redirect_uri = redirectUri;
+          oauthRedirectUri = `${origin}/plaid/oauth/callback`;
+          console.log('[Plaid Function] OAuth Redirect URI:', oauthRedirectUri);
+          requestBody.redirect_uri = oauthRedirectUri;
         }
         
         // Add optional parameters for update mode
@@ -182,14 +183,20 @@ serve(async (req) => {
           timestamp: new Date().toISOString(),
         });
         
+        const responseData: any = { 
+          link_token: data.link_token,
+          request_id: data.request_id,
+          environment: plaidEnv,
+          expiration: data.expiration,
+        };
+        
+        // Only include redirect_uri if OAuth was used
+        if (oauthRedirectUri) {
+          responseData.redirect_uri = oauthRedirectUri;
+        }
+        
         return new Response(
-          JSON.stringify({ 
-            link_token: data.link_token,
-            request_id: data.request_id,
-            redirect_uri: redirectUri,
-            environment: plaidEnv,
-            expiration: data.expiration,
-          }),
+          JSON.stringify(responseData),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
