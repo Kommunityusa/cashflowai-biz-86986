@@ -39,13 +39,20 @@ export function useSessionTimeout() {
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      
+      // Only set up timers if there's an active session
       if (!session) return;
 
       // Reset timers on user activity
       const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
       
       const handleActivity = () => {
-        resetTimers();
+        // Only reset timers if we have an active session
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session) {
+            resetTimers();
+          }
+        });
       };
 
       events.forEach(event => {

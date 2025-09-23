@@ -18,6 +18,33 @@ serve(async (req) => {
   }
 
   try {
+    // Check if OpenAI API key is configured
+    if (!openAIApiKey) {
+      console.log('OpenAI API key not configured, returning default insights');
+      return new Response(
+        JSON.stringify({
+          insights: [
+            {
+              title: "Configure AI Insights",
+              description: "To get personalized financial insights, please configure the OpenAI API key in your Supabase Edge Function secrets."
+            },
+            {
+              title: "Track Your Spending",
+              description: "Start adding transactions to get detailed insights about your spending patterns and financial health."
+            },
+            {
+              title: "Set Financial Goals",
+              description: "Create budget categories and set spending limits to better manage your finances."
+            }
+          ]
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        }
+      );
+    }
+
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       throw new Error('No authorization header');

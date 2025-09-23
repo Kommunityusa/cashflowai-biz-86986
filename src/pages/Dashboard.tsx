@@ -12,7 +12,7 @@ import { EncryptionStatus } from "@/components/EncryptionStatus";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { useSessionTimeout } from "@/hooks/useSessionTimeout";
+// import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import { logAuditEvent } from "@/utils/auditLogger";
 import {
   ArrowDownIcon,
@@ -49,7 +49,7 @@ export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  useSessionTimeout();
+  // useSessionTimeout(); // Temporarily disabled to debug logout issue
   const [loading, setLoading] = useState(false); // Start with false
   const [stats, setStats] = useState({
     totalRevenue: 0,

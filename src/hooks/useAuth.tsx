@@ -55,17 +55,9 @@ export function useAuth(requireAuth: boolean = true) {
           // Only set loading to false after we've checked the session
           setLoading(false);
           
-          // Check subscription for existing session
+          // Check subscription for existing session  
           if (session) {
-            // Refresh the session token if needed
-            const { data: { session: refreshedSession } } = await supabase.auth.refreshSession();
-            if (refreshedSession) {
-              setSession(refreshedSession);
-              setUser(refreshedSession.user);
-              checkSubscription(refreshedSession);
-            } else {
-              checkSubscription(session);
-            }
+            checkSubscription(session);
           }
           
           // Only redirect to auth if required and no session
