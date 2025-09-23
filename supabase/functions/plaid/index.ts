@@ -12,8 +12,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Using Sandbox environment for testing
-const PLAID_ENV = 'https://sandbox.plaid.com';
+// Using Production environment
+const PLAID_ENV = 'https://production.plaid.com';
 
 serve(async (req) => {
   // Handle CORS preflight requests

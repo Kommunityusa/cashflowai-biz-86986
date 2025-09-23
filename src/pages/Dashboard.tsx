@@ -587,12 +587,12 @@ export default function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Bot className="h-5 w-5 text-primary" />
-              AI Financial Assistant
+              AI Bookkeeping Assistant
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-4">
-              Get instant help with financial planning, budgeting advice, and business insights powered by AI.
+              Get expert bookkeeping help with transaction recording, financial statements, tax prep, and compliance guidance.
             </p>
             <Button onClick={() => navigate('/ai-assistant')} className="w-full">
               <Bot className="mr-2 h-4 w-4" />

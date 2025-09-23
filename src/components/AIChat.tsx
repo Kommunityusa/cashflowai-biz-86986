@@ -20,7 +20,7 @@ const AIChat = () => {
     {
       id: '1',
       role: 'assistant',
-      content: 'Hello! I\'m your BizFlow AI assistant. I can help you understand your finances, provide budgeting advice, and answer questions about the platform. How can I assist you today?',
+      content: 'Hello! I\'m your BizFlow bookkeeping assistant. I can help you with:\n\n• Recording and categorizing transactions\n• Understanding financial statements\n• Tax preparation guidance\n• Cash flow analysis\n• Expense tracking best practices\n\nWhat bookkeeping task can I assist you with today?',
       timestamp: new Date(),
     }
   ]);
@@ -111,10 +111,10 @@ const AIChat = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Bot className="h-5 w-5" />
-          BizFlow AI Assistant
+          BizFlow Bookkeeping Assistant
         </CardTitle>
         <CardDescription>
-          Get instant help with your finances and business questions
+          Your expert AI bookkeeper for transaction management, financial analysis, and compliance
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col p-0">

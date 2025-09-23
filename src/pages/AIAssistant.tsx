@@ -39,8 +39,8 @@ const AIAssistant = () => {
               <Bot className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold">AI Financial Assistant</h1>
-              <p className="text-muted-foreground">Powered by advanced AI to help you make better financial decisions</p>
+              <h1 className="text-3xl font-bold">AI Bookkeeping Assistant</h1>
+              <p className="text-muted-foreground">Your expert partner for bookkeeping and financial management</p>
             </div>
           </div>
         </div>
@@ -65,9 +65,9 @@ const AIAssistant = () => {
                 <div className="flex gap-3">
                   <MessageSquare className="h-5 w-5 text-primary mt-0.5" />
                   <div>
-                    <p className="font-medium">Financial Advice</p>
+                    <p className="font-medium">Transaction Management</p>
                     <p className="text-sm text-muted-foreground">
-                      Get personalized budgeting and expense management tips
+                      Record, categorize, and reconcile transactions
                     </p>
                   </div>
                 </div>
@@ -75,9 +75,9 @@ const AIAssistant = () => {
                 <div className="flex gap-3">
                   <TrendingUp className="h-5 w-5 text-primary mt-0.5" />
                   <div>
-                    <p className="font-medium">Business Insights</p>
+                    <p className="font-medium">Financial Statements</p>
                     <p className="text-sm text-muted-foreground">
-                      Understand your financial trends and patterns
+                      Understand P&L, balance sheets, and cash flow
                     </p>
                   </div>
                 </div>
@@ -85,9 +85,9 @@ const AIAssistant = () => {
                 <div className="flex gap-3">
                   <Shield className="h-5 w-5 text-primary mt-0.5" />
                   <div>
-                    <p className="font-medium">Platform Support</p>
+                    <p className="font-medium">Tax & Compliance</p>
                     <p className="text-sm text-muted-foreground">
-                      Learn about BizFlow features and best practices
+                      Tax prep guidance and record keeping standards
                     </p>
                   </div>
                 </div>
@@ -100,16 +100,16 @@ const AIAssistant = () => {
               </CardHeader>
               <CardContent className="space-y-2">
                 <p className="text-sm text-muted-foreground">
-                  • Be specific about your financial questions
+                  • Ask about chart of accounts setup
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  • Ask about budgeting strategies for your business
+                  • Get help with bank reconciliation
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  • Get help understanding your transaction patterns
+                  • Learn double-entry bookkeeping
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  • Learn about tax-saving opportunities
+                  • Understand financial ratios and KPIs
                 </p>
               </CardContent>
             </Card>
