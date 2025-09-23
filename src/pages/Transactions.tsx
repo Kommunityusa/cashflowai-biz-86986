@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { logAuditEvent } from "@/utils/auditLogger";
 import { withRateLimit } from "@/utils/rateLimiter";
 import { SecureStorage } from "@/utils/encryption";
+import { TransactionSync } from "@/components/TransactionSync";
 import {
   Plus,
   Download,
@@ -306,6 +307,11 @@ export default function Transactions() {
               Manage your income and expenses
             </p>
           </div>
+        </div>
+
+        {/* Transaction Sync Component */}
+        <div className="mb-8">
+          <TransactionSync onSyncComplete={fetchTransactions} />
         </div>
 
         {/* Filters and Actions */}

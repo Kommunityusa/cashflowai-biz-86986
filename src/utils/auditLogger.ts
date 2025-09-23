@@ -25,7 +25,9 @@ export type AuditAction =
   | 'PLAID_LINK_EXIT_ERROR'
   | 'PLAID_LINK_EXIT'
   | 'PLAID_BENEFITS_VIEWED'
-  | 'PLAID_LINK_INITIATED';
+  | 'PLAID_LINK_INITIATED'
+  | 'PLAID_SYNC_COMPLETED'
+  | 'AI_CATEGORIZATION_COMPLETED';
 
 interface AuditLogData {
   action: AuditAction;
