@@ -86,7 +86,7 @@ serve(async (req) => {
             client_user_id: user.id,
           },
           client_name: 'Cash Flow AI',
-          products: linkOptions.products || ['transactions', 'accounts'],
+          products: linkOptions.products || ['transactions'],
           country_codes: linkOptions.countryCodes || ['US'],
           language: linkOptions.language || 'en',
           webhook: webhookUrl, // Register webhook URL
