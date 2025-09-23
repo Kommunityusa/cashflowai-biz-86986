@@ -75,7 +75,7 @@ serve(async (req) => {
       .from('transactions')
       .select('*, categories(name)')
       .eq('user_id', user.id)
-      .order('date', { ascending: false })
+      .order('transaction_date', { ascending: false })
       .limit(50);
     
     if (transactionError) {
@@ -173,14 +173,27 @@ serve(async (req) => {
     const data = await response.json();
     console.log('[AI Insights] OpenAI response received');
     
-    // Parse the content - it might already be an object or a string
+    // Parse the content - OpenAI might return markdown-wrapped JSON
     let content;
     try {
-      content = typeof data.choices[0].message.content === 'string' 
-        ? JSON.parse(data.choices[0].message.content)
-        : data.choices[0].message.content;
+      let responseContent = data.choices[0].message.content;
+      
+      // Remove markdown code blocks if present
+      if (typeof responseContent === 'string') {
+        responseContent = responseContent.replace(/^```json\n?/i, '').replace(/\n?```$/i, '').trim();
+      }
+      
+      content = typeof responseContent === 'string' 
+        ? JSON.parse(responseContent)
+        : responseContent;
+        
+      // Ensure we have the expected structure
+      if (!content.insights || !Array.isArray(content.insights)) {
+        throw new Error('Invalid response structure');
+      }
     } catch (parseError) {
       console.error('[AI Insights] Failed to parse OpenAI response:', parseError);
+      console.error('[AI Insights] Raw response:', data.choices[0].message.content);
       // Return default insights if parsing fails
       content = {
         insights: [

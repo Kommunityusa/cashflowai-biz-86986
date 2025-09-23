@@ -15,16 +15,25 @@ serve(async (req) => {
   try {
     const { message, conversationHistory } = await req.json();
     
+    console.log('[AI-CHAT] Processing message:', message);
+    
     if (!message) {
       throw new Error('Message is required');
     }
 
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+      console.error('[AI-CHAT] OpenAI API key not configured');
+      return new Response(
+        JSON.stringify({ 
+          response: "I apologize, but the AI chat service is not properly configured. Please ensure the OpenAI API key is set in the Supabase Edge Function secrets to enable this feature." 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        }
+      );
     }
-
-    console.log('[AI-CHAT] Processing message:', message);
 
     // Build messages array with conversation history
     const messages = [
