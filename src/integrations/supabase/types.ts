@@ -250,6 +250,9 @@ export type Database = {
           id: string
           last_name: string | null
           phone: string | null
+          plaid_consent_date: string | null
+          plaid_consent_details: Json | null
+          plaid_consent_version: string | null
           state: string | null
           tax_id: string | null
           updated_at: string
@@ -269,6 +272,9 @@ export type Database = {
           id?: string
           last_name?: string | null
           phone?: string | null
+          plaid_consent_date?: string | null
+          plaid_consent_details?: Json | null
+          plaid_consent_version?: string | null
           state?: string | null
           tax_id?: string | null
           updated_at?: string
@@ -288,6 +294,9 @@ export type Database = {
           id?: string
           last_name?: string | null
           phone?: string | null
+          plaid_consent_date?: string | null
+          plaid_consent_details?: Json | null
+          plaid_consent_version?: string | null
           state?: string | null
           tax_id?: string | null
           updated_at?: string

@@ -12,8 +12,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Using Production environment
-const PLAID_ENV = 'https://production.plaid.com';
+// Get Plaid environment from env variable - defaults to production for safety
+const plaidEnv = Deno.env.get('PLAID_ENV') || 'production';
+const PLAID_ENV = plaidEnv === 'sandbox' ? 'https://sandbox.plaid.com' : 
+                  plaidEnv === 'development' ? 'https://development.plaid.com' : 
+                  'https://production.plaid.com';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -256,7 +259,7 @@ serve(async (req) => {
         for (const account of accountsData.accounts) {
           const { error } = await supabase.from('bank_accounts').upsert({
             user_id: user.id,
-            plaid_access_token: accessToken,
+            plaid_access_token: null, // Never store plaintext in production
             plaid_item_id: itemId,
             plaid_account_id: account.account_id,
             account_name: account.name,
@@ -265,6 +268,7 @@ serve(async (req) => {
             account_number_last4: account.mask,
             current_balance: account.balances.current,
             is_active: true,
+            encryption_enabled: true, // Mark for encryption
             last_synced_at: new Date().toISOString(),
           });
           
@@ -282,11 +286,18 @@ serve(async (req) => {
             });
           }
         }
+        
+        // Return the access token for frontend to encrypt
+        // This ensures token is encrypted before storage
 
         return new Response(
           JSON.stringify({ 
             success: true, 
-            accounts: accountsData.accounts.length 
+            accounts: accountsData.accounts.length,
+            item_id: itemId,
+            access_token: accessToken, // Frontend will encrypt this
+            request_id: accountsData.request_id,
+          }),
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );

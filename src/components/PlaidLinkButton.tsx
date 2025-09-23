@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Building, Link } from "lucide-react";
 import { logAuditEvent } from "@/utils/auditLogger";
 import { logPlaidEvent, logLinkSession, formatPlaidError } from "@/utils/plaidLogger";
+import { PlaidConsent } from "@/components/PlaidConsent";
 
 interface PlaidLinkButtonProps {
   onSuccess?: () => void;
@@ -18,6 +19,7 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
   const { toast } = useToast();
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showConsent, setShowConsent] = useState(false);
 
   const createLinkToken = async () => {
     setLoading(true);
@@ -200,6 +202,26 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
         });
 
         if (error) throw error;
+        
+        // Store encrypted access token for production
+        if (data?.item_id && data?.access_token) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            // Encrypt and store the access token securely
+            await supabase.functions.invoke("token-storage", {
+              body: {
+                action: "encrypt_access_token",
+                data: {
+                  access_token: data.access_token,
+                  item_id: data.item_id,
+                }
+              },
+              headers: {
+                Authorization: `Bearer ${session.access_token}`,
+              },
+            });
+          }
+        }
 
         // Log successful exchange with all identifiers
         logPlaidEvent({
@@ -311,6 +333,32 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
   });
 
   const handleClick = async () => {
+    // Check for user consent first
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('plaid_consent_date')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (!profile?.plaid_consent_date) {
+        setShowConsent(true);
+        return;
+      }
+    }
+    if (onStart) onStart();
+    
+    if (!linkToken) {
+      await createLinkToken();
+    } else {
+      open();
+    }
+  };
+  
+  const handleConsentGranted = async () => {
+    setShowConsent(false);
+    // Proceed with Plaid Link after consent
     if (onStart) onStart();
     
     if (!linkToken) {
@@ -321,14 +369,22 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
   };
 
   return (
-    <Button
-      onClick={handleClick}
-      disabled={loading || (!ready && linkToken !== null)}
-      size={size}
-      className={`bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 ${className || ''}`}
-    >
-      <Link className="mr-2 h-4 w-4" />
-      {loading ? "Initializing..." : "Connect Bank Account"}
-    </Button>
+    <>
+      <Button
+        onClick={handleClick}
+        disabled={loading || (!ready && linkToken !== null)}
+        size={size}
+        className={`bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 ${className || ''}`}
+      >
+        <Link className="mr-2 h-4 w-4" />
+        {loading ? "Initializing..." : "Connect Bank Account"}
+      </Button>
+      
+      <PlaidConsent 
+        isOpen={showConsent}
+        onConsent={handleConsentGranted}
+        onDecline={() => setShowConsent(false)}
+      />
+    </>
   );
 }
