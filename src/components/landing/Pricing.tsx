@@ -28,8 +28,6 @@ export function Pricing() {
         return;
       }
 
-      console.log("Starting Stripe checkout for user:", session.user.email);
-
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -37,12 +35,10 @@ export function Pricing() {
       });
 
       if (error) {
-        console.error("Checkout error:", error);
         throw error;
       }
       
       if (data?.url) {
-        console.log("Redirecting to Stripe checkout:", data.url);
         // Open in same window for better UX
         window.location.href = data.url;
       } else {

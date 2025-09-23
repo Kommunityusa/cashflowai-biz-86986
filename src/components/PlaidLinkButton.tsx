@@ -35,7 +35,6 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
         return;
       }
 
-      console.log("Creating Plaid link token...");
       const { data, error } = await supabase.functions.invoke("plaid", {
         body: { 
           action: "create_link_token",
@@ -60,7 +59,6 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
       });
 
       if (error) {
-        console.error("Plaid error:", error);
         throw error;
       }
       
@@ -68,7 +66,6 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
         throw new Error("No link token received from Plaid");
       }
       
-      console.log("Link token created successfully");
       setLinkToken(data.link_token);
       
       // Log link token creation with request ID
@@ -90,7 +87,6 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
         }
       });
     } catch (error: any) {
-      console.error("Error creating link token:", error);
       
       // Log error with Plaid logger
       const errorLog = formatPlaidError(error, 'link_token_creation');

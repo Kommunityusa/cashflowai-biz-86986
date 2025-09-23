@@ -66,29 +66,24 @@ export default function Dashboard() {
   useEffect(() => {
     // Only fetch data when we have a user and auth is not loading
     if (!authLoading && user) {
-      console.log('Dashboard: User authenticated, fetching data for:', user.email);
       fetchDashboardData();
       logAuditEvent({
         action: 'VIEW_DASHBOARD',
         details: { timestamp: new Date().toISOString() }
       });
     } else if (!authLoading && !user) {
-      console.log('Dashboard: No user found, redirecting to auth');
       navigate("/auth");
     }
   }, [user, authLoading, navigate]);
 
   const fetchDashboardData = async () => {
     if (!user?.id) {
-      console.error('No user ID available');
       setLoading(false);
       return;
     }
 
     setLoading(true);
     try {
-      console.log('Fetching dashboard data for user:', user.id);
-      
       // Fetch transactions with categories
       const { data: transactions, error } = await supabase
         .from('transactions')
@@ -97,16 +92,13 @@ export default function Dashboard() {
         .order('transaction_date', { ascending: false });
 
       if (error) {
-        console.error('Error fetching transactions:', error);
         // If it's an RLS error, show a helpful message
         if (error.code === '42501') {
-          console.error('RLS Policy Error: User cannot access transactions');
+          // Silent fail - RLS policies might not be set up yet
         }
         setLoading(false);
         return;
       }
-
-      console.log('Fetched transactions:', transactions?.length || 0);
 
       if (transactions) {
         // Calculate stats

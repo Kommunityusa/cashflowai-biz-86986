@@ -17,7 +17,6 @@ const Index = () => {
   useEffect(() => {
     // If user is logged in and not loading, redirect to dashboard
     if (!loading && user) {
-      console.log('User detected on landing page, redirecting to dashboard...');
       setRedirecting(true);
       // Small delay to show the redirect message
       const timer = setTimeout(() => {

@@ -28,10 +28,9 @@ export function useAuth(requireAuth: boolean = true) {
 
       if (!error && data) {
         setSubscriptionPlan(data.plan || "free");
-        console.log("Subscription plan:", data.plan || "free");
       }
     } catch (error) {
-      console.error("Error checking subscription:", error);
+      // Silent fail for subscription check - not critical
     } finally {
       setSubscriptionLoading(false);
     }
@@ -46,10 +45,8 @@ export function useAuth(requireAuth: boolean = true) {
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('Error getting session:', error);
+          // Silent error - session might not exist yet
         }
-        
-        console.log('Initial session check:', session?.user?.email || 'No user');
         
         if (mounted) {
           setSession(session);
@@ -65,9 +62,9 @@ export function useAuth(requireAuth: boolean = true) {
             if (refreshedSession) {
               setSession(refreshedSession);
               setUser(refreshedSession.user);
-              checkSubscription(refreshedSession).catch(console.error);
+              checkSubscription(refreshedSession);
             } else {
-              checkSubscription(session).catch(console.error);
+              checkSubscription(session);
             }
           }
           
@@ -77,7 +74,6 @@ export function useAuth(requireAuth: boolean = true) {
           }
         }
       } catch (error) {
-        console.error('Error in initializeAuth:', error);
         if (mounted) {
           setLoading(false);
           if (requireAuth) {
@@ -93,8 +89,6 @@ export function useAuth(requireAuth: boolean = true) {
     // Set up auth state listener for future changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('Auth state changed:', event, 'User:', session?.user?.email || 'No user');
-        
         if (mounted) {
           setSession(session);
           setUser(session?.user ?? null);
@@ -102,7 +96,7 @@ export function useAuth(requireAuth: boolean = true) {
           // Use setTimeout to avoid deadlock
           if (session) {
             setTimeout(() => {
-              checkSubscription(session).catch(console.error);
+              checkSubscription(session);
             }, 0);
           }
           

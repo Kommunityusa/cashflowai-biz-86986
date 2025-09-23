@@ -85,13 +85,11 @@ export default function AdminDashboard() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        console.log('No session found, redirecting to auth');
         navigate('/auth');
         return;
       }
 
       setUser(session.user);
-      console.log('Current user:', session.user.email);
 
       // Check if user has admin role
       const { data: roleData, error: roleError } = await supabase
@@ -100,10 +98,7 @@ export default function AdminDashboard() {
         .eq('user_id', session.user.id)
         .single();
 
-      console.log('Role data:', roleData, 'Error:', roleError);
-
       if (roleError || !roleData || roleData.role !== 'admin') {
-        console.log('User is not admin, redirecting to dashboard');
         toast({
           title: "Access Denied",
           description: "You don't have permission to access the admin dashboard",
@@ -113,7 +108,6 @@ export default function AdminDashboard() {
         return;
       }
 
-      console.log('User is admin, loading dashboard data');
       setIsAdmin(true);
       fetchDashboardData();
       fetchPlatformSettings();
