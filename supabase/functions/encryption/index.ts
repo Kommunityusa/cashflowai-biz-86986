@@ -92,19 +92,26 @@ serve(async (req) => {
   }
 
   try {
+    const authHeader = req.headers.get('Authorization');
+    
+    // Create Supabase client with service role for database operations
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { persistSession: false } }
     );
 
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    // Verify user authentication using the provided token
+    let user: any = null;
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: userData, error: authError } = await supabaseClient.auth.getUser(token);
+      if (!authError && userData.user) {
+        user = userData.user;
+      }
+    }
     
-    if (authError || !user) {
+    if (!user) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { 
