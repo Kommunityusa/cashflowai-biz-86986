@@ -18,15 +18,24 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
+    const authHeader = req.headers.get('Authorization');
+    
+    // Create Supabase client with service role for database operations
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { persistSession: false } }
     );
+
+    // Verify user authentication using the provided token
+    let userId: string | null = null;
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+      if (!error && user) {
+        userId = user.id;
+      }
+    }
 
     const { action, data } = await req.json();
     
@@ -37,8 +46,7 @@ serve(async (req) => {
     switch (action) {
       case 'log_audit': {
         // Verify user is authenticated
-        const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-        if (authError || !user) {
+        if (!userId) {
           return new Response(
             JSON.stringify({ error: 'Unauthorized' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
@@ -46,10 +54,10 @@ serve(async (req) => {
         }
 
         // Log audit event
-        const { error } = await supabaseClient
+        const { error } = await supabaseAdmin
           .from('audit_logs')
           .insert({
-            user_id: user.id,
+            user_id: userId,
             action: data.action,
             entity_type: data.entityType,
             entity_id: data.entityId,
@@ -147,8 +155,7 @@ serve(async (req) => {
 
       case 'get_audit_logs': {
         // Verify user is authenticated
-        const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-        if (authError || !user) {
+        if (!userId) {
           return new Response(
             JSON.stringify({ error: 'Unauthorized' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
@@ -156,10 +163,10 @@ serve(async (req) => {
         }
 
         // Fetch user's audit logs
-        const { data: logs, error } = await supabaseClient
+        const { data: logs, error } = await supabaseAdmin
           .from('audit_logs')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('user_id', userId)
           .order('created_at', { ascending: false })
           .limit(100);
 

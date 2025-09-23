@@ -84,18 +84,22 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
+    const authHeader = req.headers.get('Authorization');
+    
+    // Create Supabase client with service role for database operations
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { persistSession: false } }
     );
 
     // Get user for rate limiting
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    let user = null;
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      const result = await supabaseAdmin.auth.getUser(token);
+      user = result.data.user;
+    }
     
     // Use IP address for rate limiting if user is not authenticated
     const identifier = user?.id || req.headers.get('x-forwarded-for') || 
