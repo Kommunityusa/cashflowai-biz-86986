@@ -122,16 +122,33 @@ serve(async (req) => {
         const data = await response.json();
         
         if (data.error_code) {
-          console.error('Plaid error:', data);
+          console.error('[Plaid Error] Link token creation failed:', {
+            error_code: data.error_code,
+            error_message: data.error_message,
+            error_type: data.error_type,
+            request_id: data.request_id,
+            user_id: user.id,
+            timestamp: new Date().toISOString(),
+          });
           throw new Error(data.error_message || 'Failed to create link token');
         }
 
-        console.log('Link token created successfully');
+        // Log successful link token creation
+        console.log('[Plaid Success] Link token created:', {
+          request_id: data.request_id,
+          expiration: data.expiration,
+          user_id: user.id,
+          environment: plaidEnv,
+          timestamp: new Date().toISOString(),
+        });
+        
         return new Response(
           JSON.stringify({ 
             link_token: data.link_token,
+            request_id: data.request_id,
             redirect_uri: redirectUri,
-            environment: PLAID_ENV.includes('sandbox') ? 'sandbox' : 'production'
+            environment: PLAID_ENV.includes('sandbox') ? 'sandbox' : plaidEnv,
+            expiration: data.expiration,
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -140,6 +157,13 @@ serve(async (req) => {
       case 'exchange_public_token': {
         // Exchange public token for access token
         const { public_token, metadata } = params;
+        
+        console.log('[Plaid] Starting token exchange:', {
+          user_id: user.id,
+          institution: metadata?.institution?.name,
+          link_session_id: metadata?.link_session_id,
+          timestamp: new Date().toISOString(),
+        });
         
         const response = await fetch(`${PLAID_ENV}/item/public_token/exchange`, {
           method: 'POST',
@@ -156,11 +180,36 @@ serve(async (req) => {
         const data = await response.json();
         
         if (data.error_code) {
-          console.error('Plaid error:', data);
+          console.error('[Plaid Error] Token exchange failed:', {
+            error_code: data.error_code,
+            error_message: data.error_message,
+            error_type: data.error_type,
+            request_id: data.request_id,
+            user_id: user.id,
+            institution: metadata?.institution?.name,
+            link_session_id: metadata?.link_session_id,
+            timestamp: new Date().toISOString(),
+          });
           throw new Error(data.error_message || 'Failed to exchange token');
         }
+        
+        const accessToken = data.access_token;
+        const itemId = data.item_id;
+        
+        // Log successful token exchange
+        console.log('[Plaid Success] Token exchanged:', {
+          request_id: data.request_id,
+          item_id: itemId,
+          user_id: user.id,
+          institution: metadata?.institution?.name,
+          accounts_count: metadata?.accounts?.length,
+          link_session_id: metadata?.link_session_id,
+          timestamp: new Date().toISOString(),
+        });
 
         // Get account details
+        console.log('[Plaid] Fetching account details for item:', itemId);
+        
         const accountsResponse = await fetch(`${PLAID_ENV}/accounts/get`, {
           method: 'POST',
           headers: {
@@ -169,23 +218,46 @@ serve(async (req) => {
           body: JSON.stringify({
             client_id: plaidClientId,
             secret: plaidSecret,
-            access_token: data.access_token,
+            access_token: accessToken,
           }),
         });
 
         const accountsData = await accountsResponse.json();
         
         if (accountsData.error_code) {
-          console.error('Plaid accounts error:', accountsData);
+          console.error('[Plaid Error] Failed to fetch accounts:', {
+            error_code: accountsData.error_code,
+            error_message: accountsData.error_message,
+            request_id: accountsData.request_id,
+            item_id: itemId,
+            user_id: user.id,
+            timestamp: new Date().toISOString(),
+          });
           throw new Error(accountsData.error_message || 'Failed to get accounts');
         }
+        
+        // Log successful account fetch
+        const accountIds = accountsData.accounts?.map((a: any) => a.account_id);
+        console.log('[Plaid Success] Accounts fetched:', {
+          request_id: accountsData.request_id,
+          item_id: itemId,
+          accounts_count: accountsData.accounts?.length,
+          account_ids: accountIds,
+          user_id: user.id,
+          timestamp: new Date().toISOString(),
+        });
 
         // Save accounts to database
+        console.log('[Plaid] Saving accounts to database:', {
+          item_id: itemId,
+          accounts_count: accountsData.accounts?.length,
+          user_id: user.id,
+        });
         for (const account of accountsData.accounts) {
-          await supabase.from('bank_accounts').upsert({
+          const { error } = await supabase.from('bank_accounts').upsert({
             user_id: user.id,
-            plaid_access_token: data.access_token,
-            plaid_item_id: data.item_id,
+            plaid_access_token: accessToken,
+            plaid_item_id: itemId,
             plaid_account_id: account.account_id,
             account_name: account.name,
             bank_name: metadata?.institution?.name || 'Unknown Bank',
@@ -195,6 +267,20 @@ serve(async (req) => {
             is_active: true,
             last_synced_at: new Date().toISOString(),
           });
+          
+          if (error) {
+            console.error('[Plaid Error] Failed to save account:', {
+              account_id: account.account_id,
+              error: error.message,
+              user_id: user.id,
+            });
+          } else {
+            console.log('[Plaid Success] Account saved:', {
+              account_id: account.account_id,
+              account_name: account.name,
+              item_id: itemId,
+            });
+          }
         }
 
         return new Response(

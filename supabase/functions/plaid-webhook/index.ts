@@ -45,8 +45,13 @@ async function verifyPlaidWebhook(
 }
 
 // Enhanced sync transactions for small business bookkeeping
-async function syncTransactions(accessToken: string, userId: string, accountId: string) {
-  console.log('[WEBHOOK] Syncing business transactions for account:', accountId);
+async function syncTransactions(accessToken: string, userId: string, accountId: string, itemId?: string) {
+  console.log('[WEBHOOK] Syncing business transactions:', {
+    account_id: accountId,
+    item_id: itemId,
+    user_id: userId,
+    timestamp: new Date().toISOString(),
+  });
   
   try {
     // Get transactions from last 30 days
@@ -68,9 +73,29 @@ async function syncTransactions(accessToken: string, userId: string, accountId: 
     const data = await response.json();
     
     if (data.error_code) {
-      console.error('[WEBHOOK] Plaid sync error:', data);
+      console.error('[WEBHOOK Error] Plaid sync failed:', {
+        error_code: data.error_code,
+        error_message: data.error_message,
+        request_id: data.request_id,
+        account_id: accountId,
+        item_id: itemId,
+        user_id: userId,
+        timestamp: new Date().toISOString(),
+      });
       return { error: data.error_message };
     }
+    
+    // Log successful sync with request ID
+    console.log('[WEBHOOK Success] Transactions sync response:', {
+      request_id: data.request_id,
+      item_id: itemId,
+      account_id: accountId,
+      has_more: data.has_more,
+      added_count: data.added?.length || 0,
+      modified_count: data.modified?.length || 0,
+      removed_count: data.removed?.length || 0,
+      timestamp: new Date().toISOString(),
+    });
 
     let totalSynced = 0;
     let taxDeductibleCount = 0;
@@ -197,7 +222,14 @@ async function syncTransactions(accessToken: string, userId: string, accountId: 
         .eq('plaid_transaction_id', transactionId);
     }
 
-    console.log(`[WEBHOOK] Synced ${totalSynced} transactions (${taxDeductibleCount} tax-deductible)`);
+    console.log('[WEBHOOK Complete] Transaction sync finished:', {
+      total_synced: totalSynced,
+      tax_deductible: taxDeductibleCount,
+      account_id: accountId,
+      item_id: itemId,
+      user_id: userId,
+      timestamp: new Date().toISOString(),
+    });
     
     // Log audit event for significant sync
     if (totalSynced > 0) {
@@ -209,14 +241,22 @@ async function syncTransactions(accessToken: string, userId: string, accountId: 
         details: {
           total_synced: totalSynced,
           tax_deductible: taxDeductibleCount,
-          sync_type: 'webhook'
+          sync_type: 'webhook',
+          item_id: itemId,
+          timestamp: new Date().toISOString(),
         }
       });
     }
 
     return { success: true, totalSynced, taxDeductibleCount };
   } catch (error) {
-    console.error('[WEBHOOK] Error syncing transactions:', error);
+    console.error('[WEBHOOK Error] Transaction sync failed:', {
+      error: error.message,
+      account_id: accountId,
+      item_id: itemId,
+      user_id: userId,
+      timestamp: new Date().toISOString(),
+    });
     return { error: error.message };
   }
 }

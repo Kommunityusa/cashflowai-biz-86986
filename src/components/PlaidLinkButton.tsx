@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Building, Link } from "lucide-react";
 import { logAuditEvent } from "@/utils/auditLogger";
+import { logPlaidEvent, logLinkSession, formatPlaidError } from "@/utils/plaidLogger";
 
 interface PlaidLinkButtonProps {
   onSuccess?: () => void;
@@ -67,15 +68,32 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
       console.log("Link token created successfully");
       setLinkToken(data.link_token);
       
-      // Log link token creation
+      // Log link token creation with request ID
+      logPlaidEvent({
+        eventType: 'link_token_created',
+        requestId: data.request_id,
+        metadata: {
+          environment: data.environment,
+          expiration: data.expiration,
+        },
+      });
+      
+      // Also log to audit trail
       logAuditEvent({
         action: 'PLAID_LINK_TOKEN_CREATED',
-        details: { timestamp: new Date().toISOString() }
+        details: { 
+          request_id: data.request_id,
+          timestamp: new Date().toISOString() 
+        }
       });
     } catch (error: any) {
       console.error("Error creating link token:", error);
       
-      // Log error
+      // Log error with Plaid logger
+      const errorLog = formatPlaidError(error, 'link_token_creation');
+      logPlaidEvent(errorLog);
+      
+      // Also log to audit trail
       logAuditEvent({
         action: 'PLAID_LINK_TOKEN_ERROR',
         details: { 
@@ -103,12 +121,32 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
           throw new Error("Not authenticated");
         }
 
+        // Log Link session with session ID and metadata
+        const linkSessionId = (metadata as any).link_session_id;
+        if (linkSessionId) {
+          logLinkSession(metadata, linkSessionId);
+        }
+        
         // Log successful link
+        logPlaidEvent({
+          eventType: 'link_success',
+          linkSessionId,
+          institutionId: metadata.institution?.institution_id,
+          institutionName: metadata.institution?.name,
+          accountId: metadata.accounts?.map(a => a.id),
+          metadata: {
+            accounts_count: metadata.accounts?.length,
+            transfer_status: (metadata as any).transfer_status,
+          },
+        });
+        
+        // Also log to audit trail
         logAuditEvent({
           action: 'PLAID_LINK_SUCCESS',
           details: { 
             institution: metadata.institution?.name,
             accountsCount: metadata.accounts?.length,
+            link_session_id: linkSessionId,
             timestamp: new Date().toISOString() 
           }
         });
@@ -163,11 +201,26 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
 
         if (error) throw error;
 
-        // Log successful exchange
+        // Log successful exchange with all identifiers
+        logPlaidEvent({
+          eventType: 'token_exchange',
+          itemId: data.item_id,
+          requestId: data.request_id,
+          accountId: data.account_ids,
+          linkSessionId: (metadata as any).link_session_id,
+          metadata: {
+            accounts_connected: data.accounts,
+            institution: metadata.institution?.name,
+          },
+        });
+        
+        // Also log to audit trail
         logAuditEvent({
           action: 'PLAID_TOKEN_EXCHANGED',
           details: { 
             accountsConnected: data.accounts,
+            item_id: data.item_id,
+            request_id: data.request_id,
             timestamp: new Date().toISOString() 
           }
         });
@@ -189,11 +242,17 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
       } catch (error: any) {
         console.error("Error exchanging token:", error);
         
-        // Log exchange error
+        // Log error with Plaid logger
+        const errorLog = formatPlaidError(error, 'token_exchange');
+        errorLog.linkSessionId = (metadata as any)?.link_session_id;
+        logPlaidEvent(errorLog);
+        
+        // Also log to audit trail
         logAuditEvent({
           action: 'PLAID_TOKEN_EXCHANGE_ERROR',
           details: { 
             error: error.message,
+            link_session_id: (metadata as any)?.link_session_id,
             timestamp: new Date().toISOString() 
           }
         });
@@ -206,24 +265,44 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
       }
     },
     onExit: (err, metadata) => {
+      const linkSessionId = (metadata as any)?.link_session_id;
+      
       if (err) {
         console.error("Plaid Link error:", err);
         
-        // Log exit with error
+        // Log exit error with Plaid logger
+        const errorLog = formatPlaidError(err, 'link_exit');
+        errorLog.linkSessionId = linkSessionId;
+        logPlaidEvent(errorLog);
+        
+        // Also log to audit trail
         logAuditEvent({
           action: 'PLAID_LINK_EXIT_ERROR',
           details: { 
             error: err.error_message,
             errorCode: err.error_code,
+            link_session_id: linkSessionId,
             timestamp: new Date().toISOString() 
           }
         });
       } else {
         // Log normal exit
+        logPlaidEvent({
+          eventType: 'link_exit',
+          linkSessionId,
+          metadata: {
+            status: metadata?.status,
+            exit_status: (metadata as any)?.exit_status,
+            institution: metadata?.institution?.name,
+          },
+        });
+        
+        // Also log to audit trail
         logAuditEvent({
           action: 'PLAID_LINK_EXIT',
           details: { 
             status: metadata?.status,
+            link_session_id: linkSessionId,
             timestamp: new Date().toISOString() 
           }
         });
