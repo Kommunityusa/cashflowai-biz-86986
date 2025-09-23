@@ -355,13 +355,73 @@ serve(async (req) => {
           .from('bank_accounts')
           .select('*')
           .eq('user_id', user.id)
-          .not('plaid_access_token', 'is', null);
+          .eq('is_active', true);
+
+        if (!accounts || accounts.length === 0) {
+          return new Response(
+            JSON.stringify({ 
+              success: false,
+              message: 'No active bank accounts found',
+              transactions_synced: 0
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
 
         let totalSynced = 0;
         let syncErrors = [];
 
         for (const account of accounts || []) {
           try {
+            console.log('[Plaid Function] Processing account:', {
+              account_id: account.id,
+              bank_name: account.bank_name,
+              has_encrypted_token: !!account.plaid_access_token_encrypted,
+              has_plaintext_token: !!account.plaid_access_token,
+            });
+            
+            // Get the access token - either from encrypted storage or plaintext
+            let accessToken = account.plaid_access_token;
+            
+            // If we have an encrypted token but no plaintext, decrypt it
+            if (!accessToken && account.plaid_access_token_encrypted) {
+              console.log('[Plaid Function] Decrypting access token for account:', account.id);
+              
+              // Call the token-storage function to decrypt
+              const decryptResponse = await supabase.functions.invoke('token-storage', {
+                body: {
+                  action: 'decrypt_access_token',
+                  data: { item_id: account.plaid_item_id }
+                },
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+              
+              if (decryptResponse.error) {
+                console.error('[Plaid Function] Failed to decrypt token:', decryptResponse.error);
+                syncErrors.push({
+                  account_id: account.id,
+                  bank_name: account.bank_name,
+                  error: 'Failed to decrypt access token',
+                });
+                continue;
+              }
+              
+              accessToken = decryptResponse.data?.access_token;
+            }
+            
+            // Skip if we still don't have an access token
+            if (!accessToken) {
+              console.error('[Plaid Function] No access token available for account:', account.id);
+              syncErrors.push({
+                account_id: account.id,
+                bank_name: account.bank_name,
+                error: 'No access token available',
+              });
+              continue;
+            }
+            
             console.log('[Plaid Function] Syncing transactions for account:', {
               account_id: account.id,
               bank_name: account.bank_name,
@@ -382,8 +442,13 @@ serve(async (req) => {
               body: JSON.stringify({
                 client_id: plaidClientId,
                 secret: plaidSecret,
-                access_token: account.plaid_access_token,
+                access_token: accessToken, // Use the decrypted token
                 start_date: startDate.toISOString().split('T')[0],
+                end_date: new Date().toISOString().split('T')[0],
+                options: {
+                  count: 500, // Get more transactions for comprehensive bookkeeping
+                  include_personal_finance_category: true, // Better categorization
+                }
                 end_date: new Date().toISOString().split('T')[0],
                 options: {
                   count: 500, // Get more transactions for comprehensive bookkeeping
