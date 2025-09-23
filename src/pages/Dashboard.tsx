@@ -1,6 +1,7 @@
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { AIInsights } from "@/components/AIInsights";
@@ -47,6 +48,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   useSessionTimeout();
   const [loading, setLoading] = useState(false); // Start with false
   const [stats, setStats] = useState({
@@ -335,23 +337,143 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-8">
-          <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-              <DollarSign className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {formatCurrency(stats.totalRevenue)}
-              </div>
-              <p className="text-xs text-muted-foreground flex items-center mt-1">
-                <ArrowUpIcon className="h-3 w-3 text-green-500 mr-1" />
-                {stats.monthlyGrowth > 0 ? '+' : ''}{stats.monthlyGrowth.toFixed(1)}% from last month
-              </p>
-            </CardContent>
-          </Card>
+        {/* Check if there's no data and show empty state */}
+        {!loading && stats.transactionCount === 0 ? (
+          <div className="space-y-6">
+            {/* Quick Actions for New Users */}
+            <Card className="border-dashed border-2">
+              <CardContent className="py-12">
+                <div className="text-center space-y-6">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10">
+                    <TrendingUp className="h-8 w-8 text-primary" />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-semibold">Let's get started!</h2>
+                    <p className="text-muted-foreground max-w-md mx-auto">
+                      Your dashboard is ready. Start by adding your first transaction or connecting your bank account for automatic imports.
+                    </p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+                    <Button 
+                      size="lg" 
+                      onClick={() => navigate('/transactions')}
+                      className="group"
+                    >
+                      <Plus className="mr-2 h-5 w-5" />
+                      Add Your First Transaction
+                      <ArrowUpIcon className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                    <Button 
+                      size="lg" 
+                      variant="outline"
+                      onClick={async () => {
+                        // Generate sample data
+                        const sampleTransactions = [
+                          { description: "Office Rent", amount: 2500, type: "expense", category: "Rent" },
+                          { description: "Client Payment - ABC Corp", amount: 5000, type: "income", category: "Sales" },
+                          { description: "Software Subscription", amount: 299, type: "expense", category: "Software" },
+                          { description: "Consulting Services", amount: 3500, type: "income", category: "Services" },
+                          { description: "Office Supplies", amount: 150, type: "expense", category: "Office Supplies" },
+                        ];
+
+                        for (const transaction of sampleTransactions) {
+                          // Find the category
+                          const { data: categories } = await supabase
+                            .from('categories')
+                            .select('id')
+                            .eq('user_id', user?.id)
+                            .eq('name', transaction.category)
+                            .maybeSingle();
+
+                          // Create transaction
+                          await supabase.from('transactions').insert({
+                            user_id: user?.id,
+                            description: transaction.description,
+                            amount: transaction.amount,
+                            type: transaction.type,
+                            category_id: categories?.id,
+                            transaction_date: new Date().toISOString().split('T')[0],
+                            status: 'completed'
+                          });
+                        }
+
+                        toast({
+                          title: "Sample data added!",
+                          description: "We've added some sample transactions to get you started.",
+                        });
+                        
+                        // Refresh the dashboard
+                        fetchDashboardData();
+                      }}
+                    >
+                      <Activity className="mr-2 h-5 w-5" />
+                      Generate Sample Data
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Connected Accounts Section */}
+            <BankAccounts />
+            
+            {/* Getting Started Tips */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Getting Started Tips</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-primary">
+                      <CreditCard className="h-5 w-5" />
+                      <h3 className="font-medium">Connect Your Bank</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Link your business accounts for automatic transaction imports and real-time balance updates.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-primary">
+                      <Bot className="h-5 w-5" />
+                      <h3 className="font-medium">AI Assistant</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Get instant insights and answers about your finances from our AI-powered assistant.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-primary">
+                      <FileText className="h-5 w-5" />
+                      <h3 className="font-medium">Generate Reports</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Create professional financial reports for taxes, investors, or business planning.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          <>
+            {/* Stats Cards */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-8">
+              <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                  <DollarSign className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {formatCurrency(stats.totalRevenue)}
+                  </div>
+                  <p className="text-xs text-muted-foreground flex items-center mt-1">
+                    <ArrowUpIcon className="h-3 w-3 text-green-500 mr-1" />
+                    {stats.monthlyGrowth > 0 ? '+' : ''}{stats.monthlyGrowth.toFixed(1)}% from last month
+                  </p>
+                </CardContent>
+              </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -422,8 +544,9 @@ export default function Dashboard() {
         {/* AI Insights */}
         <AIInsights />
 
-        {/* Charts Section */}
-        <Tabs defaultValue="overview" className="space-y-4 mb-8">
+        {/* Charts Section - Only show if there's data */}
+        {stats.transactionCount > 0 && (
+          <Tabs defaultValue="overview" className="space-y-4 mb-8">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="categories">Categories</TabsTrigger>
@@ -566,6 +689,7 @@ export default function Dashboard() {
             </Card>
           </TabsContent>
         </Tabs>
+        )}
 
         {/* Bank Accounts */}
         <BankAccounts />
@@ -654,6 +778,8 @@ export default function Dashboard() {
           <EncryptionStatus />
           <RateLimitStatus />
         </div>
+          </>
+        )}
       </main>
     </div>
   );
