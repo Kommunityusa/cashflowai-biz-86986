@@ -552,22 +552,22 @@ export default function Dashboard() {
               </p>
             </CardContent>
           </Card>
-        </div>
+            </div>
 
             {/* AI Insights */}
             <AIInsights />
 
             {/* Charts Section - Only show if there's data */}
             {stats.transactionCount > 0 && (
-          <Tabs defaultValue="overview" className="space-y-4 mb-8">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="categories">Categories</TabsTrigger>
-            <TabsTrigger value="monthly">Monthly Trend</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="overview" className="space-y-4">
-            <Card>
+              <Tabs defaultValue="overview" className="space-y-4 mb-8">
+                <TabsList>
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="categories">Categories</TabsTrigger>
+                  <TabsTrigger value="monthly">Monthly Trend</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="overview" className="space-y-4">
+                  <Card>
               <CardHeader>
                 <CardTitle>Financial Overview (Last 30 Days)</CardTitle>
               </CardHeader>
@@ -700,19 +700,19 @@ export default function Dashboard() {
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
-        )}
+                </TabsContent>
+              </Tabs>
+            )}
 
-        {/* Bank Accounts */}
-        <BankAccounts />
+            {/* Bank Accounts */}
+            <BankAccounts />
 
-        {/* Security Monitor */}
-        <SecurityMonitor />
+            {/* Security Monitor */}
+            <SecurityMonitor />
 
-        {/* Recent Transactions */}
-        <Card className="mb-8">
-          <CardHeader className="flex flex-row items-center justify-between">
+            {/* Recent Transactions */}
+            <Card className="mb-8">
+              <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Recent Transactions</CardTitle>
             <Button variant="outline" size="sm" onClick={() => navigate('/transactions')}>
               View All
@@ -784,8 +784,8 @@ export default function Dashboard() {
               Chat with AI Assistant
             </Button>
           </CardContent>
-        </Card>
-        
+            </Card>
+            
             {/* Security Status Cards */}
             <div className="grid gap-4 md:grid-cols-2">
               <EncryptionStatus />
