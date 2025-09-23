@@ -28,6 +28,7 @@ export function useAuth(requireAuth: boolean = true) {
 
       if (!error && data) {
         setSubscriptionPlan(data.plan || "free");
+        console.log("Subscription plan:", data.plan || "free");
       }
     } catch (error) {
       console.error("Error checking subscription:", error);
@@ -41,7 +42,7 @@ export function useAuth(requireAuth: boolean = true) {
 
     const initializeAuth = async () => {
       try {
-        // Get the current session
+        // Get the current session from localStorage/cookies
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -59,10 +60,18 @@ export function useAuth(requireAuth: boolean = true) {
           
           // Check subscription for existing session
           if (session) {
-            checkSubscription(session).catch(console.error);
+            // Refresh the session token if needed
+            const { data: { session: refreshedSession } } = await supabase.auth.refreshSession();
+            if (refreshedSession) {
+              setSession(refreshedSession);
+              setUser(refreshedSession.user);
+              checkSubscription(refreshedSession).catch(console.error);
+            } else {
+              checkSubscription(session).catch(console.error);
+            }
           }
           
-          // Redirect to auth if required and no session
+          // Only redirect to auth if required and no session
           if (requireAuth && !session) {
             navigate("/auth");
           }
@@ -81,7 +90,7 @@ export function useAuth(requireAuth: boolean = true) {
     // Initialize auth immediately
     initializeAuth();
 
-    // Set up auth state listener
+    // Set up auth state listener for future changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('Auth state changed:', event, 'User:', session?.user?.email || 'No user');
@@ -97,9 +106,12 @@ export function useAuth(requireAuth: boolean = true) {
             }, 0);
           }
           
-          // Redirect based on auth state
-          if (requireAuth && !session && event === 'SIGNED_OUT') {
+          // Handle different auth events
+          if (event === 'SIGNED_OUT' && requireAuth) {
             navigate("/auth");
+          } else if (event === 'SIGNED_IN' && !requireAuth && window.location.pathname === '/') {
+            // Redirect to dashboard after signing in
+            navigate("/dashboard");
           }
         }
       }

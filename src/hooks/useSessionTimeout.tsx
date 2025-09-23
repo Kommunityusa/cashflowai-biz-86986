@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 
-const IDLE_TIMEOUT = 15 * 60 * 1000; // 15 minutes
+const IDLE_TIMEOUT = 15 * 60 * 1000; // 15 minutes of inactivity before logout
 const WARNING_TIME = 2 * 60 * 1000; // 2 minutes before timeout
 
 export function useSessionTimeout() {

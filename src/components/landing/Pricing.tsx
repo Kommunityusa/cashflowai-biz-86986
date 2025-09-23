@@ -20,9 +20,15 @@ export function Pricing() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
+        toast({
+          title: "Sign up required",
+          description: "Please create an account to start your free trial",
+        });
         navigate("/auth");
         return;
       }
+
+      console.log("Starting Stripe checkout for user:", session.user.email);
 
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         headers: {
@@ -30,16 +36,23 @@ export function Pricing() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Checkout error:", error);
+        throw error;
+      }
       
       if (data?.url) {
-        window.open(data.url, "_blank");
+        console.log("Redirecting to Stripe checkout:", data.url);
+        // Open in same window for better UX
+        window.location.href = data.url;
+      } else {
+        throw new Error("No checkout URL received");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Checkout error:", error);
       toast({
         title: "Error",
-        description: "Failed to start checkout process. Please try again.",
+        description: error.message || "Failed to start checkout process. Please try again.",
         variant: "destructive",
       });
     } finally {
