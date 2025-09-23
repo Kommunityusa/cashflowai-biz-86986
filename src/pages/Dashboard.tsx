@@ -62,14 +62,19 @@ export default function Dashboard() {
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
 
   useEffect(() => {
-    if (user && !authLoading) {
-      fetchDashboardData();
-      logAuditEvent({
-        action: 'VIEW_DASHBOARD',
-        details: { timestamp: new Date().toISOString() }
-      });
+    if (!authLoading) {
+      if (user) {
+        fetchDashboardData();
+        logAuditEvent({
+          action: 'VIEW_DASHBOARD',
+          details: { timestamp: new Date().toISOString() }
+        });
+      } else {
+        // If no user after loading, redirect to auth
+        navigate("/auth");
+      }
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, navigate]);
 
   const fetchDashboardData = async () => {
     setLoading(true);
