@@ -67,27 +67,41 @@ serve(async (req) => {
         const webhookUrl = `${supabaseUrl}/functions/v1/plaid-webhook`;
         console.log('Webhook URL:', webhookUrl);
         
+        // Determine redirect URI for OAuth
+        const origin = req.headers.get('origin') || 'https://nbrcdphgadabjndynyvy.supabase.co';
+        const redirectUri = `${origin}/auth/callback`;
+        console.log('OAuth Redirect URI:', redirectUri);
+        
         // Create a link token for Plaid Link initialization
+        const requestBody: any = {
+          client_id: plaidClientId,
+          secret: plaidSecret,
+          user: {
+            client_user_id: user.id,
+          },
+          client_name: 'BizFlow',
+          products: ['transactions', 'accounts'],
+          country_codes: ['US'],
+          language: 'en',
+          webhook: webhookUrl, // Register webhook URL
+          redirect_uri: redirectUri, // OAuth redirect URI
+          transactions: {
+            days_requested: 730, // Request 2 years of transaction history
+          },
+        };
+        
+        // Add optional parameters for update mode
+        const { mode, accessToken } = params || {};
+        if (mode === 'update' && accessToken) {
+          requestBody.access_token = accessToken;
+        }
+        
         const response = await fetch(`${PLAID_ENV}/link/token/create`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            client_id: plaidClientId,
-            secret: plaidSecret,
-            user: {
-              client_user_id: user.id,
-            },
-            client_name: 'BizFlow',
-            products: ['transactions', 'accounts'],
-            country_codes: ['US'],
-            language: 'en',
-            webhook: webhookUrl, // Register webhook URL
-            transactions: {
-              days_requested: 730, // Request 2 years of transaction history
-            },
-          }),
+          body: JSON.stringify(requestBody),
         });
 
         const data = await response.json();
@@ -99,7 +113,11 @@ serve(async (req) => {
 
         console.log('Link token created successfully');
         return new Response(
-          JSON.stringify({ link_token: data.link_token }),
+          JSON.stringify({ 
+            link_token: data.link_token,
+            redirect_uri: redirectUri,
+            environment: PLAID_ENV.includes('sandbox') ? 'sandbox' : 'production'
+          }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
