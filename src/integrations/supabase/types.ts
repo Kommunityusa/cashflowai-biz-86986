@@ -63,6 +63,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           last_synced_at: string | null
+          notes: string | null
           plaid_access_token: string | null
           plaid_access_token_encrypted: string | null
           plaid_account_id: string | null
@@ -84,6 +85,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_synced_at?: string | null
+          notes?: string | null
           plaid_access_token?: string | null
           plaid_access_token_encrypted?: string | null
           plaid_account_id?: string | null
@@ -105,6 +107,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_synced_at?: string | null
+          notes?: string | null
           plaid_access_token?: string | null
           plaid_access_token_encrypted?: string | null
           plaid_account_id?: string | null
