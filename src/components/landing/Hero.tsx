@@ -37,10 +37,13 @@ export function Hero() {
                 size="xl" 
                 variant="outline" 
                 className="group"
-                onClick={() => window.open("https://www.youtube.com/watch?v=dQw4w9WgXcQ", "_blank")}
+                onClick={() => {
+                  const demoSection = document.getElementById('features');
+                  demoSection?.scrollIntoView({ behavior: 'smooth' });
+                }}
               >
                 <Play className="mr-2 h-5 w-5" />
-                Watch Demo
+                View Features
               </Button>
             </div>
             
