@@ -424,6 +424,109 @@ serve(async (req) => {
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+      
+      case 'remove_item': {
+        // Remove a Plaid Item and clean up associated data
+        const { item_id, account_id } = params;
+        
+        console.log('[Plaid] Removing item:', {
+          item_id,
+          account_id,
+          user_id: user.id,
+          timestamp: new Date().toISOString(),
+        });
+        
+        // Get the access token for this item
+        const { data: bankAccount } = await supabase
+          .from('bank_accounts')
+          .select('plaid_access_token, plaid_item_id')
+          .eq('id', account_id)
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        if (!bankAccount || !bankAccount.plaid_access_token) {
+          return new Response(
+            JSON.stringify({ error: 'Bank account not found or not connected to Plaid' }),
+            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        // Call Plaid's /item/remove endpoint
+        const removeResponse = await fetch(`${PLAID_ENV}/item/remove`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            client_id: plaidClientId,
+            secret: plaidSecret,
+            access_token: bankAccount.plaid_access_token,
+          }),
+        });
+        
+        const removeData = await removeResponse.json();
+        
+        if (removeData.error_code) {
+          console.error('[Plaid Error] Failed to remove item:', {
+            error_code: removeData.error_code,
+            error_message: removeData.error_message,
+            request_id: removeData.request_id,
+            item_id,
+            user_id: user.id,
+            timestamp: new Date().toISOString(),
+          });
+        } else {
+          console.log('[Plaid Success] Item removed:', {
+            request_id: removeData.request_id,
+            item_id,
+            user_id: user.id,
+            timestamp: new Date().toISOString(),
+          });
+        }
+        
+        // Clean up database - soft delete the bank account
+        await supabase
+          .from('bank_accounts')
+          .update({
+            is_active: false,
+            plaid_access_token: null,
+            plaid_access_token_encrypted: null,
+            plaid_item_id: null,
+            notes: 'Account disconnected by user',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', account_id);
+        
+        // Archive associated transactions (don't delete for audit trail)
+        await supabase
+          .from('transactions')
+          .update({
+            status: 'archived',
+            notes: 'Bank account disconnected',
+          })
+          .eq('bank_account_id', account_id);
+        
+        // Log the removal in audit logs
+        await supabase.from('audit_logs').insert({
+          user_id: user.id,
+          action: 'PLAID_ITEM_REMOVED' as any,
+          entity_type: 'bank_account',
+          entity_id: account_id,
+          details: {
+            item_id,
+            request_id: removeData.request_id,
+            removed_at: new Date().toISOString(),
+          } as any,
+        });
+        
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            message: 'Bank account disconnected successfully',
+            request_id: removeData.request_id,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      }
 
       default:
         throw new Error('Invalid action');

@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { PlaidLinkButton } from "@/components/PlaidLinkButton";
 import { PlaidOnboarding } from "@/components/PlaidOnboarding";
+import { BankAccountRemoval } from "@/components/BankAccountRemoval";
 import { BankConnectionManager } from "@/components/BankConnectionManager";
 import {
   Building,
@@ -209,24 +210,9 @@ export function BankAccounts() {
     }
   };
 
-  const removeConnection = async (id: string, hasPlaid: boolean) => {
-    if (hasPlaid) {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
-
-        await supabase.functions.invoke("plaid", {
-          body: { action: "remove_connection", account_id: id },
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        });
-      } catch (error) {
-        console.error("Error removing Plaid connection:", error);
-      }
-    } else {
-      await deleteAccount(id);
-    }
+  const handleRemoveAccount = async (id: string, hasPlaid: boolean) => {
+    // This will be handled by the BankAccountRemoval component
+    fetchAccounts();
   };
 
   const totalBalance = accounts.reduce((sum, acc) => sum + Number(acc.current_balance || 0), 0);
@@ -417,13 +403,10 @@ export function BankAccounts() {
                       >
                         <RefreshCw className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeConnection(account.id, !!account.plaid_account_id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <BankAccountRemoval 
+                        account={account} 
+                        onRemovalComplete={fetchAccounts} 
+                      />
                     </div>
                   </div>
                   {account.last_synced_at && (

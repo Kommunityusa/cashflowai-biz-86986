@@ -26,6 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EncryptionSettings } from "@/components/EncryptionSettings";
 import { SubscriptionStatus } from "@/components/SubscriptionStatus";
 import { AuditLogs } from "@/components/AuditLogs";
+import { scheduleDataRetention, exportUserData } from "@/utils/dataRetention";
 import {
   Dialog,
   DialogContent,
@@ -80,6 +81,8 @@ const Settings = () => {
   useEffect(() => {
     if (user) {
       fetchProfile();
+      // Initialize data retention scheduler
+      scheduleDataRetention(user.id);
     }
   }, [user]);
 
@@ -708,6 +711,35 @@ const Settings = () => {
                 >
                   <Download className="h-4 w-4 mr-2" />
                   {loading ? "Downloading..." : "Download Data"}
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="w-full sm:w-auto"
+                  onClick={async () => {
+                    try {
+                      const exportData = await exportUserData(user?.id || '');
+                      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `cashflow-data-export-${new Date().toISOString()}.json`;
+                      a.click();
+                      toast({
+                        title: "Data Exported",
+                        description: "Your data has been exported successfully",
+                      });
+                    } catch (error) {
+                      toast({
+                        title: "Export Failed",
+                        description: "Failed to export data",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export All Data (GDPR)
                 </Button>
               </div>
             </Card>
