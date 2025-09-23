@@ -43,7 +43,7 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
             language: "en",
             countryCodes: ["US"],
             // Optimize product selection for cost and conversion
-            products: ["transactions", "accounts"],
+            products: ["transactions"],
             // Enable account selection optimization
             accountSubtypes: {
               depository: ["checking", "savings"],
