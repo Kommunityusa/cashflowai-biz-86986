@@ -318,8 +318,48 @@ serve(async (req) => {
           accounts_count: accountsData.accounts?.length,
           user_id: user.id,
         });
+        
+        let newAccountsCount = 0;
+        let duplicatesCount = 0;
+        const accountResults = [];
         for (const account of accountsData.accounts) {
-          const { error } = await supabase.from('bank_accounts').upsert({
+          // Check if this exact account already exists for this user
+          const { data: existingAccount } = await supabase
+            .from('bank_accounts')
+            .select('id, account_name, is_active')
+            .eq('user_id', user.id)
+            .eq('plaid_account_id', account.account_id)
+            .maybeSingle();
+            
+          if (existingAccount) {
+            duplicatesCount++;
+            accountResults.push({
+              account_id: account.account_id,
+              account_name: account.name,
+              status: 'duplicate'
+            });
+            
+            console.log('[Plaid] Account already exists, skipping:', {
+              account_id: account.account_id,
+              account_name: account.name,
+              existing_id: existingAccount.id,
+            });
+            
+            // Reactivate if it was deactivated
+            if (!existingAccount.is_active) {
+              await supabase
+                .from('bank_accounts')
+                .update({ 
+                  is_active: true,
+                  last_synced_at: new Date().toISOString(),
+                })
+                .eq('id', existingAccount.id);
+            }
+            continue;
+          }
+          
+          // Insert new account
+          const { error } = await supabase.from('bank_accounts').insert({
             user_id: user.id,
             plaid_access_token: null, // Never store plaintext in production
             plaid_item_id: itemId,
@@ -341,6 +381,13 @@ serve(async (req) => {
               user_id: user.id,
             });
           } else {
+            newAccountsCount++;
+            accountResults.push({
+              account_id: account.account_id,
+              account_name: account.name,
+              bank_name: metadata?.institution?.name,
+              status: 'added'
+            });
             console.log('[Plaid Success] Account saved:', {
               account_id: account.account_id,
               account_name: account.name,
@@ -349,16 +396,20 @@ serve(async (req) => {
           }
         }
         
-        // Return the access token for frontend to encrypt
-        // This ensures token is encrypted before storage
+        // Return account connection results
+        const message = duplicatesCount > 0 
+          ? `Connected ${newAccountsCount} new account(s). ${duplicatesCount} account(s) were already connected.`
+          : `Connected ${newAccountsCount} account(s) successfully`;
 
         return new Response(
           JSON.stringify({ 
             success: true, 
-            accounts: accountsData.accounts.length,
+            accounts: newAccountsCount,
+            duplicates: duplicatesCount,
             item_id: itemId,
             access_token: accessToken, // Frontend will encrypt this
             request_id: accountsData.request_id,
+            message: message,
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );

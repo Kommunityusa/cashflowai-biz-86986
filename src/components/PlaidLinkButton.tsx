@@ -230,9 +230,15 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
           }
         });
 
+        // Show appropriate message based on duplicates
+        const messageToShow = data.message || 
+          (data.duplicates > 0 
+            ? `Connected ${data.accounts} new account(s). ${data.duplicates} account(s) were already connected.`
+            : `Connected ${data.accounts} account(s) successfully`);
+            
         toast({
           title: "Success",
-          description: `Connected ${data.accounts} account(s) successfully`,
+          description: messageToShow,
         });
 
         // Sync transactions immediately
