@@ -112,6 +112,23 @@ export function TransactionSync({ onSyncComplete }: TransactionSyncProps) {
         throw new Error("Not authenticated");
       }
 
+      // Check if we have access tokens stored
+      const { data: tokens } = await supabase
+        .from('plaid_access_tokens')
+        .select('item_id')
+        .eq('user_id', session.user.id);
+
+      if (!tokens || tokens.length === 0) {
+        toast({
+          title: "Access Token Missing",
+          description: "Please reconnect your bank account. The access token was not properly stored.",
+          variant: "destructive",
+        });
+        setSyncing(false);
+        setSyncStatus(prev => ({ ...prev, inProgress: false }));
+        return;
+      }
+
       // Call the Plaid sync function
       const { data, error } = await supabase.functions.invoke("plaid", {
         body: { action: "sync_transactions" },
@@ -122,22 +139,32 @@ export function TransactionSync({ onSyncComplete }: TransactionSyncProps) {
 
       if (error) throw error;
 
-      toast({
-        title: "Sync Complete",
-        description: `Synced ${data.transactions_synced || 0} new transactions`,
-      });
+      if (data?.errors && data.errors.length > 0) {
+        toast({
+          title: "Sync Issues",
+          description: `Some accounts couldn't be synced: ${data.errors[0].error}`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Sync Complete",
+          description: `Synced ${data.transactions_synced || 0} new transactions`,
+        });
+      }
 
       // Log audit event
       logAuditEvent({
         action: 'PLAID_SYNC_COMPLETED',
         details: { 
-          transactions_synced: data.transactions_synced,
+          transactions_synced: data.transactions_synced || 0,
           timestamp: new Date().toISOString() 
         }
       });
 
-      // Now categorize the new transactions
-      await handleAICategorization();
+      // Now categorize the new transactions if any were synced
+      if (data.transactions_synced > 0) {
+        await handleAICategorization();
+      }
       
       // Refresh the data
       await fetchSyncStatus();
