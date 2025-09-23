@@ -298,7 +298,6 @@ serve(async (req) => {
             access_token: accessToken, // Frontend will encrypt this
             request_id: accountsData.request_id,
           }),
-          }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
