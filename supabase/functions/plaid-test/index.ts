@@ -17,7 +17,7 @@ serve(async (req) => {
     // Check environment variables
     const plaidClientId = Deno.env.get('PLAID_CLIENT_ID');
     const plaidSecret = Deno.env.get('PLAID_SECRET');
-    const plaidEnv = Deno.env.get('PLAID_ENV') || 'sandbox';
+    const plaidEnv = Deno.env.get('PLAID_ENV') || 'production';
     const openAIKey = Deno.env.get('OPENAI_API_KEY');
     
     const config = {

@@ -12,11 +12,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Get Plaid environment from env variable - defaults to sandbox for testing
-const plaidEnv = Deno.env.get('PLAID_ENV') || 'sandbox';
-const PLAID_ENV = plaidEnv === 'production' ? 'https://production.plaid.com' : 
+// Get Plaid environment from env variable - defaults to production for live credentials
+const plaidEnv = Deno.env.get('PLAID_ENV') || 'production';
+const PLAID_ENV = plaidEnv === 'sandbox' ? 'https://sandbox.plaid.com' : 
                   plaidEnv === 'development' ? 'https://development.plaid.com' : 
-                  'https://sandbox.plaid.com';
+                  'https://production.plaid.com';
 
 console.log('[Plaid Function] Initialized with environment:', plaidEnv, 'URL:', PLAID_ENV);
 
@@ -101,13 +101,9 @@ serve(async (req) => {
           products: ['transactions'],
           country_codes: ['US'],
           language: 'en',
+          webhook: webhookUrl,
+          redirect_uri: redirectUri,
         };
-        
-        // Only add webhook and redirect_uri if not in sandbox mode for testing
-        if (plaidEnv !== 'sandbox') {
-          requestBody.webhook = webhookUrl;
-          requestBody.redirect_uri = redirectUri;
-        }
         
         // Add optional parameters for update mode
         const { mode, accessToken } = params || {};
