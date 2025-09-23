@@ -449,11 +449,6 @@ serve(async (req) => {
                   count: 500, // Get more transactions for comprehensive bookkeeping
                   include_personal_finance_category: true, // Better categorization
                 }
-                end_date: new Date().toISOString().split('T')[0],
-                options: {
-                  count: 500, // Get more transactions for comprehensive bookkeeping
-                  include_personal_finance_category: true, // Better categorization
-                }
               }),
             });
 
