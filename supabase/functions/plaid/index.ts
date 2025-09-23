@@ -94,15 +94,6 @@ serve(async (req) => {
           transactions: {
             days_requested: 730, // Request 2 years of transaction history
           },
-          // Enable account filters for better UX
-          account_filters: {
-            depository: {
-              account_subtypes: ['checking', 'savings']
-            },
-            credit: {
-              account_subtypes: ['credit_card']
-            }
-          },
         };
         
         // Add optional parameters for update mode
