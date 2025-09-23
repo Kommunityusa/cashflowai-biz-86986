@@ -262,7 +262,7 @@ export default function Dashboard() {
       <Header />
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
         {/* Welcome Section */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground mb-2">
               Welcome back, {user?.email?.split('@')[0] || 'User'}!
@@ -271,18 +271,20 @@ export default function Dashboard() {
               Here's your financial overview for {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => navigate('/ai-assistant')}>
               <Bot className="mr-2 h-4 w-4" />
-              AI Assistant
+              <span className="hidden sm:inline">AI Assistant</span>
+              <span className="sm:hidden">AI</span>
             </Button>
             <Button variant="outline" onClick={() => navigate('/reports')}>
               <FileText className="mr-2 h-4 w-4" />
-              Reports
+              <span className="hidden sm:inline">Reports</span>
             </Button>
             <Button onClick={() => navigate('/transactions')}>
               <Plus className="mr-2 h-4 w-4" />
-              Add Transaction
+              <span className="hidden sm:inline">Add Transaction</span>
+              <span className="sm:hidden">Add</span>
             </Button>
           </div>
         </div>

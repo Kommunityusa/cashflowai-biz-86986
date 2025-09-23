@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePlaidLink } from "react-plaid-link";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +20,7 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
+  const [shouldOpenPlaid, setShouldOpenPlaid] = useState(false);
 
   const createLinkToken = async () => {
     setLoading(true);
@@ -332,26 +333,44 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
     },
   });
 
+  // Auto-open Plaid when ready and we should open it
+  useEffect(() => {
+    if (ready && shouldOpenPlaid) {
+      open();
+      setShouldOpenPlaid(false);
+    }
+  }, [ready, shouldOpenPlaid, open]);
+
   const handleClick = async () => {
     // Check for user consent first
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('plaid_consent_date')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      
-      if (!profile?.plaid_consent_date) {
-        setShowConsent(true);
-        return;
-      }
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to connect your bank account",
+        variant: "destructive",
+      });
+      return;
     }
+    
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('plaid_consent_date')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    
+    if (!profile?.plaid_consent_date) {
+      setShowConsent(true);
+      return;
+    }
+    
     if (onStart) onStart();
     
     if (!linkToken) {
       await createLinkToken();
-    } else {
+      // Set flag to open Plaid when ready
+      setShouldOpenPlaid(true);
+    } else if (ready) {
       open();
     }
   };
@@ -361,11 +380,9 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
     // Proceed with Plaid Link after consent
     if (onStart) onStart();
     
-    if (!linkToken) {
-      await createLinkToken();
-    } else {
-      open();
-    }
+    await createLinkToken();
+    // Set flag to open Plaid when ready
+    setShouldOpenPlaid(true);
   };
 
   return (

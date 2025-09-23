@@ -220,14 +220,13 @@ export function BankAccounts() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <CardTitle className="flex items-center gap-2">
             <Building className="h-5 w-5" />
             Bank Accounts
           </CardTitle>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <PlaidLinkButton onSuccess={fetchAccounts} />
-            <PlaidOnboarding onSuccess={fetchAccounts} variant="compact" />
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" variant="outline">
