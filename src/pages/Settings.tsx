@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EncryptionSettings } from "@/components/EncryptionSettings";
+import { SubscriptionStatus } from "@/components/SubscriptionStatus";
 import { AuditLogs } from "@/components/AuditLogs";
 import {
   Dialog,
@@ -476,78 +477,13 @@ const Settings = () => {
                     <CreditCard className="h-6 w-6 text-primary-foreground" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-semibold text-foreground">Current Plan</h2>
-                    <p className="text-sm text-muted-foreground">You're currently on the Free plan</p>
+                    <h2 className="text-xl font-semibold text-foreground">Subscription Management</h2>
+                    <p className="text-sm text-muted-foreground">Manage your subscription and billing</p>
                   </div>
                 </div>
-                <Dialog open={upgradeOpen} onOpenChange={setUpgradeOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="gradient">Upgrade to Pro</Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Upgrade to Pro</DialogTitle>
-                      <DialogDescription>
-                        Get unlimited transactions, advanced analytics, and priority support.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Pro Plan Features:</h4>
-                        <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                          <li>Unlimited transactions</li>
-                          <li>Advanced analytics & insights</li>
-                          <li>Priority customer support</li>
-                          <li>API access</li>
-                          <li>Custom categories</li>
-                        </ul>
-                      </div>
-                      <div className="text-2xl font-bold">$29/month</div>
-                    </div>
-                    <DialogFooter>
-                      <Button variant="outline" onClick={() => setUpgradeOpen(false)}>
-                        Cancel
-                      </Button>
-                      <Button onClick={() => {
-                        toast({
-                          title: "Coming Soon",
-                          description: "Pro plan will be available soon!",
-                        });
-                        setUpgradeOpen(false);
-                      }}>
-                        Subscribe
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
               </div>
               
-              <div className="bg-muted/50 rounded-lg p-4">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-muted-foreground">Current Usage</span>
-                  <span className="text-sm font-medium text-foreground">89 / 100 transactions</span>
-                </div>
-                <div className="w-full bg-border rounded-full h-2">
-                  <div className="bg-gradient-primary h-2 rounded-full" style={{ width: "89%" }}></div>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold text-foreground mb-4">Payment Method</h2>
-              <p className="text-sm text-muted-foreground mb-6">Add a payment method to upgrade your plan</p>
-              <Button 
-                variant="outline"
-                onClick={() => {
-                  toast({
-                    title: "Payment Methods",
-                    description: "Payment method management coming soon!",
-                  });
-                }}
-              >
-                <CreditCard className="h-4 w-4 mr-2" />
-                Add Payment Method
-              </Button>
+              <SubscriptionStatus />
             </Card>
           </TabsContent>
 

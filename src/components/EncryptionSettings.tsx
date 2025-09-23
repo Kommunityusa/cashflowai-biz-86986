@@ -1,29 +1,22 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { SecureStorage } from "@/utils/encryption";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   Shield, 
-  Key, 
   Lock, 
-  RefreshCw, 
   Database,
   CreditCard,
   FileText,
-  AlertTriangle,
   CheckCircle2,
   Info
 } from "lucide-react";
 
 export function EncryptionSettings() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasEncryptionKey, setHasEncryptionKey] = useState(false);
   const [encryptionStatus, setEncryptionStatus] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -32,14 +25,17 @@ export function EncryptionSettings() {
 
   const checkEncryptionStatus = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setLoading(false);
+        return;
+      }
 
-      const storedKey = SecureStorage.getKey(user.id);
-      setHasEncryptionKey(!!storedKey);
-
-      const response = await supabase.functions.invoke('encryption', {
-        body: { action: 'get_encryption_status' }
+      const response = await supabase.functions.invoke('auto-encrypt', {
+        body: { action: 'get_encryption_status' },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (response.data) {
@@ -47,39 +43,13 @@ export function EncryptionSettings() {
       }
     } catch (error) {
       console.error('Error checking encryption status:', error);
-    }
-  };
-
-  const generateEncryptionKey = async () => {
-    setIsLoading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const response = await supabase.functions.invoke('encryption', {
-        body: { action: 'generate_key' }
-      });
-
-      if (response.data?.key) {
-        SecureStorage.setKey(user.id, response.data.key);
-        setHasEncryptionKey(true);
-        
-        toast({
-          title: "Encryption Key Generated",
-          description: "Your encryption key has been securely generated",
-        });
-
-        await checkEncryptionStatus();
-      }
-    } catch (error) {
-      console.error('Error generating encryption key:', error);
       toast({
-        title: "Generation Failed",
-        description: "Failed to generate encryption key",
+        title: "Error",
+        description: "Failed to check encryption status",
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -91,7 +61,7 @@ export function EncryptionSettings() {
           Data Encryption
         </CardTitle>
         <CardDescription>
-          Protect your sensitive financial data with encryption
+          Your sensitive financial data is automatically protected with enterprise-grade encryption
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -103,17 +73,13 @@ export function EncryptionSettings() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {hasEncryptionKey ? (
-                <Badge variant="outline" className="bg-primary/10">
-                  <CheckCircle2 className="h-3 w-3 mr-1" />
-                  Active
-                </Badge>
-              ) : (
-                <Badge variant="destructive">
-                  <AlertTriangle className="h-3 w-3 mr-1" />
-                  No Key
-                </Badge>
-              )}
+              <Badge variant="outline" className="bg-success/10">
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                Always Active
+              </Badge>
+              <p className="text-xs text-muted-foreground mt-2">
+                System-managed AES-256 encryption
+              </p>
             </CardContent>
           </Card>
 
@@ -127,32 +93,62 @@ export function EncryptionSettings() {
               <div className="text-sm">
                 <span className="flex items-center gap-1">
                   <CreditCard className="h-3 w-3" />
-                  Bank Accounts: {encryptionStatus?.encryptedBankAccounts || 0}/{encryptionStatus?.totalBankAccounts || 0}
+                  Bank Accounts: {loading ? "..." : encryptionStatus?.encryptedBankAccounts || 0}/{loading ? "..." : encryptionStatus?.totalBankAccounts || 0}
                 </span>
               </div>
               <div className="text-sm">
                 <span className="flex items-center gap-1">
                   <FileText className="h-3 w-3" />
-                  Transactions: {encryptionStatus?.encryptedTransactions || 0}/{encryptionStatus?.totalTransactions || 0}
+                  Transactions: {loading ? "..." : encryptionStatus?.encryptedTransactions || 0}/{loading ? "..." : encryptionStatus?.totalTransactions || 0}
                 </span>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {!hasEncryptionKey && (
-          <Button onClick={generateEncryptionKey} disabled={isLoading} className="w-full">
-            <Key className="h-4 w-4 mr-2" />
-            Generate Encryption Key
-          </Button>
-        )}
+        <div className="bg-primary/5 rounded-lg p-4 border border-primary/20">
+          <div className="flex items-start gap-3">
+            <Lock className="h-5 w-5 text-primary mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-medium text-sm">Automatic Protection</p>
+              <p className="text-xs text-muted-foreground">
+                All sensitive data including account numbers, routing numbers, and personal information 
+                is automatically encrypted when stored and decrypted only when needed for authorized access.
+              </p>
+            </div>
+          </div>
+        </div>
 
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            Encryption protects your sensitive data. Your key is stored securely in your browser session.
+            <strong>Enterprise-Grade Security:</strong> Your data is protected using AES-256 encryption, 
+            the same standard used by banks and government agencies. Encryption keys are managed securely 
+            by the platform and are never exposed to browsers or external services.
           </AlertDescription>
         </Alert>
+
+        <div className="space-y-3">
+          <h4 className="text-sm font-medium">What's Protected:</h4>
+          <ul className="space-y-2 text-sm text-muted-foreground">
+            <li className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-success" />
+              Bank account numbers and routing numbers
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-success" />
+              Plaid access tokens and credentials
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-success" />
+              Transaction descriptions and vendor information
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-success" />
+              Personal notes and custom data
+            </li>
+          </ul>
+        </div>
       </CardContent>
     </Card>
   );
