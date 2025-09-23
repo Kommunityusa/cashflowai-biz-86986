@@ -4,12 +4,16 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Building, Link } from "lucide-react";
+import { logAuditEvent } from "@/utils/auditLogger";
 
 interface PlaidLinkButtonProps {
   onSuccess?: () => void;
+  onStart?: () => void;
+  size?: "default" | "sm" | "lg" | "icon";
+  className?: string;
 }
 
-export function PlaidLinkButton({ onSuccess }: PlaidLinkButtonProps) {
+export function PlaidLinkButton({ onSuccess, onStart, size = "default", className }: PlaidLinkButtonProps) {
   const { toast } = useToast();
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -29,7 +33,23 @@ export function PlaidLinkButton({ onSuccess }: PlaidLinkButtonProps) {
 
       console.log("Creating Plaid link token...");
       const { data, error } = await supabase.functions.invoke("plaid", {
-        body: { action: "create_link_token" },
+        body: { 
+          action: "create_link_token",
+          // Optimized configuration for better conversion
+          options: {
+            language: "en",
+            countryCodes: ["US"],
+            // Optimize product selection for cost and conversion
+            products: ["transactions", "accounts"],
+            // Enable account selection optimization
+            accountSubtypes: {
+              depository: ["checking", "savings"],
+              credit: ["credit card"],
+            },
+            // Customize Link flow
+            linkCustomizationName: "default",
+          }
+        },
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
@@ -46,8 +66,24 @@ export function PlaidLinkButton({ onSuccess }: PlaidLinkButtonProps) {
       
       console.log("Link token created successfully");
       setLinkToken(data.link_token);
+      
+      // Log link token creation
+      logAuditEvent({
+        action: 'PLAID_LINK_TOKEN_CREATED',
+        details: { timestamp: new Date().toISOString() }
+      });
     } catch (error: any) {
       console.error("Error creating link token:", error);
+      
+      // Log error
+      logAuditEvent({
+        action: 'PLAID_LINK_TOKEN_ERROR',
+        details: { 
+          error: error.message,
+          timestamp: new Date().toISOString() 
+        }
+      });
+      
       toast({
         title: "Connection Error",
         description: error.message || "Failed to initialize bank connection. Please ensure Plaid is configured.",
@@ -66,6 +102,16 @@ export function PlaidLinkButton({ onSuccess }: PlaidLinkButtonProps) {
         if (!session) {
           throw new Error("Not authenticated");
         }
+
+        // Log successful link
+        logAuditEvent({
+          action: 'PLAID_LINK_SUCCESS',
+          details: { 
+            institution: metadata.institution?.name,
+            accountsCount: metadata.accounts?.length,
+            timestamp: new Date().toISOString() 
+          }
+        });
 
         // Check for duplicate institution before exchanging token
         if (metadata.institution) {
@@ -86,6 +132,15 @@ export function PlaidLinkButton({ onSuccess }: PlaidLinkButtonProps) {
             );
             
             if (!confirmAdd) {
+              // Log cancellation
+              logAuditEvent({
+                action: 'PLAID_LINK_DUPLICATE_CANCELLED',
+                details: { 
+                  institution: metadata.institution.name,
+                  timestamp: new Date().toISOString() 
+                }
+              });
+              
               toast({
                 title: "Cancelled",
                 description: "Bank connection cancelled",
@@ -108,6 +163,15 @@ export function PlaidLinkButton({ onSuccess }: PlaidLinkButtonProps) {
 
         if (error) throw error;
 
+        // Log successful exchange
+        logAuditEvent({
+          action: 'PLAID_TOKEN_EXCHANGED',
+          details: { 
+            accountsConnected: data.accounts,
+            timestamp: new Date().toISOString() 
+          }
+        });
+
         toast({
           title: "Success",
           description: `Connected ${data.accounts} account(s) successfully`,
@@ -122,8 +186,18 @@ export function PlaidLinkButton({ onSuccess }: PlaidLinkButtonProps) {
         });
 
         if (onSuccess) onSuccess();
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error exchanging token:", error);
+        
+        // Log exchange error
+        logAuditEvent({
+          action: 'PLAID_TOKEN_EXCHANGE_ERROR',
+          details: { 
+            error: error.message,
+            timestamp: new Date().toISOString() 
+          }
+        });
+        
         toast({
           title: "Error",
           description: "Failed to connect bank account",
@@ -134,11 +208,32 @@ export function PlaidLinkButton({ onSuccess }: PlaidLinkButtonProps) {
     onExit: (err, metadata) => {
       if (err) {
         console.error("Plaid Link error:", err);
+        
+        // Log exit with error
+        logAuditEvent({
+          action: 'PLAID_LINK_EXIT_ERROR',
+          details: { 
+            error: err.error_message,
+            errorCode: err.error_code,
+            timestamp: new Date().toISOString() 
+          }
+        });
+      } else {
+        // Log normal exit
+        logAuditEvent({
+          action: 'PLAID_LINK_EXIT',
+          details: { 
+            status: metadata?.status,
+            timestamp: new Date().toISOString() 
+          }
+        });
       }
     },
   });
 
   const handleClick = async () => {
+    if (onStart) onStart();
+    
     if (!linkToken) {
       await createLinkToken();
     } else {
@@ -150,7 +245,8 @@ export function PlaidLinkButton({ onSuccess }: PlaidLinkButtonProps) {
     <Button
       onClick={handleClick}
       disabled={loading || (!ready && linkToken !== null)}
-      className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+      size={size}
+      className={`bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 ${className || ''}`}
     >
       <Link className="mr-2 h-4 w-4" />
       {loading ? "Initializing..." : "Connect Bank Account"}

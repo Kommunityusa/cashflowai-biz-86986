@@ -72,6 +72,9 @@ serve(async (req) => {
         const redirectUri = `${origin}/auth/callback`;
         console.log('OAuth Redirect URI:', redirectUri);
         
+        // Get custom options from request if provided
+        const linkOptions = params?.options || {};
+        
         // Create a link token for Plaid Link initialization
         const requestBody: any = {
           client_id: plaidClientId,
@@ -79,15 +82,22 @@ serve(async (req) => {
           user: {
             client_user_id: user.id,
           },
-          client_name: 'BizFlow',
-          products: ['transactions', 'accounts'],
-          country_codes: ['US'],
-          language: 'en',
+          client_name: 'Cash Flow AI',
+          products: linkOptions.products || ['transactions', 'accounts'],
+          country_codes: linkOptions.countryCodes || ['US'],
+          language: linkOptions.language || 'en',
           webhook: webhookUrl, // Register webhook URL
           redirect_uri: redirectUri, // OAuth redirect URI
           transactions: {
             days_requested: 730, // Request 2 years of transaction history
           },
+          // Enable account filters for better UX
+          ...(linkOptions.accountSubtypes && {
+            account_filters: {
+              depository: linkOptions.accountSubtypes.depository,
+              credit: linkOptions.accountSubtypes.credit,
+            }
+          }),
         };
         
         // Add optional parameters for update mode

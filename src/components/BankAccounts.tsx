@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { PlaidLinkButton } from "@/components/PlaidLinkButton";
+import { PlaidOnboarding } from "@/components/PlaidOnboarding";
 import { BankConnectionManager } from "@/components/BankConnectionManager";
 import {
   Building,
@@ -240,6 +241,7 @@ export function BankAccounts() {
           </CardTitle>
           <div className="flex gap-2">
             <PlaidLinkButton onSuccess={fetchAccounts} />
+            <PlaidOnboarding onSuccess={fetchAccounts} variant="compact" />
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" variant="outline">
@@ -355,11 +357,7 @@ export function BankAccounts() {
         {loading ? (
           <div className="text-center py-4">Loading accounts...</div>
         ) : accounts.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <Building className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No bank accounts added yet</p>
-            <p className="text-sm mt-2">Add your first account to start tracking balances</p>
-          </div>
+          <PlaidOnboarding onSuccess={fetchAccounts} />
         ) : (
           <div className="space-y-4">
             <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4">
