@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { AIChatBubble } from "@/components/AIChatBubble";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -22,7 +23,7 @@ import PlaidOAuthCallback from "./pages/PlaidOAuthCallback";
 
 const queryClient = new QueryClient();
 
-// Protected Route component
+// Protected Route component with AI Chat Bubble
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
@@ -48,7 +49,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return authenticated ? <>{children}</> : <Navigate to="/auth" replace />;
+  return authenticated ? (
+    <>
+      {children}
+      <AIChatBubble />
+    </>
+  ) : (
+    <Navigate to="/auth" replace />
+  );
 }
 
 const App = () => (
