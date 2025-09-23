@@ -37,14 +37,7 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
 
       const { data, error } = await supabase.functions.invoke("plaid", {
         body: { 
-          action: "create_link_token",
-          // Optimized configuration for better conversion
-          options: {
-            language: "en",
-            countryCodes: ["US"],
-            // Optimize product selection for cost and conversion
-            products: ["transactions"],
-          }
+          action: "create_link_token"
         },
         headers: {
           Authorization: `Bearer ${session.access_token}`,

@@ -12,11 +12,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Get Plaid environment from env variable - defaults to production for safety
-const plaidEnv = Deno.env.get('PLAID_ENV') || 'production';
-const PLAID_ENV = plaidEnv === 'sandbox' ? 'https://sandbox.plaid.com' : 
+// Get Plaid environment from env variable - defaults to sandbox for testing
+const plaidEnv = Deno.env.get('PLAID_ENV') || 'sandbox';
+const PLAID_ENV = plaidEnv === 'production' ? 'https://production.plaid.com' : 
                   plaidEnv === 'development' ? 'https://development.plaid.com' : 
-                  'https://production.plaid.com';
+                  'https://sandbox.plaid.com';
+
+console.log('[Plaid Function] Initialized with environment:', plaidEnv, 'URL:', PLAID_ENV);
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -25,10 +27,15 @@ serve(async (req) => {
   }
 
   try {
+    console.log('[Plaid Function] Received request:', req.method, req.url);
+    
     const { action, ...params } = await req.json();
     const authHeader = req.headers.get('Authorization');
     
+    console.log('[Plaid Function] Action:', action);
+    
     if (!authHeader) {
+      console.error('[Plaid Function] No authorization header provided');
       throw new Error('No authorization header');
     }
 
@@ -43,14 +50,17 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     
     if (userError || !user) {
+      console.error('[Plaid Function] User authentication failed:', userError);
       throw new Error('Invalid user');
     }
 
-    console.log(`Plaid action: ${action}`);
+    console.log(`[Plaid Function] Authenticated user: ${user.id}, action: ${action}`);
 
     // Check if Plaid credentials are configured
     if (!plaidClientId || !plaidSecret) {
-      console.error('Plaid credentials not configured');
+      console.error('[Plaid Function] Missing Plaid credentials');
+      console.error('PLAID_CLIENT_ID exists:', !!plaidClientId);
+      console.error('PLAID_SECRET exists:', !!plaidSecret);
       return new Response(
         JSON.stringify({ 
           error: 'Plaid integration is not configured. Please add PLAID_CLIENT_ID and PLAID_SECRET to your Supabase Edge Function secrets.' 
@@ -64,21 +74,23 @@ serve(async (req) => {
 
     switch (action) {
       case 'create_link_token': {
-        console.log('Creating link token for user:', user.id);
+        console.log('[Plaid Function] Creating link token for user:', user.id);
         
         // Get the webhook URL for this environment
         const webhookUrl = `${supabaseUrl}/functions/v1/plaid-webhook`;
-        console.log('Webhook URL:', webhookUrl);
+        console.log('[Plaid Function] Webhook URL:', webhookUrl);
         
         // Determine redirect URI for OAuth
         const origin = req.headers.get('origin') || 'https://nbrcdphgadabjndynyvy.supabase.co';
         const redirectUri = `${origin}/auth/callback`;
-        console.log('OAuth Redirect URI:', redirectUri);
+        console.log('[Plaid Function] OAuth Redirect URI:', redirectUri);
         
         // Get custom options from request if provided
         const linkOptions = params?.options || {};
+        console.log('[Plaid Function] Link options:', JSON.stringify(linkOptions));
         
         // Create a link token for Plaid Link initialization
+        // Only use 'transactions' product as it's the main product we need
         const requestBody: any = {
           client_id: plaidClientId,
           secret: plaidSecret,
@@ -86,28 +98,30 @@ serve(async (req) => {
             client_user_id: user.id,
           },
           client_name: 'Cash Flow AI',
-          products: linkOptions.products || ['transactions'],
-          country_codes: linkOptions.countryCodes || ['US'],
-          language: linkOptions.language || 'en',
-          webhook: webhookUrl, // Register webhook URL
-          redirect_uri: redirectUri, // OAuth redirect URI
-          transactions: {
-            days_requested: 730, // Request 2 years of transaction history
-          },
+          products: ['transactions'],
+          country_codes: ['US'],
+          language: 'en',
+          webhook: webhookUrl,
+          redirect_uri: redirectUri,
         };
         
         // Add optional parameters for update mode
         const { mode, accessToken } = params || {};
         if (mode === 'update' && accessToken) {
+          console.log('[Plaid Function] Update mode with existing access token');
           requestBody.access_token = accessToken;
         }
         
-        const plaidEnv = Deno.env.get('PLAID_ENV') || 'sandbox';
-        const PLAID_ENV = plaidEnv === 'production' ? 'https://production.plaid.com' : 
-                          plaidEnv === 'development' ? 'https://development.plaid.com' : 
-                          'https://sandbox.plaid.com';
+        console.log('[Plaid Function] Request body (without secrets):', {
+          ...requestBody,
+          client_id: 'REDACTED',
+          secret: 'REDACTED',
+        });
         
-        const response = await fetch(`${PLAID_ENV}/link/token/create`, {
+        const plaidUrl = `${PLAID_ENV}/link/token/create`;
+        console.log('[Plaid Function] Calling Plaid API:', plaidUrl);
+        
+        const response = await fetch(plaidUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -116,9 +130,10 @@ serve(async (req) => {
         });
 
         const data = await response.json();
+        console.log('[Plaid Function] Plaid API response status:', response.status);
         
         if (data.error_code) {
-          console.error('[Plaid Error] Link token creation failed:', {
+          console.error('[Plaid Function] Plaid API error:', {
             error_code: data.error_code,
             error_message: data.error_message,
             error_type: data.error_type,
@@ -126,11 +141,24 @@ serve(async (req) => {
             user_id: user.id,
             timestamp: new Date().toISOString(),
           });
-          throw new Error(data.error_message || 'Failed to create link token');
+          
+          // Return more detailed error information
+          return new Response(
+            JSON.stringify({ 
+              error: data.error_message || 'Failed to create link token',
+              error_code: data.error_code,
+              error_type: data.error_type,
+              request_id: data.request_id,
+            }),
+            { 
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          );
         }
 
         // Log successful link token creation
-        console.log('[Plaid Success] Link token created:', {
+        console.log('[Plaid Function] Link token created successfully:', {
           request_id: data.request_id,
           expiration: data.expiration,
           user_id: user.id,
@@ -143,7 +171,7 @@ serve(async (req) => {
             link_token: data.link_token,
             request_id: data.request_id,
             redirect_uri: redirectUri,
-            environment: PLAID_ENV.includes('sandbox') ? 'sandbox' : plaidEnv,
+            environment: plaidEnv,
             expiration: data.expiration,
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

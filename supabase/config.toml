@@ -228,3 +228,6 @@ verify_jwt = true
 
 [functions.token-storage]
 verify_jwt = true
+
+[functions.plaid-test]
+verify_jwt = false

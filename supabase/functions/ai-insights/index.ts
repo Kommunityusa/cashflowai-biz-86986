@@ -18,15 +18,17 @@ serve(async (req) => {
   }
 
   try {
+    console.log('[AI Insights] Function called');
+    
     // Check if OpenAI API key is configured
     if (!openAIApiKey) {
-      console.log('OpenAI API key not configured, returning default insights');
+      console.log('[AI Insights] OpenAI API key not configured');
       return new Response(
         JSON.stringify({
           insights: [
             {
-              title: "Configure AI Insights",
-              description: "To get personalized financial insights, please configure the OpenAI API key in your Supabase Edge Function secrets."
+              title: "AI Insights Not Configured",
+              description: "OpenAI API key is missing. Please add OPENAI_API_KEY to your Supabase Edge Function secrets to enable AI-powered financial insights."
             },
             {
               title: "Track Your Spending",
@@ -47,6 +49,7 @@ serve(async (req) => {
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('[AI Insights] No authorization header');
       throw new Error('No authorization header');
     }
 
@@ -61,16 +64,23 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     
     if (userError || !user) {
+      console.error('[AI Insights] User authentication failed:', userError);
       throw new Error('Invalid user');
     }
 
+    console.log('[AI Insights] Generating insights for user:', user.id);
+
     // Get user's recent transactions
-    const { data: transactions } = await supabase
+    const { data: transactions, error: transactionError } = await supabase
       .from('transactions')
       .select('*, categories(name)')
       .eq('user_id', user.id)
       .order('date', { ascending: false })
       .limit(50);
+    
+    if (transactionError) {
+      console.error('[AI Insights] Failed to fetch transactions:', transactionError);
+    }
 
     // Calculate spending patterns
     const expensesByCategory = transactions
@@ -79,27 +89,27 @@ serve(async (req) => {
         const category = t.categories?.name || 'Uncategorized';
         acc[category] = (acc[category] || 0) + t.amount;
         return acc;
-      }, {});
+      }, {}) || {};
 
-    const totalExpenses = Object.values(expensesByCategory || {}).reduce((sum: any, val: any) => sum + val, 0) as number;
+    const totalExpenses = Object.values(expensesByCategory).reduce((sum: any, amount: any) => sum + amount, 0) as number;
     const totalIncome = transactions
       ?.filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0) || 0;
+      .reduce((sum: any, t: any) => sum + t.amount, 0) || 0;
 
-    const prompt = `Based on the following financial data, provide 3 brief, actionable insights:
+    const prompt = `Analyze the following financial data and provide 3 actionable insights:
     
     Total Income: $${totalIncome.toFixed(2)}
     Total Expenses: $${totalExpenses.toFixed(2)}
     Net: $${(totalIncome - totalExpenses).toFixed(2)}
     
-    Top expense categories:
-    ${Object.entries(expensesByCategory || {})
-      .sort(([,a]: any, [,b]: any) => b - a)
-      .slice(0, 5)
-      .map(([cat, amount]: any) => `- ${cat}: $${amount.toFixed(2)} (${((amount/totalExpenses)*100).toFixed(1)}%)`)
+    Expenses by Category:
+    ${Object.entries(expensesByCategory)
+      .map(([category, amount]: [string, any]) => `- ${category}: $${amount.toFixed(2)}`)
       .join('\n')}
     
-    Provide insights as a JSON array with objects containing "title" and "description" fields. Focus on spending patterns, potential savings, and financial health.`;
+    Respond with a JSON object containing an "insights" array with objects having "title" and "description" fields. Focus on spending patterns, potential savings, and financial health.`;
+
+    console.log('[AI Insights] Calling OpenAI API with gpt-4o-mini model');
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -112,7 +122,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a financial advisor providing brief, actionable insights. Always respond with valid JSON array format.'
+            content: 'You are a financial advisor providing brief, actionable insights. Always respond with valid JSON format containing an "insights" array.'
           },
           {
             role: 'user',
@@ -120,21 +130,77 @@ serve(async (req) => {
           }
         ],
         temperature: 0.7,
-        max_tokens: 500,
-        response_format: { type: "json_object" }
+        max_tokens: 500
       }),
     });
 
+    console.log('[AI Insights] OpenAI API response status:', response.status);
+
     if (!response.ok) {
-      const error = await response.json();
-      console.error('OpenAI API error:', error);
-      throw new Error('Failed to generate insights');
+      const errorData = await response.text();
+      console.error('[AI Insights] OpenAI API error:', errorData);
+      
+      // Return default insights if OpenAI fails
+      return new Response(
+        JSON.stringify({
+          insights: [
+            {
+              title: "Budget Analysis",
+              description: totalExpenses > totalIncome 
+                ? `You're spending $${(totalExpenses - totalIncome).toFixed(2)} more than you earn. Consider reducing expenses.`
+                : `You're saving $${(totalIncome - totalExpenses).toFixed(2)}. Great job maintaining positive cash flow!`
+            },
+            {
+              title: "Top Expense Category",
+              description: Object.entries(expensesByCategory).length > 0
+                ? `Your highest expense is ${Object.entries(expensesByCategory).sort((a: any, b: any) => b[1] - a[1])[0][0]} at $${Object.entries(expensesByCategory).sort((a: any, b: any) => b[1] - a[1])[0][1].toFixed(2)}`
+                : "Start tracking expenses to identify spending patterns"
+            },
+            {
+              title: "Financial Health",
+              description: totalIncome === 0 
+                ? "Add income transactions to get a complete financial picture"
+                : `Your expense ratio is ${((totalExpenses / totalIncome) * 100).toFixed(0)}% of income`
+            }
+          ]
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     const data = await response.json();
-    const content = JSON.parse(data.choices[0].message.content);
+    console.log('[AI Insights] OpenAI response received');
     
-    console.log('Generated insights:', content);
+    // Parse the content - it might already be an object or a string
+    let content;
+    try {
+      content = typeof data.choices[0].message.content === 'string' 
+        ? JSON.parse(data.choices[0].message.content)
+        : data.choices[0].message.content;
+    } catch (parseError) {
+      console.error('[AI Insights] Failed to parse OpenAI response:', parseError);
+      // Return default insights if parsing fails
+      content = {
+        insights: [
+          {
+            title: "Financial Overview",
+            description: `Income: $${totalIncome.toFixed(2)}, Expenses: $${totalExpenses.toFixed(2)}`
+          },
+          {
+            title: "Spending Analysis",
+            description: "Review your spending patterns to identify areas for improvement"
+          },
+          {
+            title: "Budget Recommendation",
+            description: "Consider setting monthly budget limits for each category"
+          }
+        ]
+      };
+    }
+    
+    console.log('[AI Insights] Successfully generated insights');
 
     return new Response(
       JSON.stringify(content),
@@ -143,11 +209,28 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Error in ai-insights function:', error);
+    console.error('[AI Insights] Function error:', error);
+    
+    // Return generic insights on error
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({
+        insights: [
+          {
+            title: "Service Temporarily Unavailable",
+            description: "AI insights are temporarily unavailable. Please try again later."
+          },
+          {
+            title: "Track Your Finances",
+            description: "Continue adding transactions to build your financial history."
+          },
+          {
+            title: "Manual Review",
+            description: "Review your transactions manually to understand your spending patterns."
+          }
+        ]
+      }),
       {
-        status: 500,
+        status: 200, // Return 200 with fallback data instead of error
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
