@@ -3,8 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 
-const IDLE_TIMEOUT = 15 * 60 * 1000; // 15 minutes of inactivity before logout
-const WARNING_TIME = 2 * 60 * 1000; // 2 minutes before timeout
+const IDLE_TIMEOUT = 2 * 60 * 60 * 1000; // 2 hours of inactivity before logout
+const WARNING_TIME = 5 * 60 * 1000; // 5 minutes before timeout
 
 export function useSessionTimeout() {
   const navigate = useNavigate();
@@ -20,7 +20,7 @@ export function useSessionTimeout() {
     warningRef.current = setTimeout(() => {
       toast({
         title: "Session Expiring Soon",
-        description: "Your session will expire in 2 minutes due to inactivity.",
+        description: "Your session will expire in 5 minutes due to inactivity.",
         variant: "destructive",
       });
     }, IDLE_TIMEOUT - WARNING_TIME);
