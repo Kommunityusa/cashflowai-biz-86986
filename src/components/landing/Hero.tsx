@@ -1,8 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, CheckCircle, Play } from "lucide-react";
+import { ArrowRight, CheckCircle, Play, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 export function Hero() {
+  const { user } = useAuth(false);
+  
   return (
     <section className="relative pt-32 pb-20 overflow-hidden bg-gradient-subtle">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -27,12 +30,22 @@ export function Hero() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link to="/auth">
-                <Button size="xl" variant="gradient" className="group">
-                  Start Free Trial
-                  <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </Link>
+              {user ? (
+                <Link to="/dashboard">
+                  <Button size="xl" variant="gradient" className="group">
+                    <TrendingUp className="mr-2 h-5 w-5" />
+                    Go to Dashboard
+                    <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </Link>
+              ) : (
+                <Link to="/auth">
+                  <Button size="xl" variant="gradient" className="group">
+                    Start Free Trial
+                    <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </Link>
+              )}
               <Button 
                 size="xl" 
                 variant="outline" 

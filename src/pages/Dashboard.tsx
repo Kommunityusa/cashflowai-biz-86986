@@ -77,19 +77,34 @@ export default function Dashboard() {
   }, [user, authLoading, navigate]);
 
   const fetchDashboardData = async () => {
+    if (!user?.id) {
+      console.error('No user ID available');
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
+      console.log('Fetching dashboard data for user:', user.id);
+      
       // Fetch transactions with categories
       const { data: transactions, error } = await supabase
         .from('transactions')
         .select('*, categories(name, color, icon)')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .order('transaction_date', { ascending: false });
 
       if (error) {
         console.error('Error fetching transactions:', error);
+        // If it's an RLS error, show a helpful message
+        if (error.code === '42501') {
+          console.error('RLS Policy Error: User cannot access transactions');
+        }
+        setLoading(false);
         return;
       }
+
+      console.log('Fetched transactions:', transactions?.length || 0);
 
       if (transactions) {
         // Calculate stats
@@ -215,7 +230,7 @@ export default function Dashboard() {
   };
 
   // Show loading skeleton
-  if (authLoading || loading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -248,6 +263,11 @@ export default function Dashboard() {
         </main>
       </div>
     );
+  }
+
+  // If not authenticated after loading
+  if (!authLoading && !user) {
+    return null; // The useAuth hook will redirect to /auth
   }
 
   // Format currency

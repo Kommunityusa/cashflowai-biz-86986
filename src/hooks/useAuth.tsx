@@ -37,39 +37,63 @@ export function useAuth(requireAuth: boolean = true) {
   };
 
   useEffect(() => {
-    // Set up auth state listener FIRST
+    let mounted = true;
+
+    // Check for existing session first
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('Initial session check:', session?.user?.email);
+        
+        if (mounted) {
+          setSession(session);
+          setUser(session?.user ?? null);
+          setLoading(false);
+          
+          // Check subscription for existing session
+          await checkSubscription(session);
+          
+          // Redirect to auth if required and no session
+          if (requireAuth && !session) {
+            navigate("/auth");
+          }
+        }
+      } catch (error) {
+        console.error('Error getting session:', error);
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    initializeAuth();
+
+    // Then set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, 'User:', session?.user?.email);
-        setSession(session);
-        setUser(session?.user ?? null);
         
-        // Check subscription when auth state changes
-        await checkSubscription(session);
-        
-        // Redirect to auth if required and no session
-        if (requireAuth && !session) {
-          navigate("/auth");
+        if (mounted) {
+          setSession(session);
+          setUser(session?.user ?? null);
+          
+          // Use setTimeout to avoid deadlock
+          setTimeout(() => {
+            checkSubscription(session);
+          }, 0);
+          
+          // Redirect to auth if required and no session
+          if (requireAuth && !session) {
+            navigate("/auth");
+          }
         }
       }
     );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-      
-      // Check subscription for existing session
-      await checkSubscription(session);
-      
-      // Redirect to auth if required and no session
-      if (requireAuth && !session) {
-        navigate("/auth");
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [navigate, requireAuth]);
 
   const signOut = async () => {
