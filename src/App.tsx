@@ -16,6 +16,7 @@ import Security from "./pages/Security";
 import AdminDashboard from "./pages/AdminDashboard";
 import AIAssistant from "./pages/AIAssistant";
 import PlaidTesting from "./pages/PlaidTesting";
+import PlaidOAuthCallback from "./pages/PlaidOAuthCallback";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ const App = () => (
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/ai-assistant" element={<AIAssistant />} />
           <Route path="/plaid-testing" element={<PlaidTesting />} />
+          <Route path="/auth/callback" element={<PlaidOAuthCallback />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

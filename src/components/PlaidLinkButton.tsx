@@ -67,6 +67,34 @@ export function PlaidLinkButton({ onSuccess }: PlaidLinkButtonProps) {
           throw new Error("Not authenticated");
         }
 
+        // Check for duplicate institution before exchanging token
+        if (metadata.institution) {
+          const { data: duplicateCheck } = await supabase.functions.invoke("plaid-update", {
+            body: {
+              action: "check_duplicate",
+              institutionId: metadata.institution.institution_id,
+              institutionName: metadata.institution.name
+            },
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          });
+
+          if (duplicateCheck?.isDuplicate) {
+            const confirmAdd = window.confirm(
+              `You already have an account linked with ${metadata.institution.name}. Do you want to add another account from this bank?`
+            );
+            
+            if (!confirmAdd) {
+              toast({
+                title: "Cancelled",
+                description: "Bank connection cancelled",
+              });
+              return;
+            }
+          }
+        }
+
         const { data, error } = await supabase.functions.invoke("plaid", {
           body: {
             action: "exchange_public_token",
