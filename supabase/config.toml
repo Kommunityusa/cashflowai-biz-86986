@@ -213,3 +213,12 @@ verify_jwt = false
 
 [functions.plaid-sync]
 verify_jwt = false
+
+[functions.plaid-categorize]
+verify_jwt = true
+
+[functions.plaid-reconcile]
+verify_jwt = true
+
+[functions.plaid-update]
+verify_jwt = true
