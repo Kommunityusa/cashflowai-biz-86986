@@ -437,6 +437,8 @@ serve(async (req) => {
         }
 
         let totalSynced = 0;
+        let totalModified = 0;
+        let totalRemoved = 0;
         let syncErrors = [];
 
         for (const account of accounts || []) {
@@ -447,10 +449,10 @@ serve(async (req) => {
               plaid_item_id: account.plaid_item_id,
             });
             
-            // Get the access token from the plaid_access_tokens table
+            // Get the access token and cursor from the plaid_access_tokens table
             const { data: tokenData, error: tokenFetchError } = await supabase
               .from('plaid_access_tokens')
-              .select('access_token')
+              .select('access_token, cursor')
               .eq('item_id', account.plaid_item_id)
               .eq('user_id', user.id)
               .single();
@@ -466,138 +468,170 @@ serve(async (req) => {
             }
             
             const accessToken = tokenData.access_token;
-            console.log('[Plaid Function] Access token retrieved for account:', account.id);
+            let cursor = tokenData.cursor;
+            let hasMore = true;
+            let accountSynced = 0;
             
-            console.log('[Plaid Function] Syncing transactions for account:', {
-              account_id: account.id,
-              bank_name: account.bank_name,
-              last_synced: account.last_synced_at,
-            });
+            console.log('[Plaid Function] Starting sync with cursor:', cursor || 'initial');
             
-            // Get transactions from last 90 days for better bookkeeping coverage
-            const startDate = new Date();
-            startDate.setDate(startDate.getDate() - 90);
-            
-            // Use Plaid's transactions/sync endpoint for better performance and incremental updates
-            // First try the new sync endpoint, fallback to get if not available
-            const response = await fetch(`${PLAID_ENV}/transactions/get`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
+            // Use transactions/sync endpoint with cursor-based pagination
+            while (hasMore) {
+              const syncBody: any = {
                 client_id: plaidClientId,
                 secret: plaidSecret,
-                access_token: accessToken, // Use the retrieved token
-                start_date: startDate.toISOString().split('T')[0],
-                end_date: new Date().toISOString().split('T')[0],
-                options: {
-                  count: 500, // Get more transactions for comprehensive bookkeeping
-                  include_personal_finance_category: true, // Better categorization
-                }
-              }),
-            });
-
-            const data = await response.json();
-            
-            if (data.error_code) {
-              console.error(`[Plaid Function] Sync error for account ${account.id}:`, {
-                error_code: data.error_code,
-                error_message: data.error_message,
-                request_id: data.request_id,
-              });
-              syncErrors.push({
-                account_id: account.id,
-                bank_name: account.bank_name,
-                error: data.error_message,
-              });
-              continue;
-            }
-            
-            console.log('[Plaid Function] Retrieved transactions:', {
-              account_id: account.id,
-              transaction_count: data.transactions?.length || 0,
-              total_transactions: data.total_transactions,
-            });
-
-          // Update account balance
-          await supabase
-            .from('bank_accounts')
-            .update({
-              current_balance: data.accounts.find((a: any) => 
-                a.account_id === account.plaid_account_id
-              )?.balances.current || account.current_balance,
-              last_synced_at: new Date().toISOString(),
-            })
-            .eq('id', account.id);
-
-          // Batch process transactions for better performance
-          console.log(`[Plaid Function] Processing ${data.transactions.length} transactions for account ${account.id}`);
-          
-          // Get all existing transaction IDs in one query
-          const transactionIds = data.transactions.map(t => t.transaction_id);
-          const { data: existingTransactions } = await supabase
-            .from('transactions')
-            .select('plaid_transaction_id')
-            .in('plaid_transaction_id', transactionIds);
-          
-          const existingIds = new Set(existingTransactions?.map(t => t.plaid_transaction_id) || []);
-          
-          // Get all user categories once
-          const { data: userCategories } = await supabase
-            .from('categories')
-            .select('id, name, type')
-            .eq('user_id', user.id);
-          
-          // Filter out existing transactions and prepare batch insert
-          const newTransactions = [];
-          for (const transaction of data.transactions) {
-            if (!existingIds.has(transaction.transaction_id)) {
-              // Find matching category efficiently
-              const txType = transaction.amount > 0 ? 'expense' : 'income';
-              const categoryName = transaction.category?.[0]?.toLowerCase() || 'other';
-              const matchingCategory = userCategories?.find(cat => 
-                cat.type === txType && 
-                cat.name.toLowerCase().includes(categoryName)
-              );
+                access_token: accessToken,
+              };
               
-              newTransactions.push({
-                user_id: user.id,
-                bank_account_id: account.id,
-                plaid_transaction_id: transaction.transaction_id,
-                description: transaction.name || transaction.merchant_name || 'Unknown',
-                vendor_name: transaction.merchant_name,
-                amount: Math.abs(transaction.amount),
-                type: txType,
-                transaction_date: transaction.date,
-                plaid_category: transaction.category,
-                category_id: matchingCategory?.id || null,
-                status: 'completed',
-              });
-            }
-          }
-          
-          // Batch insert new transactions (split into chunks to avoid payload limits)
-          if (newTransactions.length > 0) {
-            const CHUNK_SIZE = 100;
-            for (let i = 0; i < newTransactions.length; i += CHUNK_SIZE) {
-              const chunk = newTransactions.slice(i, i + CHUNK_SIZE);
-              const { error: insertError } = await supabase
-                .from('transactions')
-                .insert(chunk);
-              
-              if (insertError) {
-                console.error(`[Plaid Function] Error inserting transactions batch:`, insertError);
-                throw insertError;
+              // Add cursor if we have one
+              if (cursor) {
+                syncBody.cursor = cursor;
               }
               
-              totalSynced += chunk.length;
+              const response = await fetch(`${PLAID_ENV}/transactions/sync`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(syncBody),
+              });
+
+              const data = await response.json();
+              
+              if (data.error_code) {
+                console.error(`[Plaid Function] Sync error for account ${account.id}:`, {
+                  error_code: data.error_code,
+                  error_message: data.error_message,
+                  request_id: data.request_id,
+                });
+                syncErrors.push({
+                  account_id: account.id,
+                  bank_name: account.bank_name,
+                  error: data.error_message,
+                });
+                break;
+              }
+              
+              console.log('[Plaid Function] Sync response:', {
+                added: data.added?.length || 0,
+                modified: data.modified?.length || 0,
+                removed: data.removed?.length || 0,
+                has_more: data.has_more,
+                next_cursor: data.next_cursor,
+              });
+
+              // Get all user categories once
+              const { data: userCategories } = await supabase
+                .from('categories')
+                .select('id, name, type')
+                .eq('user_id', user.id);
+
+              // Process added transactions
+              if (data.added && data.added.length > 0) {
+                const newTransactions = data.added.map((transaction: any) => {
+                  const txType = transaction.amount > 0 ? 'expense' : 'income';
+                  const categoryName = transaction.personal_finance_category?.primary?.toLowerCase() || 
+                                       transaction.category?.[0]?.toLowerCase() || 'other';
+                  const matchingCategory = userCategories?.find(cat => 
+                    cat.type === txType && 
+                    cat.name.toLowerCase().includes(categoryName)
+                  );
+                  
+                  return {
+                    user_id: user.id,
+                    bank_account_id: account.id,
+                    plaid_transaction_id: transaction.transaction_id,
+                    description: transaction.name || transaction.merchant_name || 'Unknown',
+                    vendor_name: transaction.merchant_name,
+                    amount: Math.abs(transaction.amount),
+                    type: txType,
+                    transaction_date: transaction.date,
+                    plaid_category: transaction.personal_finance_category || transaction.category,
+                    category_id: matchingCategory?.id || null,
+                    status: 'completed',
+                    notes: transaction.payment_channel ? `Payment via ${transaction.payment_channel}` : null,
+                  };
+                });
+
+                // Batch insert new transactions
+                const CHUNK_SIZE = 100;
+                for (let i = 0; i < newTransactions.length; i += CHUNK_SIZE) {
+                  const chunk = newTransactions.slice(i, i + CHUNK_SIZE);
+                  const { error: insertError } = await supabase
+                    .from('transactions')
+                    .insert(chunk);
+                  
+                  if (insertError) {
+                    console.error(`[Plaid Function] Error inserting transactions batch:`, insertError);
+                    throw insertError;
+                  }
+                }
+                
+                accountSynced += newTransactions.length;
+                totalSynced += newTransactions.length;
+              }
+
+              // Process modified transactions
+              if (data.modified && data.modified.length > 0) {
+                for (const transaction of data.modified) {
+                  const { error: updateError } = await supabase
+                    .from('transactions')
+                    .update({
+                      description: transaction.name || transaction.merchant_name || 'Unknown',
+                      vendor_name: transaction.merchant_name,
+                      amount: Math.abs(transaction.amount),
+                      type: transaction.amount > 0 ? 'expense' : 'income',
+                      transaction_date: transaction.date,
+                      plaid_category: transaction.personal_finance_category || transaction.category,
+                    })
+                    .eq('plaid_transaction_id', transaction.transaction_id);
+                  
+                  if (updateError) {
+                    console.error(`[Plaid Function] Error updating transaction:`, updateError);
+                  } else {
+                    totalModified++;
+                  }
+                }
+              }
+
+              // Process removed transactions
+              if (data.removed && data.removed.length > 0) {
+                const removedIds = data.removed.map((r: any) => r.transaction_id);
+                const { error: deleteError } = await supabase
+                  .from('transactions')
+                  .delete()
+                  .in('plaid_transaction_id', removedIds);
+                
+                if (deleteError) {
+                  console.error(`[Plaid Function] Error deleting transactions:`, deleteError);
+                } else {
+                  totalRemoved += data.removed.length;
+                }
+              }
+
+              // Update cursor and check if there's more data
+              cursor = data.next_cursor;
+              hasMore = data.has_more;
+
+              // Update the cursor in the database after each page
+              await supabase
+                .from('plaid_access_tokens')
+                .update({ cursor: cursor })
+                .eq('item_id', account.plaid_item_id)
+                .eq('user_id', user.id);
             }
+
+            // Update account balance if we have account data
+            if (accountSynced > 0) {
+              await supabase
+                .from('bank_accounts')
+                .update({
+                  last_synced_at: new Date().toISOString(),
+                })
+                .eq('id', account.id);
+            }
+
+            console.log(`[Plaid Function] Account ${account.id} sync complete. Added: ${accountSynced}`);
             
-            console.log(`[Plaid Function] Inserted ${newTransactions.length} new transactions for account ${account.id}`);
-          } else {
-            console.log(`[Plaid Function] No new transactions to insert for account ${account.id}`);
-          }
           } catch (error) {
             console.error('[Plaid Function] Error syncing account:', {
               account_id: account.id,
@@ -615,6 +649,8 @@ serve(async (req) => {
           JSON.stringify({ 
             success: true, 
             transactions_synced: totalSynced,
+            transactions_modified: totalModified,
+            transactions_removed: totalRemoved,
             errors: syncErrors.length > 0 ? syncErrors : undefined
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
