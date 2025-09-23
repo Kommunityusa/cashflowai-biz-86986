@@ -97,8 +97,12 @@ serve(async (req) => {
           // Enable account filters for better UX
           ...(linkOptions.accountSubtypes && {
             account_filters: {
-              depository: linkOptions.accountSubtypes.depository,
-              credit: linkOptions.accountSubtypes.credit,
+              depository: linkOptions.accountSubtypes.depository || {
+                account_subtypes: ['checking', 'savings']
+              },
+              credit: linkOptions.accountSubtypes.credit || {
+                account_subtypes: ['credit_card']
+              },
             }
           }),
         };

@@ -337,7 +337,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Check if there's no data and show empty state */}
+        {/* Main Dashboard Content */}
         {!loading && stats.transactionCount === 0 ? (
           <div className="space-y-6">
             {/* Quick Actions for New Users */}
@@ -367,44 +367,57 @@ export default function Dashboard() {
                       size="lg" 
                       variant="outline"
                       onClick={async () => {
-                        // Generate sample data
-                        const sampleTransactions = [
-                          { description: "Office Rent", amount: 2500, type: "expense", category: "Rent" },
-                          { description: "Client Payment - ABC Corp", amount: 5000, type: "income", category: "Sales" },
-                          { description: "Software Subscription", amount: 299, type: "expense", category: "Software" },
-                          { description: "Consulting Services", amount: 3500, type: "income", category: "Services" },
-                          { description: "Office Supplies", amount: 150, type: "expense", category: "Office Supplies" },
-                        ];
+                        setLoading(true);
+                        try {
+                          // Generate sample data
+                          const sampleTransactions = [
+                            { description: "Office Rent", amount: 2500, type: "expense", category: "Rent" },
+                            { description: "Client Payment - ABC Corp", amount: 5000, type: "income", category: "Sales" },
+                            { description: "Software Subscription", amount: 299, type: "expense", category: "Software" },
+                            { description: "Consulting Services", amount: 3500, type: "income", category: "Services" },
+                            { description: "Office Supplies", amount: 150, type: "expense", category: "Office Supplies" },
+                          ];
 
-                        for (const transaction of sampleTransactions) {
-                          // Find the category
-                          const { data: categories } = await supabase
-                            .from('categories')
-                            .select('id')
-                            .eq('user_id', user?.id)
-                            .eq('name', transaction.category)
-                            .maybeSingle();
+                          for (const transaction of sampleTransactions) {
+                            // Find the category
+                            const { data: categories } = await supabase
+                              .from('categories')
+                              .select('id')
+                              .eq('user_id', user?.id)
+                              .eq('name', transaction.category)
+                              .maybeSingle();
 
-                          // Create transaction
-                          await supabase.from('transactions').insert({
-                            user_id: user?.id,
-                            description: transaction.description,
-                            amount: transaction.amount,
-                            type: transaction.type,
-                            category_id: categories?.id,
-                            transaction_date: new Date().toISOString().split('T')[0],
-                            status: 'completed'
+                            // Create transaction
+                            await supabase.from('transactions').insert({
+                              user_id: user?.id,
+                              description: transaction.description,
+                              amount: transaction.amount,
+                              type: transaction.type,
+                              category_id: categories?.id,
+                              transaction_date: new Date().toISOString().split('T')[0],
+                              status: 'completed'
+                            });
+                          }
+
+                          toast({
+                            title: "Sample data added!",
+                            description: "We've added some sample transactions to get you started.",
                           });
+                          
+                          // Refresh the dashboard
+                          await fetchDashboardData();
+                        } catch (error) {
+                          console.error('Error generating sample data:', error);
+                          toast({
+                            title: "Error",
+                            description: "Failed to generate sample data. Please try again.",
+                            variant: "destructive"
+                          });
+                        } finally {
+                          setLoading(false);
                         }
-
-                        toast({
-                          title: "Sample data added!",
-                          description: "We've added some sample transactions to get you started.",
-                        });
-                        
-                        // Refresh the dashboard
-                        fetchDashboardData();
                       }}
+                      disabled={loading}
                     >
                       <Activity className="mr-2 h-5 w-5" />
                       Generate Sample Data
@@ -413,7 +426,7 @@ export default function Dashboard() {
                 </div>
               </CardContent>
             </Card>
-
+            
             {/* Connected Accounts Section */}
             <BankAccounts />
             
@@ -541,11 +554,11 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* AI Insights */}
-        <AIInsights />
+            {/* AI Insights */}
+            <AIInsights />
 
-        {/* Charts Section - Only show if there's data */}
-        {stats.transactionCount > 0 && (
+            {/* Charts Section - Only show if there's data */}
+            {stats.transactionCount > 0 && (
           <Tabs defaultValue="overview" className="space-y-4 mb-8">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -773,11 +786,11 @@ export default function Dashboard() {
           </CardContent>
         </Card>
         
-        {/* Security Status Cards */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <EncryptionStatus />
-          <RateLimitStatus />
-        </div>
+            {/* Security Status Cards */}
+            <div className="grid gap-4 md:grid-cols-2">
+              <EncryptionStatus />
+              <RateLimitStatus />
+            </div>
           </>
         )}
       </main>
