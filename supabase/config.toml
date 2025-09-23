@@ -207,3 +207,9 @@ verify_jwt = false
 
 [functions.ai-chat]
 verify_jwt = true
+
+[functions.plaid-webhook]
+verify_jwt = false
+
+[functions.plaid-sync]
+verify_jwt = false

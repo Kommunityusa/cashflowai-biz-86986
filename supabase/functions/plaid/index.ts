@@ -62,6 +62,11 @@ serve(async (req) => {
     switch (action) {
       case 'create_link_token': {
         console.log('Creating link token for user:', user.id);
+        
+        // Get the webhook URL for this environment
+        const webhookUrl = `${supabaseUrl}/functions/v1/plaid-webhook`;
+        console.log('Webhook URL:', webhookUrl);
+        
         // Create a link token for Plaid Link initialization
         const response = await fetch(`${PLAID_ENV}/link/token/create`, {
           method: 'POST',
@@ -74,10 +79,14 @@ serve(async (req) => {
             user: {
               client_user_id: user.id,
             },
-            client_name: 'Cash Flow AI',
+            client_name: 'BizFlow',
             products: ['transactions', 'accounts'],
             country_codes: ['US'],
             language: 'en',
+            webhook: webhookUrl, // Register webhook URL
+            transactions: {
+              days_requested: 730, // Request 2 years of transaction history
+            },
           }),
         });
 
