@@ -90,11 +90,25 @@ export default function Transactions() {
     setLoading(true);
     const { data, error } = await supabase
       .from('transactions')
-      .select('*, categories(name, color)')
+      .select(`
+        *,
+        categories:category_id (
+          name,
+          color
+        )
+      `)
       .eq('user_id', user?.id)
       .order('transaction_date', { ascending: false });
     
-    if (!error && data) {
+    if (error) {
+      console.error('Error fetching transactions:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load transactions",
+        variant: "destructive",
+      });
+    } else if (data) {
+      console.log('Fetched transactions:', data);
       setTransactions(data);
     }
     setLoading(false);
