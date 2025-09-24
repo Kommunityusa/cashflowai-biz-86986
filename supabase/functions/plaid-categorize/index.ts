@@ -27,7 +27,13 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { transaction } = await req.json();
+    const body = await req.json();
+    const transaction = body.transaction || body;
+
+    // Validate transaction object
+    if (!transaction || typeof transaction !== 'object') {
+      throw new Error('Invalid transaction data');
+    }
 
     // Enhanced business categorization rules
     const businessCategories = {
@@ -55,14 +61,17 @@ serve(async (req) => {
       }
     };
 
+    // Safely access amount with fallback
+    const amount = transaction.amount || 0;
+    
     // Determine transaction type and category
-    const isIncome = transaction.amount < 0; // Plaid uses negative for money in
+    const isIncome = amount < 0; // Plaid uses negative for money in
     const type = isIncome ? 'income' : 'expense';
     
     // Map Plaid category to business category
     let categoryName = 'Other ' + (isIncome ? 'Income' : 'Expenses');
     
-    if (transaction.category && transaction.category.length > 0) {
+    if (transaction.category && Array.isArray(transaction.category) && transaction.category.length > 0) {
       const plaidCategory = transaction.category[0].toUpperCase();
       const categoryMap = isIncome ? businessCategories.income : businessCategories.expense;
       
@@ -81,20 +90,21 @@ serve(async (req) => {
       'professional', 'service', 'consulting'
     ];
     
+    const transactionName = transaction.name || transaction.description || '';
     const isTaxDeductible = taxDeductiblePatterns.some(pattern => 
-      transaction.name.toLowerCase().includes(pattern)
+      transactionName.toLowerCase().includes(pattern)
     );
 
     // Extract vendor information
-    const vendorName = transaction.merchant_name || transaction.name.split(' ')[0];
+    const vendorName = transaction.merchant_name || transaction.name || transaction.description || 'Unknown';
 
     console.log('Business categorization:', {
-      transactionId: transaction.transaction_id,
+      transactionId: transaction.transaction_id || transaction.id,
       type,
       categoryName,
       isTaxDeductible,
       vendorName,
-      amount: Math.abs(transaction.amount)
+      amount: Math.abs(amount)
     });
 
     return new Response(
@@ -103,7 +113,7 @@ serve(async (req) => {
         categoryName,
         isTaxDeductible,
         vendorName,
-        amount: Math.abs(transaction.amount),
+        amount: Math.abs(amount),
         needsReview: transaction.pending || !transaction.authorized
       }),
       { 

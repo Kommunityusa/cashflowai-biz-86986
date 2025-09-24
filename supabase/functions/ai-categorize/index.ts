@@ -18,15 +18,33 @@ serve(async (req) => {
   }
 
   try {
-    const { description, amount, type, existingCategories } = await req.json();
+    const body = await req.json();
+    const { description, amount, type, existingCategories } = body;
     
-    console.log('Categorizing transaction:', { description, amount, type });
+    console.log('AI Categorizing transaction:', { description, amount, type });
+
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
+
+    if (!description || amount === undefined || !type) {
+      throw new Error('Missing required fields: description, amount, or type');
+    }
+
+    if (!existingCategories || existingCategories.length === 0) {
+      throw new Error('No categories provided');
+    }
 
     // Create system prompt with existing categories
-    const categoriesList = existingCategories
+    const relevantCategories = existingCategories
       .filter((cat: any) => cat.type === type)
-      .map((cat: any) => cat.name)
-      .join(', ');
+      .map((cat: any) => cat.name);
+
+    if (relevantCategories.length === 0) {
+      throw new Error(`No categories available for type: ${type}`);
+    }
+
+    const categoriesList = relevantCategories.join(', ');
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -39,16 +57,21 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are an expert expense categorization assistant. Given a transaction description and amount, suggest the most appropriate category from this list: ${categoriesList}. 
+            content: `You are an expert financial categorization assistant for small business bookkeeping. Given a transaction description and amount, suggest the most appropriate category from this list: ${categoriesList}. 
             
-            Only respond with the exact category name from the list, nothing else. If none fit well, respond with the most general category like "Other ${type === 'expense' ? 'Expenses' : 'Income'}".`
+            Rules:
+            1. Only respond with the EXACT category name from the list
+            2. Choose the most specific and accurate category
+            3. Consider common business patterns (e.g., software subscriptions, office supplies, travel expenses)
+            4. If uncertain, choose the most likely category
+            5. Never add explanations, just the category name`
           },
           {
             role: 'user',
             content: `Transaction: "${description}" for $${amount}`
           }
         ],
-        temperature: 0.3,
+        temperature: 0.2,
         max_tokens: 50,
       }),
     });
@@ -56,13 +79,25 @@ serve(async (req) => {
     if (!response.ok) {
       const error = await response.json();
       console.error('OpenAI API error:', error);
-      throw new Error('Failed to categorize transaction');
+      throw new Error(error.error?.message || 'Failed to categorize transaction');
     }
 
     const data = await response.json();
-    const suggestedCategory = data.choices[0].message.content.trim();
+    const suggestedCategory = data.choices[0]?.message?.content?.trim();
     
-    console.log('Suggested category:', suggestedCategory);
+    // Validate that the suggested category is in the list
+    if (!relevantCategories.includes(suggestedCategory)) {
+      console.warn(`AI suggested "${suggestedCategory}" which is not in available categories. Using fallback.`);
+      const fallbackCategory = type === 'expense' ? 'Other Expenses' : 'Other Income';
+      return new Response(
+        JSON.stringify({ category: fallbackCategory }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+    
+    console.log('AI suggested category:', suggestedCategory);
 
     return new Response(
       JSON.stringify({ category: suggestedCategory }),

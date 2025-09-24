@@ -87,7 +87,7 @@ export default function Dashboard() {
       // Fetch transactions with categories
       const { data: transactions, error } = await supabase
         .from('transactions')
-        .select('*, categories(name, color, icon)')
+        .select('*, categories!transactions_category_id_fkey(name, color, icon)')
         .eq('user_id', user.id)
         .order('transaction_date', { ascending: false });
 

@@ -88,7 +88,7 @@ export default function Reports() {
 
     const { data: transactions } = await supabase
       .from("transactions")
-      .select("*, categories(name, color)")
+      .select("*, categories!transactions_category_id_fkey(name, color)")
       .eq("user_id", user?.id)
       .gte("transaction_date", startDate.toISOString().split("T")[0])
       .lte("transaction_date", endDate.toISOString().split("T")[0])
