@@ -126,9 +126,9 @@ serve(async (req) => {
               .maybeSingle();
 
             if (!existing) {
-              // IMPORTANT: In Plaid, positive amounts = expenses (money out), negative = income (money in)
-              // This is opposite of typical accounting convention
-              const transactionType = transaction.amount > 0 ? 'expense' : 'income';
+              // IMPORTANT: In Plaid, negative amounts = expenses (money out), positive = income (money in)
+              // This follows standard banking convention
+              const transactionType = transaction.amount < 0 ? 'expense' : 'income';
               
               // Find matching category
               const { data: categories } = await supabase
