@@ -54,6 +54,7 @@ serve(async (req) => {
     ).join('\n');
 
     // Call OpenAI to categorize transactions
+    console.log('Calling OpenAI API to categorize transactions...');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -82,11 +83,11 @@ Important patterns:
 - Venmo/Zelle/PayPal = Analyze the context, could be various categories
 - Bank transfers = Often "Other Income" or "Other Expenses" unless context suggests otherwise
 
-Return a JSON array with one object per transaction in the same order as provided.`
+IMPORTANT: Return ONLY a JSON array without any markdown formatting or backticks.`
           },
           {
             role: 'user',
-            content: `Categorize these transactions:\n${transactionText}\n\nReturn JSON array: [{"type": "income/expense", "category": "category name", "tax_deductible": true/false, "confidence": 0-1}]`
+            content: `Categorize these transactions:\n${transactionText}\n\nReturn ONLY a JSON array (no markdown, no backticks): [{"type": "income/expense", "category": "category name", "tax_deductible": true/false, "confidence": 0-1}]`
           }
         ],
         temperature: 0.3,
@@ -95,16 +96,29 @@ Return a JSON array with one object per transaction in the same order as provide
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenAI API error response:', errorText);
       throw new Error(`OpenAI API error: ${response.statusText}`);
     }
 
     const aiResponse = await response.json();
+    console.log('OpenAI raw response:', aiResponse.choices[0].message.content);
     
     // Clean up the response - remove markdown code blocks if present
     let content = aiResponse.choices[0].message.content;
-    content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    // Remove any markdown formatting
+    content = content.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
     
-    const categorizations = JSON.parse(content);
+    console.log('Cleaned content to parse:', content);
+    
+    let categorizations;
+    try {
+      categorizations = JSON.parse(content);
+    } catch (parseError) {
+      console.error('Failed to parse JSON:', parseError);
+      console.error('Content that failed to parse:', content);
+      throw new Error('Failed to parse AI response as JSON');
+    }
 
     // Update transactions with AI categorizations
     const results = [];
