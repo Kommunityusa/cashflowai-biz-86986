@@ -58,105 +58,207 @@ serve(async (req) => {
 
     // Enhanced business bookkeeping categorization with contextual matching
     const categorizeTransaction = (transaction: any, isIncome: boolean) => {
-      const description = (transaction.description || '').toLowerCase();
-      const vendorName = (transaction.vendor_name || '').toLowerCase();
+      const description = (transaction.description || transaction.name || '').toLowerCase();
+      const vendorName = (transaction.vendor_name || transaction.merchant_name || '').toLowerCase();
       const plaidCategory = transaction.plaid_category && Array.isArray(transaction.plaid_category) 
         ? transaction.plaid_category.map((c: string) => c.toLowerCase()) 
         : [];
+      const plaidDetailed = transaction.personal_finance_category?.detailed?.toLowerCase() || '';
+      const plaidPrimary = transaction.personal_finance_category?.primary?.toLowerCase() || '';
       
-      // Combined text for pattern matching
-      const combinedText = `${description} ${vendorName} ${plaidCategory.join(' ')}`;
+      // Combined text for comprehensive pattern matching
+      const combinedText = `${description} ${vendorName} ${plaidCategory.join(' ')} ${plaidDetailed} ${plaidPrimary}`;
       
-      // Income categorization patterns
+      // Income categorization with vendor-specific patterns
       if (isIncome) {
-        if (combinedText.match(/\b(sales?|revenue|invoice|payment\s+from|customer)/i)) return 'Sales Revenue';
-        if (combinedText.match(/\b(service|consulting|professional|freelance)/i)) return 'Service Revenue';
-        if (combinedText.match(/\b(interest|apy|yield|savings)/i)) return 'Interest Income';
-        if (combinedText.match(/\b(dividend|distribution|stock)/i)) return 'Dividend Income';
-        if (combinedText.match(/\b(rent|lease|tenant|property)/i)) return 'Rental Income';
-        if (combinedText.match(/\b(investment|capital|gain|trading)/i)) return 'Investment Income';
-        if (combinedText.match(/\b(commission|referral|affiliate)/i)) return 'Commission Income';
-        if (combinedText.match(/\b(royalty|licensing|copyright)/i)) return 'Royalty Income';
-        if (combinedText.match(/\b(grant|funding|subsidy)/i)) return 'Grant Income';
-        if (plaidCategory.includes('transfer') || plaidCategory.includes('deposit')) return 'Sales Revenue';
-        return 'Other Income';
+        // Sales Revenue - payments from customers, invoices, square, stripe
+        if (combinedText.match(/\b(sales?|revenue|invoice|payment\s+(from|received)|customer|square|stripe|paypal\s+transfer|shopify|etsy|ebay|amazon\s+seller)/i)) {
+          return 'Sales Revenue';
+        }
+        // Service Revenue - consulting, freelance, professional services
+        if (combinedText.match(/\b(service|consulting|professional|freelance|contractor|hourly|retainer|project\s+payment|upwork|fiverr|toptal)/i)) {
+          return 'Service Revenue';
+        }
+        // Interest Income - bank interest, savings
+        if (combinedText.match(/\b(interest|apy|yield|savings\s+interest|cd\s+interest|money\s+market|treasury)/i)) {
+          return 'Interest Income';
+        }
+        // Dividend Income
+        if (combinedText.match(/\b(dividend|distribution|stock|shares|equity|mutual\s+fund|etf\s+dist)/i)) {
+          return 'Dividend Income';
+        }
+        // Rental Income
+        if (combinedText.match(/\b(rent|lease|tenant|property|apartment|airbnb|vrbo|booking\.com|rental\s+income)/i)) {
+          return 'Rental Income';
+        }
+        // Investment Income
+        if (combinedText.match(/\b(investment|capital\s+gain|trading|portfolio|securities|bonds|crypto|bitcoin|ethereum)/i)) {
+          return 'Investment Income';
+        }
+        // Commission Income
+        if (combinedText.match(/\b(commission|referral|affiliate|partner\s+revenue|reseller|broker)/i)) {
+          return 'Commission Income';
+        }
+        // Royalty Income
+        if (combinedText.match(/\b(royalty|licensing|copyright|patent|trademark|publishing|music|book)/i)) {
+          return 'Royalty Income';
+        }
+        // Grant Income
+        if (combinedText.match(/\b(grant|funding|subsidy|government\s+aid|sba|ppp|eidl|tax\s+credit)/i)) {
+          return 'Grant Income';
+        }
+        // Default for income
+        return 'Sales Revenue';
       }
       
-      // Expense categorization patterns with vendor-specific rules
-      // Salaries & Payroll
-      if (combinedText.match(/\b(payroll|salary|wages?|adp|paychex|gusto|rippling|employee\s+pay)/i)) return 'Salaries & Wages';
-      if (combinedText.match(/\b(benefits?|health\s+insurance|401k|pension|dental|vision|life\s+insurance)/i)) return 'Employee Benefits';
-      if (combinedText.match(/\b(payroll\s+tax|fica|suta|futa|employment\s+tax)/i)) return 'Payroll Taxes';
+      // Expense categorization with extensive vendor and pattern matching
       
-      // Rent & Utilities
-      if (combinedText.match(/\b(rent|lease|landlord|property\s+management|office\s+space)/i)) return 'Rent & Lease';
-      if (combinedText.match(/\b(electric|gas|water|sewer|trash|utility|pge|edison|con\s+ed)/i)) return 'Utilities';
+      // Salaries & Payroll - specific payroll services
+      if (combinedText.match(/\b(payroll|salary|wages?|adp|paychex|gusto|rippling|bamboohr|workday|paycom|paycor|zenefits|trinet|insperity|direct\s+deposit\s+payroll)/i)) {
+        return 'Salaries & Wages';
+      }
       
-      // Office & Equipment
-      if (combinedText.match(/\b(office\s+depot|staples|office\s+supplies|paper|pens|printer|ink|toner)/i)) return 'Office Supplies';
-      if (combinedText.match(/\b(equipment|tools?|machinery|hardware|home\s+depot|lowes|grainger)/i)) return 'Equipment & Tools';
-      if (combinedText.match(/\b(computer|laptop|monitor|keyboard|mouse|tech\s+equipment)/i)) return 'Equipment & Tools';
+      // Employee Benefits
+      if (combinedText.match(/\b(benefits?|health\s+insurance|medical|dental|vision|401k|retirement|pension|fsa|hsa|cobra|aflac|metlife|cigna|aetna|blue\s+cross|united\s+healthcare|kaiser)/i)) {
+        return 'Employee Benefits';
+      }
       
-      // Software & Technology
-      if (combinedText.match(/\b(software|subscription|saas|adobe|microsoft|google|zoom|slack|aws|azure)/i)) return 'Software & Subscriptions';
-      if (combinedText.match(/\b(dropbox|github|atlassian|salesforce|hubspot|quickbooks|xero)/i)) return 'Software & Subscriptions';
-      if (combinedText.match(/\b(hosting|domain|cloudflare|godaddy|namecheap)/i)) return 'Software & Subscriptions';
+      // Payroll Taxes
+      if (combinedText.match(/\b(payroll\s+tax|fica|social\s+security|medicare|suta|futa|sui|employment\s+tax|eftps|irs\s+payroll)/i)) {
+        return 'Payroll Taxes';
+      }
       
-      // Marketing & Advertising
-      if (combinedText.match(/\b(marketing|advertising|ads?|promotion|google\s+ads|facebook\s+ads|meta)/i)) return 'Marketing & Advertising';
-      if (combinedText.match(/\b(mailchimp|constant\s+contact|social\s+media|campaign|seo)/i)) return 'Marketing & Advertising';
+      // Rent & Lease - property management companies
+      if (combinedText.match(/\b(rent|lease|landlord|property\s+management|office\s+space|warehouse|coworking|wework|regus|spaces|building\s+rent|monthly\s+rent)/i)) {
+        return 'Rent & Lease';
+      }
       
-      // Travel & Transportation
-      if (combinedText.match(/\b(travel|flight|airline|hotel|lodging|uber|lyft|taxi|parking|toll)/i)) return 'Travel & Transportation';
-      if (combinedText.match(/\b(united|american|delta|southwest|marriott|hilton|airbnb)/i)) return 'Travel & Transportation';
-      if (combinedText.match(/\b(gas|fuel|shell|chevron|exxon|bp|gasoline|car\s+rental)/i)) return 'Travel & Transportation';
+      // Utilities - specific utility companies
+      if (combinedText.match(/\b(electric|gas|water|sewer|trash|utility|utilities|pge|pg&e|edison|con\s+ed|duke\s+energy|dominion|exelon|nextera|waste\s+management|republic\s+services)/i)) {
+        return 'Utilities';
+      }
       
-      // Meals & Entertainment
-      if (combinedText.match(/\b(restaurant|food|meal|lunch|dinner|breakfast|coffee|starbucks|dunkin)/i)) return 'Meals & Entertainment';
-      if (combinedText.match(/\b(doordash|uber\s+eats|grubhub|postmates|seamless)/i)) return 'Meals & Entertainment';
-      if (combinedText.match(/\b(entertainment|client\s+meeting|business\s+meal)/i)) return 'Meals & Entertainment';
+      // Office Supplies - office supply stores
+      if (combinedText.match(/\b(office\s+(depot|max)|staples|supplies|paper|pens|printer|ink|toner|3m|avery|brother|canon|epson|xerox|post-it|sharpie|bic|hammermill)/i)) {
+        return 'Office Supplies';
+      }
       
-      // Professional Services
-      if (combinedText.match(/\b(legal|lawyer|attorney|law\s+firm|litigation)/i)) return 'Legal Fees';
-      if (combinedText.match(/\b(accounting|cpa|bookkeep|tax\s+prep|audit)/i)) return 'Accounting Fees';
-      if (combinedText.match(/\b(consulting|consultant|professional\s+service|advisor)/i)) return 'Professional Services';
+      // Equipment & Tools - hardware and equipment stores
+      if (combinedText.match(/\b(equipment|tools?|machinery|hardware|home\s+depot|lowes|grainger|ace\s+hardware|menards|harbor\s+freight|snap-on|dewalt|makita|milwaukee|craftsman|computer|laptop|monitor|dell|hp|lenovo|apple\s+store|best\s+buy|micro\s+center)/i)) {
+        return 'Equipment & Tools';
+      }
       
-      // Insurance & Financial
-      if (combinedText.match(/\b(insurance|premium|policy|liability|coverage|state\s+farm|geico|allstate)/i)) return 'Insurance';
-      if (combinedText.match(/\b(bank\s+fee|service\s+charge|overdraft|wire\s+fee|atm\s+fee)/i)) return 'Bank Fees';
-      if (combinedText.match(/\b(interest\s+charge|finance\s+charge|apr|credit\s+card\s+interest)/i)) return 'Interest Expense';
+      // Software & Subscriptions - SaaS and software companies
+      if (combinedText.match(/\b(software|subscription|saas|adobe|microsoft|office\s+365|google\s+workspace|zoom|slack|teams|aws|amazon\s+web|azure|dropbox|box|github|gitlab|atlassian|jira|confluence|salesforce|hubspot|quickbooks|xero|freshbooks|mailchimp|constant\s+contact|sendgrid|twilio|stripe|square|shopify|wix|squarespace|godaddy|namecheap|cloudflare|netflix|spotify|linkedin|canva|figma|notion|asana|monday|trello|lastpass|1password|nordvpn|expressvpn)/i)) {
+        return 'Software & Subscriptions';
+      }
       
-      // Communication
-      if (combinedText.match(/\b(phone|telephone|verizon|at&t|t-mobile|sprint|cellular|mobile)/i)) return 'Telephone & Internet';
-      if (combinedText.match(/\b(internet|broadband|comcast|spectrum|cox|fiber|isp)/i)) return 'Telephone & Internet';
+      // Marketing & Advertising - advertising platforms
+      if (combinedText.match(/\b(marketing|advertising|ads?|promotion|google\s+ads|adwords|facebook\s+ads|meta\s+ads|instagram\s+ads|twitter\s+ads|linkedin\s+ads|bing\s+ads|amazon\s+ads|youtube\s+ads|tiktok\s+ads|pinterest|snapchat|campaign|seo|sem|ppc|cpm|cpc|vistaprint|moo|printful|promotional|swag|trade\s+show|conference\s+booth)/i)) {
+        return 'Marketing & Advertising';
+      }
       
-      // Shipping & Postage
-      if (combinedText.match(/\b(shipping|postage|fedex|ups|usps|dhl|mail|package|freight)/i)) return 'Postage & Shipping';
+      // Travel & Transportation - airlines, hotels, gas stations
+      if (combinedText.match(/\b(travel|flight|airline|united|american|delta|southwest|jetblue|alaska|spirit|frontier|british\s+airways|lufthansa|hotel|marriott|hilton|hyatt|sheraton|westin|holiday\s+inn|hampton|courtyard|residence\s+inn|fairfield|springhill|airbnb|vrbo|booking|expedia|priceline|kayak|uber|lyft|taxi|cab|parking|park|toll|ezpass|sunpass|fastrak|gas|fuel|shell|chevron|exxon|mobil|bp|citgo|valero|marathon|speedway|wawa|sheetz|7-eleven|circle\s+k|car\s+rental|hertz|enterprise|avis|budget|national|alamo|zipcar|turo)/i)) {
+        return 'Travel & Transportation';
+      }
       
-      // Education & Training
-      if (combinedText.match(/\b(training|education|course|seminar|conference|workshop|certification)/i)) return 'Training & Education';
-      if (combinedText.match(/\b(udemy|coursera|linkedin\s+learning|skillshare)/i)) return 'Training & Education';
+      // Meals & Entertainment - restaurants and food delivery
+      if (combinedText.match(/\b(restaurant|food|meal|lunch|dinner|breakfast|coffee|cafe|starbucks|dunkin|tim\s+hortons|peets|caribou|dutch\s+bros|mcdonalds|burger\s+king|wendys|subway|chipotle|panera|chick-fil-a|taco\s+bell|kfc|pizza|dominos|papa\s+johns|little\s+caesars|doordash|uber\s+eats|grubhub|postmates|seamless|caviar|instacart|entertainment|theater|cinema|concert|sports|stadium|arena|client\s+(meal|dinner|lunch)|business\s+(meal|dinner|lunch))/i)) {
+        return 'Meals & Entertainment';
+      }
       
-      // Licenses & Compliance
-      if (combinedText.match(/\b(license|permit|registration|compliance|regulatory|filing\s+fee)/i)) return 'Licenses & Permits';
+      // Legal Fees - law firms
+      if (combinedText.match(/\b(legal|lawyer|attorney|law\s+(firm|office)|litigation|lexisnexis|westlaw|legalzoom|rocket\s+lawyer|counsel|esquire|pllc|llp|paralegal|court|filing\s+fee)/i)) {
+        return 'Legal Fees';
+      }
       
-      // Taxes
-      if (combinedText.match(/\b(tax|irs|state\s+tax|federal\s+tax|sales\s+tax|property\s+tax)/i)) return 'Taxes';
+      // Accounting Fees - accounting firms
+      if (combinedText.match(/\b(accounting|accountant|cpa|bookkeep|tax\s+(prep|preparation)|audit|h&r\s+block|jackson\s+hewitt|liberty\s+tax|turbotax|freetaxusa|taxact|ernst|young|deloitte|pwc|kpmg|bdo|grant\s+thornton)/i)) {
+        return 'Accounting Fees';
+      }
       
-      // Inventory & COGS
-      if (combinedText.match(/\b(inventory|stock|merchandise|product|supplier|wholesale|vendor)/i)) return 'Inventory';
-      if (combinedText.match(/\b(cost\s+of\s+goods|cogs|materials|supplies\s+for\s+resale)/i)) return 'Cost of Goods Sold';
+      // Professional Services - consultants
+      if (combinedText.match(/\b(consulting|consultant|professional\s+service|advisor|advisory|expert|specialist|contractor|freelancer|agency|firm|associates|partners|group)/i)) {
+        return 'Professional Services';
+      }
       
-      // Repairs & Maintenance
-      if (combinedText.match(/\b(repair|maintenance|fix|service|plumb|electric|hvac|cleaning)/i)) return 'Repairs & Maintenance';
+      // Insurance - insurance companies
+      if (combinedText.match(/\b(insurance|premium|policy|liability|coverage|state\s+farm|geico|progressive|allstate|farmers|nationwide|liberty\s+mutual|travelers|usaa|american\s+family|erie|auto-owners|hartford|chubb|aig|metlife|prudential|new\s+york\s+life|northwestern\s+mutual)/i)) {
+        return 'Insurance';
+      }
       
-      // Check Plaid categories as fallback
-      if (plaidCategory.includes('bank_fees')) return 'Bank Fees';
-      if (plaidCategory.includes('travel')) return 'Travel & Transportation';
-      if (plaidCategory.includes('food_and_drink')) return 'Meals & Entertainment';
-      if (plaidCategory.includes('shops')) return 'Office Supplies';
-      if (plaidCategory.includes('recreation')) return 'Marketing & Advertising';
+      // Bank Fees
+      if (combinedText.match(/\b(bank\s+(fee|charge)|service\s+charge|overdraft|nsf|wire\s+(fee|transfer)|atm\s+fee|monthly\s+fee|maintenance\s+fee|chase|wells\s+fargo|bank\s+of\s+america|citibank|us\s+bank|pnc|truist|td\s+bank|capital\s+one|regions|fifth\s+third|keybank)/i)) {
+        return 'Bank Fees';
+      }
       
+      // Interest Expense
+      if (combinedText.match(/\b(interest\s+(charge|expense|payment)|finance\s+charge|apr|credit\s+card\s+interest|loan\s+interest|mortgage\s+interest|line\s+of\s+credit)/i)) {
+        return 'Interest Expense';
+      }
+      
+      // Telephone & Internet - telecom companies
+      if (combinedText.match(/\b(phone|telephone|cellular|mobile|verizon|at&t|att|t-mobile|tmobile|sprint|cricket|metro|boost|virgin|tracfone|internet|broadband|comcast|xfinity|spectrum|cox|charter|centurylink|frontier|windstream|fiber|fios|dsl|cable|isp|vonage|ringcentral|8x8|nextiva|ooma|grasshopper)/i)) {
+        return 'Telephone & Internet';
+      }
+      
+      // Postage & Shipping - shipping companies
+      if (combinedText.match(/\b(shipping|postage|mail|fedex|ups|usps|dhl|postal|stamps|package|freight|logistics|fulfillment|amazon\s+fba|shipstation|pirateship|easypost|sendle)/i)) {
+        return 'Postage & Shipping';
+      }
+      
+      // Training & Education - educational platforms
+      if (combinedText.match(/\b(training|education|course|class|seminar|workshop|conference|certification|udemy|coursera|linkedin\s+learning|skillshare|pluralsight|masterclass|khan\s+academy|codecademy|treehouse|datacamp|books|textbook|amazon\s+books|barnes|noble|audible)/i)) {
+        return 'Training & Education';
+      }
+      
+      // Licenses & Permits
+      if (combinedText.match(/\b(license|permit|registration|certification|compliance|regulatory|filing\s+fee|state\s+fee|city\s+fee|county\s+fee|business\s+license|professional\s+license|dmv|secretary\s+of\s+state)/i)) {
+        return 'Licenses & Permits';
+      }
+      
+      // Taxes - government payments
+      if (combinedText.match(/\b(tax|irs|treasury|state\s+tax|federal\s+tax|sales\s+tax|use\s+tax|property\s+tax|franchise\s+tax|excise\s+tax|estimated\s+tax|quarterly\s+tax|tax\s+payment|comptroller|revenue\s+department)/i)) {
+        return 'Taxes';
+      }
+      
+      // Inventory & COGS - wholesale and suppliers
+      if (combinedText.match(/\b(inventory|stock|merchandise|product|supplier|wholesale|vendor|distributor|manufacturer|raw\s+material|costco|sams\s+club|bjs|restaurant\s+depot|sysco|us\s+foods|gordon|alibaba|aliexpress|dhgate|cost\s+of\s+goods|cogs|materials|supplies\s+for\s+resale|components|parts)/i)) {
+        return 'Inventory';
+      }
+      
+      // Repairs & Maintenance - service companies
+      if (combinedText.match(/\b(repair|maintenance|fix|service|hvac|plumb|electric|handyman|janitor|cleaning|landscap|lawn|pest\s+control|terminix|orkin|trugreen|stanley\s+steemer|servpro|roto-rooter|mr\s+rooter|benjamin\s+franklin|one\s+hour|merry\s+maids|molly\s+maid)/i)) {
+        return 'Repairs & Maintenance';
+      }
+      
+      // Depreciation
+      if (combinedText.match(/\b(depreciation|amortization|asset\s+writedown|accumulated\s+depreciation)/i)) {
+        return 'Depreciation';
+      }
+      
+      // Analyze Plaid categories as secondary fallback
+      if (plaidDetailed || plaidPrimary) {
+        if (plaidDetailed.includes('rent') || plaidPrimary.includes('rent')) return 'Rent & Lease';
+        if (plaidDetailed.includes('insurance') || plaidPrimary.includes('insurance')) return 'Insurance';
+        if (plaidDetailed.includes('bank_fees') || plaidPrimary.includes('bank_fees')) return 'Bank Fees';
+        if (plaidDetailed.includes('coffee') || plaidDetailed.includes('fast_food') || plaidDetailed.includes('restaurant')) return 'Meals & Entertainment';
+        if (plaidDetailed.includes('gas') || plaidDetailed.includes('taxi') || plaidDetailed.includes('parking')) return 'Travel & Transportation';
+        if (plaidDetailed.includes('groceries') || plaidDetailed.includes('supermarket')) return 'Office Supplies';
+        if (plaidDetailed.includes('internet') || plaidDetailed.includes('cable') || plaidDetailed.includes('telephone')) return 'Telephone & Internet';
+      }
+      
+      // Final fallback based on basic Plaid categories
+      if (plaidCategory.length > 0) {
+        if (plaidCategory.includes('travel')) return 'Travel & Transportation';
+        if (plaidCategory.includes('food_and_drink')) return 'Meals & Entertainment';
+        if (plaidCategory.includes('shops')) return 'Office Supplies';
+        if (plaidCategory.includes('service')) return 'Professional Services';
+        if (plaidCategory.includes('bank_fees')) return 'Bank Fees';
+      }
+      
+      // Default fallback
       return 'Other Expenses';
     };
 
