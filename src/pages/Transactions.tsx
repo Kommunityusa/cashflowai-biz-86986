@@ -692,7 +692,6 @@ export default function Transactions() {
             </Dialog>
           </div>
         </div>
-        </div>
 
         {/* Transactions Table */}
         <div className="border rounded-lg">
@@ -872,6 +871,5 @@ export default function Transactions() {
           </div>
         )}
       </div>
-    </div>
-  );
-}
+    );
+  }
