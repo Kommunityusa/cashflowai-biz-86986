@@ -250,6 +250,59 @@ export type Database = {
         }
         Relationships: []
       }
+      categorization_rules: {
+        Row: {
+          action_category_id: string
+          action_type: string
+          condition_field: string
+          condition_operator: string
+          condition_value: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          priority: number | null
+          rule_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_category_id: string
+          action_type: string
+          condition_field: string
+          condition_operator: string
+          condition_value: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          priority?: number | null
+          rule_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_category_id?: string
+          action_type?: string
+          condition_field?: string
+          condition_operator?: string
+          condition_value?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          priority?: number | null
+          rule_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categorization_rules_action_category_id_fkey"
+            columns: ["action_category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       encryption_keys: {
         Row: {
           created_at: string
