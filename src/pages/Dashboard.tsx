@@ -7,11 +7,16 @@ import { useAuth } from "@/hooks/useAuth";
 import { AIInsights } from "@/components/AIInsights";
 import { BankAccounts } from "@/components/BankAccounts";
 import { SecurityMonitor } from "@/components/SecurityMonitor";
+import { FundingInsights } from "@/components/FundingInsights";
+import { RecurringTransactionDetector } from "@/components/RecurringTransactionDetector";
+import { TaxPreparation } from "@/components/TaxPreparation";
 import { useState, useEffect } from "react";
 import { useRole } from "@/hooks/useRole";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 // import { useSessionTimeout } from "@/hooks/useSessionTimeout";
+import { logAuditEvent } from "@/utils/auditLogger";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { logAuditEvent } from "@/utils/auditLogger";
 import {
   ArrowDownIcon,
@@ -42,6 +47,7 @@ import {
   Bar,
   Legend,
 } from "recharts";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Dashboard() {
@@ -776,7 +782,30 @@ export default function Dashboard() {
               Chat with AI Assistant
             </Button>
           </CardContent>
-            </Card>
+        </Card>
+      </div>
+    </div>
+
+    {/* New Financial Analysis Section */}
+    <Tabs defaultValue="funding" className="mt-8">
+      <TabsList className="grid w-full grid-cols-3">
+        <TabsTrigger value="funding">Funding Insights</TabsTrigger>
+        <TabsTrigger value="recurring">Recurring Transactions</TabsTrigger>
+        <TabsTrigger value="tax">Tax Preparation</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="funding" className="mt-6">
+        <FundingInsights />
+      </TabsContent>
+
+      <TabsContent value="recurring" className="mt-6">
+        <RecurringTransactionDetector />
+      </TabsContent>
+
+      <TabsContent value="tax" className="mt-6">
+        <TaxPreparation />
+      </TabsContent>
+    </Tabs>
           </>
         )}
       </main>
