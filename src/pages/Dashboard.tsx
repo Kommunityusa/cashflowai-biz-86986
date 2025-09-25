@@ -10,6 +10,7 @@ import { SecurityMonitor } from "@/components/SecurityMonitor";
 import { RateLimitStatus } from "@/components/RateLimitStatus";
 import { EncryptionStatus } from "@/components/EncryptionStatus";
 import { useState, useEffect } from "react";
+import { useRole } from "@/hooks/useRole";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 // import { useSessionTimeout } from "@/hooks/useSessionTimeout";
@@ -47,6 +48,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
+  const { isAdmin } = useRole();
   const navigate = useNavigate();
   const { toast } = useToast();
   // useSessionTimeout(); // Temporarily disabled to debug logout issue
@@ -778,11 +780,13 @@ export default function Dashboard() {
           </CardContent>
             </Card>
             
-            {/* Security Status Cards */}
-            <div className="grid gap-4 md:grid-cols-2">
-              <EncryptionStatus />
-              <RateLimitStatus />
-            </div>
+            {/* Admin-only Security Status Cards */}
+            {isAdmin && (
+              <div className="grid gap-4 md:grid-cols-2">
+                <EncryptionStatus />
+                <RateLimitStatus />
+              </div>
+            )}
           </>
         )}
       </main>

@@ -56,29 +56,46 @@ serve(async (req) => {
       throw new Error(`Failed to fetch categories: ${categoriesError.message}`);
     }
 
-    // Enhanced business categorization rules
+    // Enhanced business bookkeeping categorization rules
     const businessCategories = {
       income: {
-        'TRANSFER_IN': 'Sales',
-        'DEPOSIT': 'Sales',
-        'PAYMENT': 'Sales',
-        'WIRE': 'Sales',
-        'INTEREST': 'Investments',
-        'DIVIDEND': 'Investments',
+        'TRANSFER_IN': 'Sales Revenue',
+        'DEPOSIT': 'Sales Revenue',
+        'PAYMENT': 'Service Revenue',
+        'WIRE': 'Sales Revenue',
+        'INTEREST': 'Interest Income',
+        'DIVIDEND': 'Dividend Income',
+        'INVESTMENT': 'Investment Income',
+        'RENTAL': 'Rental Income',
+        'COMMISSION': 'Commission Income',
+        'ROYALTY': 'Royalty Income',
+        'GRANT': 'Grant Income',
       },
       expense: {
-        'TRAVEL': 'Travel',
-        'FOOD_AND_DRINK': 'Travel',
+        'TRAVEL': 'Travel & Transportation',
+        'FOOD_AND_DRINK': 'Meals & Entertainment',
         'SHOPS': 'Office Supplies',
-        'SERVICE': 'Software',
-        'RECREATION': 'Marketing',
+        'SERVICE': 'Software & Subscriptions',
+        'RECREATION': 'Marketing & Advertising',
         'TRANSFER_OUT': 'Other Expenses',
         'PAYMENT': 'Other Expenses',
-        'BANK_FEES': 'Other Expenses',
-        'INTEREST_CHARGED': 'Other Expenses',
-        'RENT': 'Rent',
+        'BANK_FEES': 'Bank Fees',
+        'INTEREST_CHARGED': 'Interest Expense',
+        'RENT': 'Rent & Lease',
         'UTILITIES': 'Utilities',
         'INSURANCE': 'Insurance',
+        'PAYROLL': 'Salaries & Wages',
+        'TAX': 'Taxes',
+        'LEGAL': 'Legal Fees',
+        'ACCOUNTING': 'Accounting Fees',
+        'PHONE': 'Telephone & Internet',
+        'SHIPPING': 'Postage & Shipping',
+        'EQUIPMENT': 'Equipment & Tools',
+        'MAINTENANCE': 'Repairs & Maintenance',
+        'EDUCATION': 'Training & Education',
+        'LICENSES': 'Licenses & Permits',
+        'INVENTORY': 'Inventory',
+        'GOODS': 'Cost of Goods Sold',
       }
     };
 
@@ -182,7 +199,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('[plaid-categorize] Error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { 
         status: 400, 
         headers: { 

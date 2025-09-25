@@ -152,7 +152,20 @@ const AIChat = () => {
                         : 'bg-muted'
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    <p className="text-sm whitespace-pre-wrap">
+                      {message.role === 'assistant' 
+                        ? message.content
+                            .replace(/\*\*/g, '') // Remove bold markdown
+                            .replace(/\*/g, '') // Remove italic markdown
+                            .replace(/^#+\s/gm, '') // Remove heading markers
+                            .replace(/^[-•]\s/gm, '• ') // Normalize bullet points
+                            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove link markdown
+                            .replace(/`([^`]+)`/g, '$1') // Remove inline code markdown
+                            .replace(/```[^`]*```/g, '') // Remove code blocks
+                            .trim()
+                        : message.content
+                      }
+                    </p>
                     <p className={`text-xs mt-1 ${
                       message.role === 'user' ? 'text-primary-foreground/70' : 'text-muted-foreground'
                     }`}>
