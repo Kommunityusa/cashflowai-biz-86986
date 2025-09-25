@@ -69,37 +69,42 @@ serve(async (req) => {
             content: `You are an expert bookkeeper. Analyze each transaction and assign the most appropriate category.
 
 EXISTING INCOME CATEGORIES:
-${incomeCategories.map(c => `- ${c}`).join('\n')}
+${incomeCategories.join(', ')}
 
 EXISTING EXPENSE CATEGORIES:
-${expenseCategories.map(c => `- ${c}`).join('\n')}
+${expenseCategories.join(', ')}
 
 IMPORTANT: You can suggest NEW categories if the existing ones don't fit well. Be specific and professional.
 
 Common patterns:
-- GUSTO/Payroll = "Salaries & Wages" or "Payroll Expenses" (expense, tax deductible)
-- Facebook/Meta ads = "Digital Marketing" or "Social Media Advertising" (expense, tax deductible)
-- Fundrise = "Investment Income" (income) or "Investment Contributions" (expense)
-- Venmo/Zelle = Analyze context carefully - could be various categories
-- Restaurant/food = "Meals & Entertainment" or "Business Meals" if business-related
-- Software subscriptions = "Software & Subscriptions" (expense, tax deductible)
-- Uber/Lyft = "Transportation" or "Travel & Transportation" (expense, may be tax deductible)
+- GUSTO/Payroll/Direct Deposit from employer = "Salaries & Wages" (expense) or "Salary Income" (income)
+- Facebook/Meta/Social Media ads = "Digital Advertising" or "Social Media Marketing" (expense, tax deductible)
+- Google/YouTube ads = "Digital Advertising" (expense, tax deductible)
+- Fundrise/Investment platforms = "Investment Income" (income) or "Investment Contributions" (expense)
+- Venmo/Zelle/PayPal = Analyze description - could be various categories
+- Restaurants/DoorDash/UberEats = "Meals & Entertainment" or "Business Meals" (expense)
+- AWS/Google Cloud/Hosting = "Cloud Services & Hosting" (expense, tax deductible)
+- Stripe/Square/Payment processors = "Payment Processing Fees" (expense, tax deductible)
+- Rent/Lease payments = "Rent & Lease" (expense, tax deductible)
+- Insurance payments = Specific type like "Business Insurance", "Health Insurance"
+- Bank fees/charges = "Bank Fees & Charges" (expense, tax deductible)
+- Client payments/invoices = "Service Revenue" or "Consulting Income" (income)
+- Product sales = "Product Sales" or "Sales Revenue" (income)
+- Subscriptions = Specify type like "Software Subscriptions", "Marketing Tools"
 
-Return a JSON object with a "transactions" array. Each item should have:
-- type: "income" or "expense"
-- category: Either an existing category name OR a new descriptive category
-- is_new_category: true if suggesting a new category, false if using existing
-- tax_deductible: true/false (business expenses are usually deductible)
-- confidence: 0.0-1.0`
+Create professional, specific categories that a bookkeeper would use.`
           },
           {
             role: 'user',
-            content: `Categorize these transactions. Return ONLY valid JSON in this format: {"transactions": [{"type": "income" or "expense", "category": "category name", "is_new_category": true/false, "tax_deductible": true/false, "confidence": 0.0-1.0}]}:\n\n${transactionText}`
+            content: `Categorize these transactions. Return ONLY valid JSON - no markdown, no code blocks, just pure JSON:
+{"transactions": [{"type": "income" or "expense", "category": "category name", "is_new_category": true/false, "tax_deductible": true/false, "confidence": 0.0-1.0}]}
+
+Transactions:
+${transactionText}`
           }
         ],
-        temperature: 0.1,
-        max_tokens: 2000,
-        response_format: { type: "text" } // Explicitly set to text to avoid issues
+        temperature: 0.3,
+        max_tokens: 4000,
       }),
     });
 
@@ -112,22 +117,29 @@ Return a JSON object with a "transactions" array. Each item should have:
     const aiResponse = await response.json();
     console.log('OpenAI raw response:', aiResponse.choices[0].message.content);
     
-    // Clean up the response - remove markdown code blocks if present
-    let content = aiResponse.choices[0].message.content;
-    // Remove any markdown formatting
-    content = content.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
-    
-    console.log('Cleaned content to parse:', content);
-    
+    // Parse the response - it should be pure JSON
     let categorizations;
     try {
+      const content = aiResponse.choices[0].message.content.trim();
       const parsed = JSON.parse(content);
-      // Handle both array and object with transactions property
-      categorizations = parsed.transactions || parsed;
+      categorizations = parsed.transactions;
     } catch (parseError) {
       console.error('Failed to parse JSON:', parseError);
-      console.error('Content that failed to parse:', content);
-      throw new Error('Failed to parse AI response as JSON');
+      console.error('Content that failed:', aiResponse.choices[0].message.content);
+      
+      // Try to extract JSON from the response if it contains markdown
+      try {
+        const content = aiResponse.choices[0].message.content;
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          categorizations = parsed.transactions;
+        } else {
+          throw new Error('No JSON found in response');
+        }
+      } catch (retryError) {
+        throw new Error('Failed to parse AI response as JSON');
+      }
     }
     
     // Ensure we have an array of categorizations
@@ -152,24 +164,50 @@ Return a JSON object with a "transactions" array. Each item should have:
       
       let categoryId;
       
-      // First, try to find existing category
+      // First, try to find existing category (case-insensitive)
       const { data: existingCategory } = await supabaseClient
         .from('categories')
         .select('id')
         .eq('user_id', user.id)
-        .eq('name', categorization.category)
+        .ilike('name', categorization.category)
         .eq('type', categorization.type)
-        .single();
+        .maybeSingle();
 
       if (existingCategory) {
         categoryId = existingCategory.id;
-      } else if (categorization.is_new_category) {
-        // Create new category if it doesn't exist and AI flagged it as new
+      } else {
+        // Create new category if it doesn't exist
         console.log(`Creating new category: ${categorization.category} (${categorization.type})`);
         
-        // Determine color based on type
-        const color = categorization.type === 'income' ? '#10B981' : '#EF4444';
-        const icon = categorization.type === 'income' ? 'dollar-sign' : 'credit-card';
+        // Determine color based on type and category name
+        let color = categorization.type === 'income' ? '#10B981' : '#EF4444';
+        let icon = categorization.type === 'income' ? 'dollar-sign' : 'credit-card';
+        
+        // Custom colors for specific categories
+        if (categorization.category.toLowerCase().includes('marketing') || 
+            categorization.category.toLowerCase().includes('advertising')) {
+          color = '#8B5CF6';
+          icon = 'megaphone';
+        } else if (categorization.category.toLowerCase().includes('salary') || 
+                   categorization.category.toLowerCase().includes('wage')) {
+          color = categorization.type === 'income' ? '#10B981' : '#F59E0B';
+          icon = 'users';
+        } else if (categorization.category.toLowerCase().includes('investment')) {
+          color = '#3B82F6';
+          icon = 'trending-up';
+        } else if (categorization.category.toLowerCase().includes('software') || 
+                   categorization.category.toLowerCase().includes('subscription')) {
+          color = '#6366F1';
+          icon = 'cpu';
+        } else if (categorization.category.toLowerCase().includes('meal') || 
+                   categorization.category.toLowerCase().includes('food')) {
+          color = '#EC4899';
+          icon = 'coffee';
+        } else if (categorization.category.toLowerCase().includes('travel') || 
+                   categorization.category.toLowerCase().includes('transport')) {
+          color = '#14B8A6';
+          icon = 'plane';
+        }
         
         const { data: newCategory, error: createError } = await supabaseClient
           .from('categories')
@@ -197,16 +235,6 @@ Return a JSON object with a "transactions" array. Each item should have:
         }
         
         categoryId = newCategory.id;
-      } else {
-        // Category not found and not flagged as new
-        results.push({
-          transaction_id: transaction.id,
-          success: false,
-          category: categorization.category,
-          type: categorization.type,
-          error: 'Category not found',
-        });
-        continue;
       }
 
       // Update transaction with the category
@@ -215,10 +243,11 @@ Return a JSON object with a "transactions" array. Each item should have:
         .update({
           category_id: categoryId,
           type: categorization.type,
-          tax_deductible: categorization.tax_deductible,
+          tax_deductible: categorization.tax_deductible || false,
           ai_processed_at: new Date().toISOString(),
-          ai_confidence_score: categorization.confidence,
+          ai_confidence_score: categorization.confidence || 0.8,
           ai_suggested_category_id: categoryId,
+          needs_review: false,
         })
         .eq('id', transaction.id)
         .eq('user_id', user.id);
@@ -228,19 +257,29 @@ Return a JSON object with a "transactions" array. Each item should have:
         success: !updateError,
         category: categorization.category,
         type: categorization.type,
-        is_new_category: categorization.is_new_category,
+        is_new_category: !existingCategory,
         error: updateError?.message,
       });
     }
 
+    const successCount = results.filter(r => r.success).length;
+    const newCategoriesCount = results.filter(r => r.is_new_category && r.success).length;
+
     return new Response(
-      JSON.stringify({ results, message: 'Categorization complete' }),
+      JSON.stringify({ 
+        results, 
+        message: `Categorized ${successCount} of ${transactions.length} transactions. Created ${newCategoriesCount} new categories.`,
+        success: true 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Error in ai-categorize-transactions:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        success: false 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
