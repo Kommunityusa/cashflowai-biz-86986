@@ -3,6 +3,7 @@ import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -35,6 +36,12 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,6 +52,9 @@ import { TransactionFilters } from "@/components/transactions/TransactionFilters
 import { TransactionStats } from "@/components/transactions/TransactionStats";
 import { TransactionRow } from "@/components/transactions/TransactionRow";
 import { CategoryBreakdown } from "@/components/transactions/CategoryBreakdown";
+import { TransactionRules } from "@/components/transactions/TransactionRules";
+import { BulkOperations } from "@/components/transactions/BulkOperations";
+import { AdvancedSearch, SearchFilters } from "@/components/transactions/AdvancedSearch";
 import {
   Plus,
   Download,
@@ -59,6 +69,7 @@ import {
   Check,
   X,
   RefreshCw,
+  Settings,
 } from "lucide-react";
 
 export default function Transactions() {
@@ -77,6 +88,8 @@ export default function Transactions() {
   const [editingCategory, setEditingCategory] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [uploadingPDF, setUploadingPDF] = useState(false);
+  const [selectedTransactionIds, setSelectedTransactionIds] = useState<Set<string>>(new Set());
+  const [advancedFilters, setAdvancedFilters] = useState<SearchFilters | null>(null);
   const transactionsPerPage = 50;
   
   const [newTransaction, setNewTransaction] = useState({
@@ -474,10 +487,46 @@ export default function Transactions() {
     }
   };
 
+  const handleAdvancedSearch = (filters: SearchFilters) => {
+    setAdvancedFilters(filters);
+    setCurrentPage(1);
+  };
+
   const filteredTransactions = transactions.filter(transaction => {
+    // Basic filters
     const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === "all" || transaction.type === filterType;
     const matchesCategory = filterCategory === "all" || transaction.category_id === filterCategory;
+    
+    // Advanced filters
+    if (advancedFilters) {
+      const {
+        searchTerm: advSearch,
+        type: advType,
+        categoryId,
+        dateFrom,
+        dateTo,
+        amountMin,
+        amountMax,
+        vendor,
+        hasNotes,
+        needsReview,
+        taxDeductible,
+      } = advancedFilters;
+      
+      if (advSearch && !transaction.description.toLowerCase().includes(advSearch.toLowerCase())) return false;
+      if (advType !== 'all' && transaction.type !== advType) return false;
+      if (categoryId !== 'all' && transaction.category_id !== categoryId) return false;
+      if (dateFrom && new Date(transaction.transaction_date) < dateFrom) return false;
+      if (dateTo && new Date(transaction.transaction_date) > dateTo) return false;
+      if (amountMin && Number(transaction.amount) < Number(amountMin)) return false;
+      if (amountMax && Number(transaction.amount) > Number(amountMax)) return false;
+      if (vendor && (!transaction.vendor_name || !transaction.vendor_name.toLowerCase().includes(vendor.toLowerCase()))) return false;
+      if (hasNotes === true && !transaction.notes) return false;
+      if (needsReview === true && !transaction.needs_review) return false;
+      if (taxDeductible === true && !transaction.tax_deductible) return false;
+    }
+    
     return matchesSearch && matchesType && matchesCategory;
   });
 
@@ -525,27 +574,58 @@ export default function Transactions() {
         {/* Category Breakdown */}
         <CategoryBreakdown transactions={filteredTransactions} categories={categories} />
 
-        {/* Filters and Actions */}
-        <TransactionFilters
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          filterType={filterType}
-          setFilterType={setFilterType}
-          filterCategory={filterCategory}
-          setFilterCategory={setFilterCategory}
-          categories={categories}
-        />
+        {/* Tabs for Rules and Transactions */}
+        <Tabs defaultValue="transactions" className="mt-6">
+          <TabsList>
+            <TabsTrigger value="transactions">Transactions</TabsTrigger>
+            <TabsTrigger value="rules">
+              <Settings className="mr-2 h-4 w-4" />
+              Automation Rules
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="rules" className="mt-4">
+            <TransactionRules />
+          </TabsContent>
+          
+          <TabsContent value="transactions" className="mt-4 space-y-4">
+            {/* Bulk Operations */}
+            <BulkOperations
+              transactions={filteredTransactions}
+              categories={categories}
+              onRefresh={fetchTransactions}
+              selectedIds={selectedTransactionIds}
+              onSelectionChange={setSelectedTransactionIds}
+            />
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap gap-2 my-6">
-          <Button 
-            onClick={handleBulkAICategorize}
-            disabled={isBulkCategorizing}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-          >
-            <Sparkles className="mr-2 h-4 w-4" />
-            {isBulkCategorizing ? "Categorizing..." : "Auto Categorize All"}
-          </Button>
+            {/* Filters and Actions */}
+            <div className="flex flex-wrap gap-4 items-center">
+              <TransactionFilters
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                filterType={filterType}
+                setFilterType={setFilterType}
+                filterCategory={filterCategory}
+                setFilterCategory={setFilterCategory}
+                categories={categories}
+              />
+              
+              <AdvancedSearch
+                onSearch={handleAdvancedSearch}
+                categories={categories}
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap gap-2 my-6">
+              <Button 
+                onClick={handleBulkAICategorize}
+                disabled={isBulkCategorizing}
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                {isBulkCategorizing ? "Categorizing..." : "Auto Categorize All"}
+              </Button>
           
           <Button 
             variant="outline" 
@@ -695,13 +775,24 @@ export default function Transactions() {
               </DialogContent>
             </Dialog>
           </div>
-        </div>
 
-        {/* Transactions Table */}
-        <div className="border rounded-lg">
+          {/* Transactions Table */}
+          <div className="border rounded-lg">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={selectedTransactionIds.size === currentTransactions.length && currentTransactions.length > 0}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedTransactionIds(new Set(currentTransactions.map(t => t.id)));
+                      } else {
+                        setSelectedTransactionIds(new Set());
+                      }
+                    }}
+                  />
+                </TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Category</TableHead>
@@ -713,19 +804,33 @@ export default function Transactions() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     Loading transactions...
                   </TableCell>
                 </TableRow>
               ) : currentTransactions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     No transactions found. Add your first transaction to get started!
                   </TableCell>
                 </TableRow>
               ) : (
                 currentTransactions.map((transaction) => (
                   <TableRow key={transaction.id}>
+                    <TableCell className="w-12">
+                      <Checkbox
+                        checked={selectedTransactionIds.has(transaction.id)}
+                        onCheckedChange={(checked) => {
+                          const newSelection = new Set(selectedTransactionIds);
+                          if (checked) {
+                            newSelection.add(transaction.id);
+                          } else {
+                            newSelection.delete(transaction.id);
+                          }
+                          setSelectedTransactionIds(newSelection);
+                        }}
+                      />
+                    </TableCell>
                     <TableCell>
                       {new Date(transaction.transaction_date).toLocaleDateString()}
                     </TableCell>
@@ -909,6 +1014,9 @@ export default function Transactions() {
             </Pagination>
           </div>
         )}
+          </TabsContent>
+        </Tabs>
       </div>
-    );
-  }
+    </div>
+  );
+}
