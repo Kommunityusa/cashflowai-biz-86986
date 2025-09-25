@@ -66,26 +66,35 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are an expert bookkeeper. Categorize each transaction using ONLY these exact category names:
+            content: `You are an expert bookkeeper. Analyze each transaction and assign the most appropriate category.
 
-INCOME CATEGORIES:
+EXISTING INCOME CATEGORIES:
 ${incomeCategories.map(c => `- ${c}`).join('\n')}
 
-EXPENSE CATEGORIES:
+EXISTING EXPENSE CATEGORIES:
 ${expenseCategories.map(c => `- ${c}`).join('\n')}
 
-Key rules:
-- GUSTO PAYROLL = "Salaries & Wages" (expense, tax deductible)
-- Facebook/Meta ads = "Marketing & Advertising" (expense, tax deductible)
-- Fundrise/Real Estate = "Investments" (expense if payment out, income if return)
-- Venmo/Zelle = Analyze context, often "Other Expenses"
-- Check deposits from businesses = "Service Revenue" or "Sales Revenue"
+IMPORTANT: You can suggest NEW categories if the existing ones don't fit well. Be specific and professional.
 
-Return a JSON object with a "transactions" array containing categorization for each transaction.`
+Common patterns:
+- GUSTO/Payroll = "Salaries & Wages" or "Payroll Expenses" (expense, tax deductible)
+- Facebook/Meta ads = "Digital Marketing" or "Social Media Advertising" (expense, tax deductible)
+- Fundrise = "Investment Income" (income) or "Investment Contributions" (expense)
+- Venmo/Zelle = Analyze context carefully - could be various categories
+- Restaurant/food = "Meals & Entertainment" or "Business Meals" if business-related
+- Software subscriptions = "Software & Subscriptions" (expense, tax deductible)
+- Uber/Lyft = "Transportation" or "Travel & Transportation" (expense, may be tax deductible)
+
+Return a JSON object with a "transactions" array. Each item should have:
+- type: "income" or "expense"
+- category: Either an existing category name OR a new descriptive category
+- is_new_category: true if suggesting a new category, false if using existing
+- tax_deductible: true/false (business expenses are usually deductible)
+- confidence: 0.0-1.0`
           },
           {
             role: 'user',
-            content: `Categorize these transactions. Return ONLY valid JSON in this format: {"transactions": [{"type": "income" or "expense", "category": "exact category name from list", "tax_deductible": true/false, "confidence": 0.0-1.0}]}:\n\n${transactionText}`
+            content: `Categorize these transactions. Return ONLY valid JSON in this format: {"transactions": [{"type": "income" or "expense", "category": "category name", "is_new_category": true/false, "tax_deductible": true/false, "confidence": 0.0-1.0}]}:\n\n${transactionText}`
           }
         ],
         temperature: 0.1,
@@ -132,8 +141,19 @@ Return a JSON object with a "transactions" array containing categorization for e
       const transaction = transactions[i];
       const categorization = categorizations[i];
       
-      // Find the matching category ID
-      const { data: category } = await supabaseClient
+      if (!categorization) {
+        results.push({
+          transaction_id: transaction.id,
+          success: false,
+          error: 'No categorization found for transaction',
+        });
+        continue;
+      }
+      
+      let categoryId;
+      
+      // First, try to find existing category
+      const { data: existingCategory } = await supabaseClient
         .from('categories')
         .select('id')
         .eq('user_id', user.id)
@@ -141,28 +161,44 @@ Return a JSON object with a "transactions" array containing categorization for e
         .eq('type', categorization.type)
         .single();
 
-      if (category) {
-        const { error } = await supabaseClient
-          .from('transactions')
-          .update({
-            category_id: category.id,
+      if (existingCategory) {
+        categoryId = existingCategory.id;
+      } else if (categorization.is_new_category) {
+        // Create new category if it doesn't exist and AI flagged it as new
+        console.log(`Creating new category: ${categorization.category} (${categorization.type})`);
+        
+        // Determine color based on type
+        const color = categorization.type === 'income' ? '#10B981' : '#EF4444';
+        const icon = categorization.type === 'income' ? 'dollar-sign' : 'credit-card';
+        
+        const { data: newCategory, error: createError } = await supabaseClient
+          .from('categories')
+          .insert({
+            user_id: user.id,
+            name: categorization.category,
             type: categorization.type,
-            tax_deductible: categorization.tax_deductible,
-            ai_processed_at: new Date().toISOString(),
-            ai_confidence_score: categorization.confidence,
-            ai_suggested_category_id: category.id,
+            color: color,
+            icon: icon,
+            is_default: false
           })
-          .eq('id', transaction.id)
-          .eq('user_id', user.id);
-
-        results.push({
-          transaction_id: transaction.id,
-          success: !error,
-          category: categorization.category,
-          type: categorization.type,
-          error: error?.message,
-        });
+          .select('id')
+          .single();
+        
+        if (createError) {
+          console.error('Error creating category:', createError);
+          results.push({
+            transaction_id: transaction.id,
+            success: false,
+            category: categorization.category,
+            type: categorization.type,
+            error: `Failed to create category: ${createError.message}`,
+          });
+          continue;
+        }
+        
+        categoryId = newCategory.id;
       } else {
+        // Category not found and not flagged as new
         results.push({
           transaction_id: transaction.id,
           success: false,
@@ -170,7 +206,31 @@ Return a JSON object with a "transactions" array containing categorization for e
           type: categorization.type,
           error: 'Category not found',
         });
+        continue;
       }
+
+      // Update transaction with the category
+      const { error: updateError } = await supabaseClient
+        .from('transactions')
+        .update({
+          category_id: categoryId,
+          type: categorization.type,
+          tax_deductible: categorization.tax_deductible,
+          ai_processed_at: new Date().toISOString(),
+          ai_confidence_score: categorization.confidence,
+          ai_suggested_category_id: categoryId,
+        })
+        .eq('id', transaction.id)
+        .eq('user_id', user.id);
+
+      results.push({
+        transaction_id: transaction.id,
+        success: !updateError,
+        category: categorization.category,
+        type: categorization.type,
+        is_new_category: categorization.is_new_category,
+        error: updateError?.message,
+      });
     }
 
     return new Response(
