@@ -40,7 +40,7 @@ serve(async (req) => {
     };
     
     // Test Plaid connection if credentials exist
-    let plaidTest = { status: 'not-tested', error: null, details: {} };
+    let plaidTest: { status: string; error: string | null; details: any; message?: string } = { status: 'not-tested', error: null, details: {} };
     
     if (!plaidClientId || !plaidSecret) {
       plaidTest = {
@@ -99,6 +99,7 @@ serve(async (req) => {
         } else if (data.link_token) {
           plaidTest = {
             status: 'success',
+            error: null,
             message: 'Plaid credentials are valid and working',
             details: {
               environment: plaidEnv,

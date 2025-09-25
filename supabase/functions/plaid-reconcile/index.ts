@@ -6,6 +6,46 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface Transaction {
+  id: string;
+  amount: number;
+  transaction_date: string;
+  status: string;
+  vendor_name?: string;
+  category_id?: string;
+  [key: string]: any;
+}
+
+interface Discrepancy {
+  type: string;
+  items?: any[];
+  count?: number;
+}
+
+interface CategorySummary {
+  count: number;
+  total: number;
+}
+
+interface VendorSummary {
+  count: number;
+  total: number;
+}
+
+interface ReconciliationReport {
+  totalPending: number;
+  totalCompleted: number;
+  totalCancelled: number;
+  discrepancies: Discrepancy[];
+  categorySummary: Record<string, CategorySummary>;
+  vendorSummary: Record<string, VendorSummary>;
+  reconciliationScore: number;
+  recommendations: string[];
+  pendingTransactions: Transaction[];
+  completedTransactions: Transaction[];
+  cancelledTransactions: Transaction[];
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -49,59 +89,57 @@ serve(async (req) => {
       .eq('id', accountId)
       .single();
 
-    // Calculate reconciliation data
-    const reconciliation = {
-      totalTransactions: transactions.length,
-      totalIncome: 0,
-      totalExpenses: 0,
-      netCashFlow: 0,
+    // Initialize reconciliation report
+    const reconciliation: ReconciliationReport = {
+      totalPending: 0,
+      totalCompleted: 0,
+      totalCancelled: 0,
+      discrepancies: [],
+      categorySummary: {},
+      vendorSummary: {},
+      reconciliationScore: 100,
+      recommendations: [],
       pendingTransactions: [],
       completedTransactions: [],
       cancelledTransactions: [],
-      taxDeductibleTotal: 0,
-      categorySummary: {},
-      vendorSummary: {},
-      discrepancies: []
     };
 
-    // Process each transaction
-    for (const tx of transactions) {
-      // Categorize by status
-      if (tx.status === 'pending') {
-        reconciliation.pendingTransactions.push(tx);
-      } else if (tx.status === 'completed') {
-        reconciliation.completedTransactions.push(tx);
-      } else if (tx.status === 'cancelled') {
-        reconciliation.cancelledTransactions.push(tx);
-      }
-
-      // Only count completed transactions in totals
-      if (tx.status === 'completed') {
-        if (tx.type === 'income') {
-          reconciliation.totalIncome += Number(tx.amount);
-        } else {
-          reconciliation.totalExpenses += Number(tx.amount);
-        }
-
-        // Track tax deductible
-        if (tx.tax_deductible) {
-          reconciliation.taxDeductibleTotal += Number(tx.amount);
+    // Process transactions
+    if (transactions && transactions.length > 0) {
+      for (const tx of transactions) {
+        // Count by status
+        if (tx.status === 'pending') {
+          reconciliation.totalPending++;
+          reconciliation.pendingTransactions.push(tx);
+        } else if (tx.status === 'completed') {
+          reconciliation.totalCompleted++;
+          reconciliation.completedTransactions.push(tx);
+        } else if (tx.status === 'cancelled') {
+          reconciliation.totalCancelled++;
+          reconciliation.cancelledTransactions.push(tx);
         }
 
         // Category summary
-        const categoryKey = tx.category_id || 'uncategorized';
-        if (!reconciliation.categorySummary[categoryKey]) {
-          reconciliation.categorySummary[categoryKey] = {
-            count: 0,
-            total: 0,
-            type: tx.type
-          };
+        if (tx.category_id) {
+          const { data: category } = await supabaseClient
+            .from('categories')
+            .select('name')
+            .eq('id', tx.category_id)
+            .single();
+          
+          const categoryKey = category?.name || 'Uncategorized';
+          if (!reconciliation.categorySummary[categoryKey]) {
+            reconciliation.categorySummary[categoryKey] = {
+              count: 0,
+              total: 0
+            };
+          }
+          reconciliation.categorySummary[categoryKey].count++;
+          reconciliation.categorySummary[categoryKey].total += Number(tx.amount);
         }
-        reconciliation.categorySummary[categoryKey].count++;
-        reconciliation.categorySummary[categoryKey].total += Number(tx.amount);
 
-        // Vendor summary for expenses
-        if (tx.type === 'expense' && tx.vendor_name) {
+        // Vendor summary
+        if (tx.vendor_name) {
           if (!reconciliation.vendorSummary[tx.vendor_name]) {
             reconciliation.vendorSummary[tx.vendor_name] = {
               count: 0,
@@ -112,99 +150,86 @@ serve(async (req) => {
           reconciliation.vendorSummary[tx.vendor_name].total += Number(tx.amount);
         }
       }
-    }
 
-    reconciliation.netCashFlow = reconciliation.totalIncome - reconciliation.totalExpenses;
-
-    // Check for potential duplicates
-    const potentialDuplicates = [];
-    for (let i = 0; i < transactions.length - 1; i++) {
-      for (let j = i + 1; j < transactions.length; j++) {
-        if (
-          transactions[i].amount === transactions[j].amount &&
-          transactions[i].transaction_date === transactions[j].transaction_date &&
-          transactions[i].status === 'completed' &&
-          transactions[j].status === 'completed'
-        ) {
-          potentialDuplicates.push({
-            transaction1: transactions[i].id,
-            transaction2: transactions[j].id,
-            amount: transactions[i].amount,
-            date: transactions[i].transaction_date
+      // Check for duplicates
+      const seenTransactions = new Map();
+      for (const tx of transactions) {
+        const key = `${tx.amount}_${tx.transaction_date}_${tx.vendor_name}`;
+        if (seenTransactions.has(key)) {
+          const duplicate = seenTransactions.get(key);
+          reconciliation.discrepancies.push({
+            type: 'duplicate',
+            items: [
+              {
+                transaction1: duplicate,
+                transaction2: tx,
+                amount: tx.amount,
+                date: tx.transaction_date
+              }
+            ]
           });
+          reconciliation.reconciliationScore -= 5;
+        } else {
+          seenTransactions.set(key, tx);
         }
       }
-    }
 
-    if (potentialDuplicates.length > 0) {
-      reconciliation.discrepancies.push({
-        type: 'potential_duplicates',
-        items: potentialDuplicates
-      });
-    }
-
-    // Check for uncategorized transactions
-    const uncategorized = transactions.filter(tx => !tx.category_id && tx.status === 'completed');
-    if (uncategorized.length > 0) {
-      reconciliation.discrepancies.push({
-        type: 'uncategorized_transactions',
-        count: uncategorized.length,
-        items: uncategorized.map(tx => tx.id)
-      });
-    }
-
-    // Check bank balance vs calculated balance
-    const calculatedBalance = Number(bankAccount?.current_balance || 0) + reconciliation.netCashFlow;
-    
-    // Log reconciliation audit
-    await supabaseClient.from('audit_logs').insert({
-      user_id: user.id,
-      action: 'BANK_RECONCILIATION',
-      entity_type: 'bank_account',
-      entity_id: accountId,
-      details: {
-        period: { startDate, endDate },
-        summary: {
-          totalTransactions: reconciliation.totalTransactions,
-          netCashFlow: reconciliation.netCashFlow,
-          taxDeductible: reconciliation.taxDeductibleTotal,
-          discrepancies: reconciliation.discrepancies.length
-        }
+      // Check for missing categories
+      const uncategorized = transactions.filter(tx => !tx.category_id);
+      if (uncategorized.length > 0) {
+        reconciliation.discrepancies.push({
+          type: 'uncategorized',
+          count: uncategorized.length,
+          items: uncategorized.slice(0, 5) // Show first 5
+        });
+        reconciliation.reconciliationScore -= (uncategorized.length * 2);
       }
-    });
+
+      // Generate recommendations
+      if (reconciliation.totalPending > 0) {
+        reconciliation.recommendations.push(
+          `You have ${reconciliation.totalPending} pending transactions that need to be reviewed`
+        );
+      }
+
+      if (uncategorized.length > 0) {
+        reconciliation.recommendations.push(
+          `${uncategorized.length} transactions are missing categories. Categorizing them will improve your financial insights`
+        );
+      }
+
+      if (reconciliation.discrepancies.filter(d => d.type === 'duplicate').length > 0) {
+        reconciliation.recommendations.push(
+          'Potential duplicate transactions detected. Review and remove duplicates to maintain accurate records'
+        );
+      }
+
+      // Ensure score doesn't go below 0
+      reconciliation.reconciliationScore = Math.max(0, reconciliation.reconciliationScore);
+    }
 
     console.log('[RECONCILE] Reconciliation complete:', {
-      transactions: reconciliation.totalTransactions,
-      netCashFlow: reconciliation.netCashFlow,
+      total: transactions?.length || 0,
+      pending: reconciliation.totalPending,
+      completed: reconciliation.totalCompleted,
       discrepancies: reconciliation.discrepancies.length
     });
 
     return new Response(
       JSON.stringify({
         success: true,
-        reconciliation,
-        bankBalance: bankAccount?.current_balance,
-        calculatedBalance,
-        lastSynced: bankAccount?.last_synced_at
+        report: reconciliation,
+        bankAccount,
+        period: { startDate, endDate }
       }),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+
   } catch (error) {
     console.error('[RECONCILE] Error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        status: 400, 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
-      }
+      JSON.stringify({ error: error instanceof Error ? error.message : 'An unexpected error occurred' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
 });

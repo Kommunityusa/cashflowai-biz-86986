@@ -89,3 +89,5 @@ export function EncryptionStatus() {
     </Card>
   );
 }
+
+export default EncryptionStatus;
