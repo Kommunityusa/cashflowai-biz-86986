@@ -132,7 +132,7 @@ serve(async (req) => {
     }
     
     // Test OpenAI connection if key exists  
-    let openAITest = { status: 'not-tested', error: null, details: {} };
+    let openAITest: { status: string; error: string | null; details: any; message?: string } = { status: 'not-tested', error: null, details: {} };
     if (!openAIKey) {
       openAITest = {
         status: 'error',
@@ -205,7 +205,7 @@ serve(async (req) => {
     console.error('[Plaid Test] Unexpected error:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: getErrorMessage(error),
         timestamp: new Date().toISOString()
       }),
       {

@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
-import * as crypto from "https://deno.land/std@0.190.0/crypto/mod.ts";
+import { getErrorMessage } from '../_shared/error-handler.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -32,11 +32,11 @@ async function verifyPlaidWebhook(
   if (!signatureHeader) return false;
   
   try {
-    const signature = await crypto.subtle.digest(
-      "SHA-256",
-      new TextEncoder().encode(secret + body)
-    );
-    const computedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)));
+    const encoder = new TextEncoder();
+    const data = encoder.encode(secret + body);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const computedSignature = btoa(String.fromCharCode(...hashArray));
     return computedSignature === signatureHeader;
   } catch (error) {
     console.error('Error verifying webhook signature:', error);
@@ -251,13 +251,13 @@ async function syncTransactions(accessToken: string, userId: string, accountId: 
     return { success: true, totalSynced, taxDeductibleCount };
   } catch (error) {
     console.error('[WEBHOOK Error] Transaction sync failed:', {
-      error: error.message,
+      error: getErrorMessage(error),
       account_id: accountId,
       item_id: itemId,
       user_id: userId,
       timestamp: new Date().toISOString(),
     });
-    return { error: error.message };
+    return { error: getErrorMessage(error) };
   }
 }
 
@@ -301,7 +301,7 @@ async function updateAccountBalances(accessToken: string, itemId: string) {
     return { success: true };
   } catch (error) {
     console.error('[WEBHOOK] Error updating balances:', error);
-    return { error: error.message };
+    return { error: getErrorMessage(error) };
   }
 }
 
@@ -493,7 +493,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('[WEBHOOK] Error processing webhook:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: getErrorMessage(error) }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

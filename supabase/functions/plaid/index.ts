@@ -2,6 +2,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import { getErrorMessage } from '../_shared/error-handler.ts';
 
 const plaidClientId = Deno.env.get('PLAID_CLIENT_ID');
 const plaidSecret = Deno.env.get('PLAID_SECRET');
@@ -635,12 +636,12 @@ serve(async (req) => {
           } catch (error) {
             console.error('[Plaid Function] Error syncing account:', {
               account_id: account.id,
-              error: error.message,
+              error: getErrorMessage(error),
             });
             syncErrors.push({
               account_id: account.id,
               bank_name: account.bank_name,
-              error: error.message || 'Unknown error',
+              error: getErrorMessage(error),
             });
           }
         }
@@ -806,7 +807,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in plaid function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: getErrorMessage(error) }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

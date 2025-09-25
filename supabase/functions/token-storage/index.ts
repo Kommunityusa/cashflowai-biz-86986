@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
-import * as crypto from 'https://deno.land/std@0.177.0/crypto/mod.ts';
+import { getErrorMessage } from '../_shared/error-handler.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -55,12 +55,14 @@ serve(async (req) => {
 
         console.log('[Token Storage] Encrypting access token for item:', item_id);
 
-        // Encrypt the access token using AES-256-GCM
-        const iv = crypto.getRandomValues(new Uint8Array(12));
-        const salt = crypto.getRandomValues(new Uint8Array(16));
+        // Encrypt the access token using AES-256-GCM using Web Crypto API
+        const iv = new Uint8Array(12);
+        globalThis.crypto.getRandomValues(iv);
+        const salt = new Uint8Array(16);
+        globalThis.crypto.getRandomValues(salt);
         
         // Derive key from system encryption key and user ID
-        const keyMaterial = await crypto.subtle.importKey(
+        const keyMaterial = await globalThis.crypto.subtle.importKey(
           'raw',
           new TextEncoder().encode(systemEncryptionKey + user.id),
           'PBKDF2',
@@ -68,7 +70,7 @@ serve(async (req) => {
           ['deriveKey']
         );
 
-        const key = await crypto.subtle.deriveKey(
+        const key = await globalThis.crypto.subtle.deriveKey(
           {
             name: 'PBKDF2',
             salt: salt,
@@ -173,7 +175,7 @@ serve(async (req) => {
         const salt = new Uint8Array(atob(encryptedData.salt).split('').map(c => c.charCodeAt(0)));
         const ciphertext = new Uint8Array(atob(encryptedData.ciphertext).split('').map(c => c.charCodeAt(0)));
 
-        const keyMaterial = await crypto.subtle.importKey(
+        const keyMaterial = await globalThis.crypto.subtle.importKey(
           'raw',
           new TextEncoder().encode(systemEncryptionKey + user.id),
           'PBKDF2',
@@ -181,7 +183,7 @@ serve(async (req) => {
           ['deriveKey']
         );
 
-        const key = await crypto.subtle.deriveKey(
+        const key = await globalThis.crypto.subtle.deriveKey(
           {
             name: 'PBKDF2',
             salt: salt,
@@ -271,7 +273,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in token-storage function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: getErrorMessage(error) }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

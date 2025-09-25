@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import { getErrorMessage } from '../_shared/error-handler.ts';
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -153,7 +154,7 @@ serve(async (req) => {
             {
               title: "Top Expense Category",
               description: Object.entries(expensesByCategory).length > 0
-                ? `Your highest expense is ${Object.entries(expensesByCategory).sort((a: any, b: any) => b[1] - a[1])[0][0]} at $${Object.entries(expensesByCategory).sort((a: any, b: any) => b[1] - a[1])[0][1].toFixed(2)}`
+                ? `Your highest expense is ${Object.entries(expensesByCategory).sort((a: [string, number], b: [string, number]) => b[1] - a[1])[0][0]} at $${(Object.entries(expensesByCategory).sort((a: [string, number], b: [string, number]) => b[1] - a[1])[0][1] as number).toFixed(2)}`
                 : "Start tracking expenses to identify spending patterns"
             },
             {
