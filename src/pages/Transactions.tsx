@@ -187,12 +187,13 @@ export default function Transactions() {
   };
 
   const handleBulkAICategorize = async () => {
-    const uncategorized = filteredTransactions.filter(t => !t.category_id);
+    // Process ALL transactions to improve categorization
+    const transactionsToProcess = filteredTransactions;
     
-    if (uncategorized.length === 0) {
+    if (transactionsToProcess.length === 0) {
       toast({
         title: "Info",
-        description: "No uncategorized transactions found",
+        description: "No transactions found to categorize",
       });
       return;
     }
@@ -206,7 +207,7 @@ export default function Transactions() {
 
       const { data, error } = await supabase.functions.invoke('ai-categorize-transactions', {
         body: {
-          transactions: uncategorized.map(t => ({
+          transactions: transactionsToProcess.map(t => ({
             id: t.id,
             description: t.description,
             vendor_name: t.vendor_name,
@@ -224,16 +225,17 @@ export default function Transactions() {
       const successCount = data?.results?.filter((r: any) => r.success).length || 0;
       
       toast({
-        title: "Success",
-        description: `Categorized ${successCount} transactions`,
+        title: "Categorization Complete",
+        description: `Successfully categorized ${successCount} out of ${transactionsToProcess.length} transactions`,
       });
       
-      fetchTransactions();
+      // Refresh transactions to show updated categories
+      await fetchTransactions();
     } catch (error) {
       console.error('Bulk categorization error:', error);
       toast({
         title: "Error",
-        description: "Failed to categorize transactions",
+        description: "Failed to categorize transactions. Please try again.",
         variant: "destructive",
       });
     }

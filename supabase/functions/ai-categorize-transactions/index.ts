@@ -66,32 +66,30 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a bookkeeping expert categorizing business transactions. 
-            
-Available income categories: ${incomeCategories.join(', ')}
-Available expense categories: ${expenseCategories.join(', ')}
+            content: `You are an expert bookkeeper. Categorize each transaction using ONLY these exact category names:
 
-For each transaction, determine:
-1. Whether it's income (money coming in) or expense (money going out)
-2. The most appropriate category from the available list
-3. Whether it's likely tax deductible (for expenses)
+INCOME CATEGORIES:
+${incomeCategories.map(c => `- ${c}`).join('\n')}
 
-Important patterns:
-- Payroll from companies like Gusto, ADP, Paychex = "Salaries & Wages" (expense, not income)
-- Facebook/Meta ads = "Marketing & Advertising"
-- Real estate investments (Fundrise, REITs) = "Investment Income" if positive, "Investment Expense" if negative
-- Venmo/Zelle/PayPal = Analyze the context, could be various categories
-- Bank transfers = Often "Other Income" or "Other Expenses" unless context suggests otherwise
+EXPENSE CATEGORIES:
+${expenseCategories.map(c => `- ${c}`).join('\n')}
 
-IMPORTANT: Return ONLY a JSON array without any markdown formatting or backticks.`
+Key rules:
+- GUSTO PAYROLL = "Salaries & Wages" (expense, tax deductible)
+- Facebook/Meta ads = "Marketing & Advertising" (expense, tax deductible)
+- Fundrise/Real Estate = "Investments" (expense if payment out, income if return)
+- Venmo/Zelle = Analyze context, often "Other Expenses"
+- Check deposits from businesses = "Service Revenue" or "Sales Revenue"
+
+Return a JSON object with a "transactions" array containing categorization for each transaction.`
           },
           {
             role: 'user',
-            content: `Categorize these transactions:\n${transactionText}\n\nReturn ONLY a JSON array (no markdown, no backticks): [{"type": "income/expense", "category": "category name", "tax_deductible": true/false, "confidence": 0-1}]`
+            content: `Categorize these transactions. Return JSON: {"transactions": [{"type": "income" or "expense", "category": "exact category name from list", "tax_deductible": true/false, "confidence": 0.0-1.0}]}:\n${transactionText}`
           }
         ],
-        temperature: 0.3,
-        max_tokens: 2000,
+        temperature: 0.1,
+        max_tokens: 2000
       }),
     });
 
@@ -113,11 +111,18 @@ IMPORTANT: Return ONLY a JSON array without any markdown formatting or backticks
     
     let categorizations;
     try {
-      categorizations = JSON.parse(content);
+      const parsed = JSON.parse(content);
+      // Handle both array and object with transactions property
+      categorizations = parsed.transactions || parsed;
     } catch (parseError) {
       console.error('Failed to parse JSON:', parseError);
       console.error('Content that failed to parse:', content);
       throw new Error('Failed to parse AI response as JSON');
+    }
+    
+    // Ensure we have an array of categorizations
+    if (!Array.isArray(categorizations)) {
+      throw new Error('AI response is not an array of categorizations');
     }
 
     // Update transactions with AI categorizations
