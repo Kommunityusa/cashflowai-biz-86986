@@ -30,7 +30,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { logAuditEvent } from "@/utils/auditLogger";
-import { withRateLimit } from "@/utils/rateLimiter";
+
 import { SecureStorage } from "@/utils/encryption";
 import { TransactionSync } from "@/components/TransactionSync";
 import {
@@ -174,75 +174,60 @@ export default function Transactions() {
       return;
     }
 
-    // Apply rate limiting
-    const result = await withRateLimit(
-      'transaction_create',
-      async () => {
-        // Check if encryption is enabled
-        const encryptionKey = SecureStorage.getKey(user?.id || '');
-        
-        const { data: insertedTransaction, error } = await supabase
-          .from('transactions')
-          .insert({
-            user_id: user?.id,
-            description: newTransaction.description,
-            amount: Number(newTransaction.amount),
-            type: newTransaction.type,
-            category_id: newTransaction.category_id,
-            transaction_date: newTransaction.transaction_date,
-            notes: newTransaction.notes,
-            status: 'completed',
-          })
-          .select()
-          .single();
+    try {
+      // Check if encryption is enabled
+      const encryptionKey = SecureStorage.getKey(user?.id || '');
+      
+      const { data: insertedTransaction, error } = await supabase
+        .from('transactions')
+        .insert({
+          user_id: user?.id,
+          description: newTransaction.description,
+          amount: Number(newTransaction.amount),
+          type: newTransaction.type,
+          category_id: newTransaction.category_id,
+          transaction_date: newTransaction.transaction_date,
+          notes: newTransaction.notes,
+          status: 'completed',
+        })
+        .select()
+        .single();
 
-        if (error) {
-          throw error;
-        }
-
-        // If encryption key exists, encrypt sensitive data
-        if (encryptionKey && insertedTransaction) {
-          try {
-            await supabase.functions.invoke('encryption', {
-              body: {
-                action: 'encrypt_transaction',
-                data: {
-                  transactionId: insertedTransaction.id,
-                  description: newTransaction.description,
-                  vendorName: null,
-                  notes: newTransaction.notes,
-                  key: encryptionKey
-                }
-              }
-            });
-          } catch (encryptError) {
-            console.error('Encryption failed:', encryptError);
-          }
-        }
-
-        // Log audit event
-        await logAuditEvent({
-          action: 'CREATE_TRANSACTION',
-          entityType: 'transaction',
-          details: {
-            amount: Number(newTransaction.amount),
-            type: newTransaction.type,
-            category_id: newTransaction.category_id,
-          }
-        });
-
-        return true;
-      },
-      (retryAfter) => {
-        toast({
-          title: "Rate Limit Exceeded",
-          description: `Too many transactions created. Please wait ${retryAfter} seconds.`,
-          variant: "destructive",
-        });
+      if (error) {
+        throw error;
       }
-    );
 
-    if (result) {
+      // If encryption key exists, encrypt sensitive data
+      if (encryptionKey && insertedTransaction) {
+        try {
+          await supabase.functions.invoke('encryption', {
+            body: {
+              action: 'encrypt_transaction',
+              data: {
+                transactionId: insertedTransaction.id,
+                description: newTransaction.description,
+                vendorName: null,
+                notes: newTransaction.notes,
+                key: encryptionKey
+              }
+            }
+          });
+        } catch (encryptError) {
+          console.error('Encryption failed:', encryptError);
+        }
+      }
+
+      // Log audit event
+      await logAuditEvent({
+        action: 'CREATE_TRANSACTION',
+        entityType: 'transaction',
+        details: {
+          amount: Number(newTransaction.amount),
+          type: newTransaction.type,
+          category_id: newTransaction.category_id,
+        }
+      });
+
       toast({
         title: "Success",
         description: "Transaction added successfully",
@@ -257,6 +242,13 @@ export default function Transactions() {
         notes: "",
       });
       fetchTransactions();
+    } catch (error) {
+      console.error('Error adding transaction:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add transaction",
+        variant: "destructive",
+      });
     }
   };
 

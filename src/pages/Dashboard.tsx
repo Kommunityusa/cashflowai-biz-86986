@@ -7,8 +7,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { AIInsights } from "@/components/AIInsights";
 import { BankAccounts } from "@/components/BankAccounts";
 import { SecurityMonitor } from "@/components/SecurityMonitor";
-import { RateLimitStatus } from "@/components/RateLimitStatus";
-import { EncryptionStatus } from "@/components/EncryptionStatus";
 import { useState, useEffect } from "react";
 import { useRole } from "@/hooks/useRole";
 import { supabase } from "@/integrations/supabase/client";
@@ -779,14 +777,6 @@ export default function Dashboard() {
             </Button>
           </CardContent>
             </Card>
-            
-            {/* Admin-only Security Status Cards */}
-            {isAdmin && (
-              <div className="grid gap-4 md:grid-cols-2">
-                <EncryptionStatus />
-                <RateLimitStatus />
-              </div>
-            )}
           </>
         )}
       </main>

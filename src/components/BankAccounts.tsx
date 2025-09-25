@@ -36,7 +36,7 @@ import {
   Lock,
   Unlock,
 } from "lucide-react";
-import { withRateLimit } from "@/utils/rateLimiter";
+
 import { SecureStorage } from "@/utils/encryption";
 import { logAuditEvent } from "@/utils/auditLogger";
 

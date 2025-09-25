@@ -24,7 +24,7 @@ import {
   Key,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { EncryptionSettings } from "@/components/EncryptionSettings";
+
 import { SubscriptionStatus } from "@/components/SubscriptionStatus";
 import { AuditLogs } from "@/components/AuditLogs";
 import { scheduleDataRetention, exportUserData } from "@/utils/dataRetention";
@@ -426,8 +426,6 @@ const Settings = () => {
           </TabsContent>
 
           <TabsContent value="security" className="space-y-6">
-            <EncryptionSettings />
-            
             <Card className="p-6">
               <div className="flex items-center mb-6">
                 <div className="p-3 bg-gradient-primary rounded-lg mr-4">
