@@ -781,27 +781,27 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-    {/* New Financial Analysis Section */}
-    <Tabs defaultValue="funding" className="mt-8">
-      <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="funding">Funding Insights</TabsTrigger>
-        <TabsTrigger value="recurring">Recurring Transactions</TabsTrigger>
-        <TabsTrigger value="tax">Tax Preparation</TabsTrigger>
-      </TabsList>
+        {/* New Financial Analysis Section */}
+        <Tabs defaultValue="funding" className="mt-8">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="funding">Funding Insights</TabsTrigger>
+            <TabsTrigger value="recurring">Recurring Transactions</TabsTrigger>
+            <TabsTrigger value="tax">Tax Preparation</TabsTrigger>
+          </TabsList>
 
-      <TabsContent value="funding" className="mt-6">
-        <FundingInsights />
-      </TabsContent>
+          <TabsContent value="funding" className="mt-6">
+            <FundingInsights />
+          </TabsContent>
 
-      <TabsContent value="recurring" className="mt-6">
-        <RecurringTransactionDetector />
-      </TabsContent>
+          <TabsContent value="recurring" className="mt-6">
+            <RecurringTransactionDetector />
+          </TabsContent>
 
-      <TabsContent value="tax" className="mt-6">
-        <TaxPreparation />
-      </TabsContent>
-    </Tabs>
-    </>
+          <TabsContent value="tax" className="mt-6">
+            <TaxPreparation />
+          </TabsContent>
+        </Tabs>
+      </>
         )}
       </main>
     </div>
