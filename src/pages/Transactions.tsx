@@ -35,11 +35,15 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { Card } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { logAuditEvent } from "@/utils/auditLogger";
 import { SecureStorage } from "@/utils/encryption";
+import { TransactionFilters } from "@/components/transactions/TransactionFilters";
+import { TransactionStats } from "@/components/transactions/TransactionStats";
+import { TransactionRow } from "@/components/transactions/TransactionRow";
 import {
   Plus,
   Download,
@@ -53,6 +57,7 @@ import {
   FileUp,
   Check,
   X,
+  RefreshCw,
 } from "lucide-react";
 
 export default function Transactions() {
@@ -506,83 +511,75 @@ export default function Transactions() {
       <Header />
       
       <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">Transactions</h1>
-            <p className="text-muted-foreground">
-              Manage your income and expenses
-            </p>
-          </div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">Transactions</h1>
+          <p className="text-muted-foreground">
+            Manage your income and expenses with AI-powered categorization
+          </p>
         </div>
 
+        {/* Transaction Statistics */}
+        <TransactionStats transactions={filteredTransactions} />
+
         {/* Filters and Actions */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <div className="flex-1 flex gap-2">
-            <Input
-              placeholder="Search transactions..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-sm"
-            />
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="income">Income</SelectItem>
-                <SelectItem value="expense">Expense</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={filterCategory} onValueChange={setFilterCategory}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map(cat => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={handleBulkAICategorize}
-              disabled={isBulkCategorizing}
-            >
-              <Sparkles className="mr-2 h-4 w-4" />
-              {isBulkCategorizing ? "Categorizing..." : "Auto Categorize"}
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="application/pdf"
-              onChange={handlePDFUpload}
-              className="hidden"
-            />
-            <Button 
-              variant="outline" 
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingPDF}
-            >
-              <FileUp className="mr-2 h-4 w-4" />
-              {uploadingPDF ? "Processing..." : "Upload PDF"}
-            </Button>
-            <Button variant="outline" onClick={exportTransactions}>
-              <Download className="mr-2 h-4 w-4" />
-              Export
-            </Button>
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Transaction
-                </Button>
-              </DialogTrigger>
+        <TransactionFilters
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          filterType={filterType}
+          setFilterType={setFilterType}
+          filterCategory={filterCategory}
+          setFilterCategory={setFilterCategory}
+          categories={categories}
+        />
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap gap-2 my-6">
+          <Button 
+            onClick={handleBulkAICategorize}
+            disabled={isBulkCategorizing}
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+          >
+            <Sparkles className="mr-2 h-4 w-4" />
+            {isBulkCategorizing ? "Categorizing..." : "Auto Categorize All"}
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            onClick={() => fetchTransactions()}
+            disabled={loading}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/pdf"
+            onChange={handlePDFUpload}
+            className="hidden"
+          />
+          <Button 
+            variant="outline" 
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingPDF}
+          >
+            <FileUp className="mr-2 h-4 w-4" />
+            {uploadingPDF ? "Processing..." : "Upload PDF"}
+          </Button>
+          
+          <Button variant="outline" onClick={exportTransactions}>
+            <Download className="mr-2 h-4 w-4" />
+            Export
+          </Button>
+          
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="default">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Transaction
+              </Button>
+            </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Add New Transaction</DialogTitle>
@@ -694,6 +691,7 @@ export default function Transactions() {
               </DialogContent>
             </Dialog>
           </div>
+        </div>
         </div>
 
         {/* Transactions Table */}

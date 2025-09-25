@@ -85,11 +85,12 @@ Return a JSON object with a "transactions" array containing categorization for e
           },
           {
             role: 'user',
-            content: `Categorize these transactions. Return JSON: {"transactions": [{"type": "income" or "expense", "category": "exact category name from list", "tax_deductible": true/false, "confidence": 0.0-1.0}]}:\n${transactionText}`
+            content: `Categorize these transactions. Return ONLY valid JSON in this format: {"transactions": [{"type": "income" or "expense", "category": "exact category name from list", "tax_deductible": true/false, "confidence": 0.0-1.0}]}:\n\n${transactionText}`
           }
         ],
         temperature: 0.1,
-        max_tokens: 2000
+        max_tokens: 2000,
+        response_format: { type: "text" } // Explicitly set to text to avoid issues
       }),
     });
 
