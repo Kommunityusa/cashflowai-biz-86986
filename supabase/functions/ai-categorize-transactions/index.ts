@@ -99,7 +99,12 @@ Return a JSON array with one object per transaction in the same order as provide
     }
 
     const aiResponse = await response.json();
-    const categorizations = JSON.parse(aiResponse.choices[0].message.content);
+    
+    // Clean up the response - remove markdown code blocks if present
+    let content = aiResponse.choices[0].message.content;
+    content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    
+    const categorizations = JSON.parse(content);
 
     // Update transactions with AI categorizations
     const results = [];
