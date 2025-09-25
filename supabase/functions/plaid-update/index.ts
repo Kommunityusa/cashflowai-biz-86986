@@ -1,7 +1,7 @@
 // Plaid Update Mode Edge Function - Handles credential updates and error recovery
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
-import { getErrorMessage } from '../_shared/error-handler.ts';
+import { getErrorMessage as getErrorFromUnknown } from '../_shared/error-handler.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -257,7 +257,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('[UPDATE MODE] Error:', error);
     return new Response(
-      JSON.stringify({ error: getErrorMessage(error) }),
+      JSON.stringify({ error: getErrorFromUnknown(error) }),
       { 
         status: 400, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

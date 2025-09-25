@@ -71,44 +71,101 @@ serve(async (req) => {
 
     console.log('[AI Insights] Generating insights for user:', user.id);
 
-    // Get user's recent transactions
+    // Get user's recent transactions with proper category relationship
     const { data: transactions, error: transactionError } = await supabase
       .from('transactions')
-      .select('*, categories(name)')
+      .select(`
+        *,
+        category:categories!transactions_category_id_fkey(name)
+      `)
       .eq('user_id', user.id)
       .order('transaction_date', { ascending: false })
-      .limit(50);
+      .limit(100);  // Get more transactions for better context
     
     if (transactionError) {
       console.error('[AI Insights] Failed to fetch transactions:', transactionError);
     }
 
-    // Calculate spending patterns
-    const expensesByCategory = transactions
-      ?.filter(t => t.type === 'expense')
-      .reduce((acc: any, t: any) => {
-        const category = t.categories?.name || 'Uncategorized';
-        acc[category] = (acc[category] || 0) + t.amount;
+    // Calculate spending patterns and trends
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    const recentTransactions = transactions?.filter(t => 
+      new Date(t.transaction_date) >= thirtyDaysAgo
+    ) || [];
+    
+    const lastWeekTransactions = transactions?.filter(t => 
+      new Date(t.transaction_date) >= sevenDaysAgo
+    ) || [];
+    
+    const expensesByCategory = recentTransactions
+      .filter(t => t.type === 'expense')
+      .reduce((acc: Record<string, number>, t: any) => {
+        const category = t.category?.name || 'Uncategorized';
+        acc[category] = (acc[category] || 0) + Number(t.amount);
         return acc;
-      }, {}) || {};
+      }, {});
 
-    const totalExpenses = Object.values(expensesByCategory).reduce((sum: any, amount: any) => sum + amount, 0) as number;
-    const totalIncome = transactions
-      ?.filter(t => t.type === 'income')
-      .reduce((sum: any, t: any) => sum + t.amount, 0) || 0;
+    const totalExpenses = Object.values(expensesByCategory).reduce((sum: number, amount: number) => sum + amount, 0);
+    const totalIncome = recentTransactions
+      .filter(t => t.type === 'income')
+      .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+    
+    // Calculate week-over-week trends
+    const lastWeekExpenses = lastWeekTransactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+    
+    const lastWeekIncome = lastWeekTransactions
+      .filter(t => t.type === 'income')
+      .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+    
+    // Get most recent plaid account data for context
+    const { data: plaidAccounts } = await supabase
+      .from('plaid_accounts')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('last_sync', { ascending: false })
+      .limit(5);
+    
+    const totalBalance = plaidAccounts?.reduce((sum: number, acc: any) => 
+      sum + (acc.available_balance || acc.current_balance || 0), 0) || 0;
 
-    const prompt = `Analyze the following financial data and provide 3 actionable insights:
+    // Build contextual prompt with recent Plaid data
+    const weeklySpendingChange = lastWeekExpenses > 0 
+      ? ((lastWeekExpenses - (totalExpenses * 7 / 30)) / (totalExpenses * 7 / 30) * 100).toFixed(1)
+      : 0;
     
-    Total Income: $${totalIncome.toFixed(2)}
-    Total Expenses: $${totalExpenses.toFixed(2)}
-    Net: $${(totalIncome - totalExpenses).toFixed(2)}
+    const topCategories = Object.entries(expensesByCategory)
+      .sort((a: [string, number], b: [string, number]) => b[1] - a[1])
+      .slice(0, 3);
     
-    Expenses by Category:
-    ${Object.entries(expensesByCategory)
-      .map(([category, amount]: [string, any]) => `- ${category}: $${amount.toFixed(2)}`)
-      .join('\n')}
+    const prompt = `Analyze this real-time financial data from the past 30 days and provide 3 specific, actionable insights:
     
-    Respond with a JSON object containing an "insights" array with objects having "title" and "description" fields. Focus on spending patterns, potential savings, and financial health.`;
+    RECENT ACTIVITY (30 days):
+    - Total Income: $${totalIncome.toFixed(2)}
+    - Total Expenses: $${totalExpenses.toFixed(2)}
+    - Net Cash Flow: $${(totalIncome - totalExpenses).toFixed(2)}
+    
+    LAST 7 DAYS:
+    - Weekly Spending: $${lastWeekExpenses.toFixed(2)}
+    - Weekly Income: $${lastWeekIncome.toFixed(2)}
+    - Spending Trend: ${Number(weeklySpendingChange) > 0 ? '↑' : '↓'} ${Math.abs(Number(weeklySpendingChange))}%
+    
+    TOP SPENDING CATEGORIES:
+    ${topCategories.map(([category, amount]: [string, number]) => 
+      `- ${category}: $${amount.toFixed(2)} (${((amount / totalExpenses) * 100).toFixed(1)}% of expenses)`
+    ).join('\n')}
+    
+    ${totalBalance > 0 ? `ACCOUNT BALANCE: $${totalBalance.toFixed(2)}` : ''}
+    
+    Provide insights that:
+    1. Reflect the most recent week's activity and trends
+    2. Identify specific opportunities to save money based on the spending categories
+    3. Consider the current cash flow situation and account balance
+    
+    Respond with a JSON object containing an "insights" array with objects having "title" and "description" fields. Make insights specific and actionable based on the actual data.`;
 
     console.log('[AI Insights] Calling OpenAI API with gpt-4o-mini model');
 

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { getErrorMessage } from '../_shared/error-handler.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -122,7 +123,7 @@ serve(async (req) => {
         console.error('[Plaid Test] Error during test:', error);
         plaidTest = {
           status: 'error',
-          error: error.message,
+          error: getErrorMessage(error),
           details: {
             type: 'network_error',
             message: 'Failed to connect to Plaid API'
@@ -155,6 +156,7 @@ serve(async (req) => {
           const models = await response.json();
           openAITest = {
             status: 'success',
+            error: null,
             message: 'OpenAI API key is valid and working',
             details: {
               models_available: models.data?.length || 0
@@ -175,7 +177,7 @@ serve(async (req) => {
         console.error('[Plaid Test] OpenAI test error:', error);
         openAITest = {
           status: 'error',
-          error: error.message,
+          error: getErrorMessage(error),
           details: {
             type: 'network_error'
           }
