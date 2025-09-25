@@ -126,9 +126,9 @@ serve(async (req) => {
               .maybeSingle();
 
             if (!existing) {
-              // IMPORTANT: In Plaid API convention:
-              // - Positive amounts = expenses (money going out)
-              // - Negative amounts = income (money coming in)
+              // CRITICAL: Plaid API Convention:
+              // - Positive amounts = EXPENSES (money going OUT of your account)
+              // - Negative amounts = INCOME (money coming INTO your account)
               const transactionType = transaction.amount > 0 ? 'expense' : 'income';
               
               // Find matching category
