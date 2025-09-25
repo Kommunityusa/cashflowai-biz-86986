@@ -128,16 +128,28 @@ export function TransactionRow({
       </TableCell>
       
       <TableCell>
-        <Badge variant={transaction.type === 'income' ? 'default' : 'destructive'}>
-          {transaction.type}
+        <Badge 
+          variant={transaction.type === 'income' ? 'default' : 'destructive'}
+          className="flex items-center gap-1 w-fit"
+        >
+          {transaction.type === 'income' ? (
+            <>
+              <span className="text-xs">↓</span> Income
+            </>
+          ) : (
+            <>
+              <span className="text-xs">↑</span> Expense
+            </>
+          )}
         </Badge>
       </TableCell>
       
       <TableCell className="text-right">
         <span className={cn(
-          "font-semibold",
+          "font-semibold flex items-center justify-end gap-1",
           transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
         )}>
+          {transaction.type === 'income' ? '+' : '-'}
           ${Math.abs(Number(transaction.amount)).toLocaleString('en-US', { 
             minimumFractionDigits: 2, 
             maximumFractionDigits: 2 
