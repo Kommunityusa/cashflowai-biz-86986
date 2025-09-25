@@ -44,6 +44,7 @@ import { SecureStorage } from "@/utils/encryption";
 import { TransactionFilters } from "@/components/transactions/TransactionFilters";
 import { TransactionStats } from "@/components/transactions/TransactionStats";
 import { TransactionRow } from "@/components/transactions/TransactionRow";
+import { CategoryBreakdown } from "@/components/transactions/CategoryBreakdown";
 import {
   Plus,
   Download,
@@ -520,6 +521,9 @@ export default function Transactions() {
 
         {/* Transaction Statistics */}
         <TransactionStats transactions={filteredTransactions} />
+        
+        {/* Category Breakdown */}
+        <CategoryBreakdown transactions={filteredTransactions} categories={categories} />
 
         {/* Filters and Actions */}
         <TransactionFilters
@@ -777,19 +781,33 @@ export default function Transactions() {
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
-                          <span 
-                            className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
-                            style={{
-                              backgroundColor: transaction.categories?.color + '20',
-                              color: transaction.categories?.color || '#888',
-                            }}
-                          >
-                            {transaction.categories?.name || 'Uncategorized'}
-                          </span>
+                          {transaction.category_id && transaction.categories ? (
+                            <div className="flex items-center gap-2">
+                              <span 
+                                className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold transition-all"
+                                style={{
+                                  backgroundColor: `${transaction.categories.color}15`,
+                                  color: transaction.categories.color,
+                                  border: `1px solid ${transaction.categories.color}30`
+                                }}
+                              >
+                                {transaction.categories.name}
+                              </span>
+                              {transaction.ai_confidence_score && (
+                                <span className="text-xs text-muted-foreground">
+                                  {Math.round(transaction.ai_confidence_score * 100)}%
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                              Uncategorized
+                            </span>
+                          )}
                           <Button
                             size="icon"
                             variant="ghost"
-                            className="h-6 w-6"
+                            className="h-6 w-6 hover:bg-secondary"
                             onClick={() => handleEditCategory(transaction.id, transaction.category_id)}
                           >
                             <Edit className="h-3 w-3" />
@@ -798,23 +816,44 @@ export default function Transactions() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className={`capitalize ${
-                        transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {transaction.type}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      ${Number(transaction.amount).toFixed(2)}
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                          transaction.type === 'income' 
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
+                            : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                        }`}>
+                          {transaction.type === 'income' ? '↑ Income' : '↓ Expense'}
+                        </span>
+                        {transaction.tax_deductible && (
+                          <span className="text-xs text-blue-600 dark:text-blue-400" title="Tax Deductible">
+                            📋
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteTransaction(transaction.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <span className={`font-semibold text-lg ${
+                        transaction.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                      }`}>
+                        {transaction.type === 'income' ? '+' : '-'}${Number(transaction.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {transaction.needs_review && (
+                          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+                            Review
+                          </span>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 hover:bg-destructive/10"
+                          onClick={() => handleDeleteTransaction(transaction.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
