@@ -17,7 +17,6 @@ import { useNavigate } from "react-router-dom";
 // import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import { logAuditEvent } from "@/utils/auditLogger";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { logAuditEvent } from "@/utils/auditLogger";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -47,8 +46,6 @@ import {
   Bar,
   Legend,
 } from "recharts";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -783,8 +780,6 @@ export default function Dashboard() {
             </Button>
           </CardContent>
         </Card>
-      </div>
-    </div>
 
     {/* New Financial Analysis Section */}
     <Tabs defaultValue="funding" className="mt-8">
@@ -806,7 +801,7 @@ export default function Dashboard() {
         <TaxPreparation />
       </TabsContent>
     </Tabs>
-          </>
+    </>
         )}
       </main>
     </div>
