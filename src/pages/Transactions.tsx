@@ -55,6 +55,7 @@ import { CategoryBreakdown } from "@/components/transactions/CategoryBreakdown";
 import { TransactionRules } from "@/components/transactions/TransactionRules";
 import { BulkOperations } from "@/components/transactions/BulkOperations";
 import { AdvancedSearch, SearchFilters } from "@/components/transactions/AdvancedSearch";
+import { TransactionReconciliation } from "@/components/transactions/TransactionReconciliation";
 import {
   Plus,
   Download,
@@ -578,11 +579,19 @@ export default function Transactions() {
         <Tabs defaultValue="transactions" className="mt-6">
           <TabsList>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
+            <TabsTrigger value="reconciliation">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Reconciliation
+            </TabsTrigger>
             <TabsTrigger value="rules">
               <Settings className="mr-2 h-4 w-4" />
               Automation Rules
             </TabsTrigger>
           </TabsList>
+          
+          <TabsContent value="reconciliation" className="mt-4">
+            <TransactionReconciliation />
+          </TabsContent>
           
           <TabsContent value="rules" className="mt-4">
             <TransactionRules />

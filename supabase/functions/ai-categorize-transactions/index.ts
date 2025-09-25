@@ -48,9 +48,9 @@ serve(async (req) => {
     const incomeCategories = categories?.filter(c => c.type === 'income').map(c => c.name) || [];
     const expenseCategories = categories?.filter(c => c.type === 'expense').map(c => c.name) || [];
 
-    // Prepare transactions for AI analysis
+    // Prepare transactions for AI analysis with explicit type indication
     const transactionText = transactions.map((t: any) => 
-      `${t.description || ''} | ${t.vendor_name || ''} | Amount: ${t.amount} | Date: ${t.transaction_date}`
+      `${t.description || ''} | ${t.vendor_name || ''} | Amount: $${t.amount} | Type: ${t.type} | Date: ${t.transaction_date}`
     ).join('\n');
 
     // Call OpenAI to categorize transactions
@@ -67,6 +67,7 @@ serve(async (req) => {
           {
             role: 'system',
             content: `You are an expert bookkeeper. Analyze each transaction and assign the most appropriate category.
+CRITICAL: The transaction type (income or expense) is already determined and shown in each transaction. You MUST respect this type designation.
 
 EXISTING INCOME CATEGORIES:
 ${incomeCategories.join(', ')}
@@ -74,25 +75,35 @@ ${incomeCategories.join(', ')}
 EXISTING EXPENSE CATEGORIES:
 ${expenseCategories.join(', ')}
 
-IMPORTANT: You can suggest NEW categories if the existing ones don't fit well. Be specific and professional.
+IMPORTANT RULES:
+1. The transaction type (income/expense) is ALREADY DETERMINED - DO NOT CHANGE IT
+2. You can suggest NEW categories if the existing ones don't fit well
+3. Be specific and professional with category names
 
-Common patterns:
-- GUSTO/Payroll/Direct Deposit from employer = "Salaries & Wages" (expense) or "Salary Income" (income)
-- Facebook/Meta/Social Media ads = "Digital Advertising" or "Social Media Marketing" (expense, tax deductible)
-- Google/YouTube ads = "Digital Advertising" (expense, tax deductible)
-- Fundrise/Investment platforms = "Investment Income" (income) or "Investment Contributions" (expense)
-- Venmo/Zelle/PayPal = Analyze description - could be various categories
-- Restaurants/DoorDash/UberEats = "Meals & Entertainment" or "Business Meals" (expense)
-- AWS/Google Cloud/Hosting = "Cloud Services & Hosting" (expense, tax deductible)
-- Stripe/Square/Payment processors = "Payment Processing Fees" (expense, tax deductible)
-- Rent/Lease payments = "Rent & Lease" (expense, tax deductible)
-- Insurance payments = Specific type like "Business Insurance", "Health Insurance"
-- Bank fees/charges = "Bank Fees & Charges" (expense, tax deductible)
-- Client payments/invoices = "Service Revenue" or "Consulting Income" (income)
-- Product sales = "Product Sales" or "Sales Revenue" (income)
-- Subscriptions = Specify type like "Software Subscriptions", "Marketing Tools"
+Common patterns to recognize:
+INCOME TRANSACTIONS (money coming IN):
+- Direct deposits from employers = "Salary Income" 
+- Client payments = "Service Revenue" or "Consulting Income"
+- Product sales = "Sales Revenue"
+- Investment returns = "Investment Income"
+- Refunds = "Refunds & Returns"
+- Interest earned = "Interest Income"
+- Dividends = "Dividend Income"
 
-Create professional, specific categories that a bookkeeper would use.`
+EXPENSE TRANSACTIONS (money going OUT):
+- Payroll services (Gusto, ADP) = "Payroll Processing" 
+- Facebook/Meta ads = "Social Media Advertising"
+- Google/YouTube ads = "Digital Advertising"
+- Investment contributions = "Investment Contributions"
+- Restaurants/food delivery = "Meals & Entertainment"
+- AWS/Cloud services = "Cloud Services & Hosting"
+- Stripe/Square fees = "Payment Processing Fees"
+- Rent payments = "Rent & Lease"
+- Insurance = "Business Insurance" or specific type
+- Bank fees = "Bank Fees & Charges"
+- Software subscriptions = "Software & Subscriptions"
+
+Create professional, specific categories that match the transaction type.`
           },
           {
             role: 'user',

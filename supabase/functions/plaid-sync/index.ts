@@ -126,12 +126,16 @@ serve(async (req) => {
               .maybeSingle();
 
             if (!existing) {
+              // IMPORTANT: In Plaid, positive amounts = expenses (money out), negative = income (money in)
+              // This is opposite of typical accounting convention
+              const transactionType = transaction.amount > 0 ? 'expense' : 'income';
+              
               // Find matching category
               const { data: categories } = await supabase
                 .from('categories')
                 .select('id')
                 .eq('user_id', account.user_id)
-                .eq('type', transaction.amount > 0 ? 'expense' : 'income')
+                .eq('type', transactionType)
                 .ilike('name', `%${transaction.category?.[0] || 'Other'}%`)
                 .limit(1);
 
@@ -142,11 +146,12 @@ serve(async (req) => {
                 description: transaction.name,
                 vendor_name: transaction.merchant_name,
                 amount: Math.abs(transaction.amount),
-                type: transaction.amount > 0 ? 'expense' : 'income',
+                type: transactionType,
                 transaction_date: transaction.date,
                 plaid_category: transaction.category,
                 category_id: categories?.[0]?.id || null,
                 status: 'completed',
+                needs_review: true, // Mark for review to ensure correct categorization
               });
             }
           }
