@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { PlaidLinkButton } from "@/components/PlaidLinkButton";
 import { PlaidSetupGuide } from "@/components/PlaidSetupGuide";
+import { TransactionSync } from "@/components/TransactionSync";
 import { 
   User, 
   Building,
@@ -22,6 +23,7 @@ import {
   Download,
   Lock,
   Key,
+  RefreshCw,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -522,6 +524,14 @@ const Settings = () => {
                     <PlaidLinkButton />
                   </div>
                 </div>
+                
+                <div className="mt-6 p-4 bg-muted rounded-lg">
+                  <div className="flex items-center mb-3">
+                    <RefreshCw className="h-5 w-5 text-muted-foreground mr-2" />
+                    <h3 className="font-medium">Transaction Import Status</h3>
+                  </div>
+                  <TransactionSync onSyncComplete={() => {}} />
+                </div>
               </Card>
             ) : (
               <>
@@ -544,6 +554,14 @@ const Settings = () => {
                       </div>
                       <PlaidLinkButton />
                     </div>
+                  </div>
+                  
+                  <div className="mt-6 p-4 bg-muted rounded-lg">
+                    <div className="flex items-center mb-3">
+                      <RefreshCw className="h-5 w-5 text-muted-foreground mr-2" />
+                      <h3 className="font-medium">Transaction Import Status</h3>
+                    </div>
+                    <TransactionSync onSyncComplete={() => {}} />
                   </div>
                 </Card>
                 

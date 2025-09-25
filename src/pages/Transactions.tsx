@@ -40,7 +40,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { logAuditEvent } from "@/utils/auditLogger";
 import { SecureStorage } from "@/utils/encryption";
-import { TransactionSync } from "@/components/TransactionSync";
 import {
   Plus,
   Download,
@@ -516,11 +515,6 @@ export default function Transactions() {
           </div>
         </div>
 
-        {/* Transaction Sync Component */}
-        <div className="mb-8">
-          <TransactionSync onSyncComplete={fetchTransactions} />
-        </div>
-
         {/* Filters and Actions */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="flex-1 flex gap-2">
@@ -642,20 +636,7 @@ export default function Transactions() {
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="category">Category</Label>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleAICategorize}
-                        disabled={isAICategorizing}
-                        className="text-primary"
-                      >
-                        <Sparkles className="h-4 w-4 mr-1" />
-                        {isAICategorizing ? "Categorizing..." : "AI Categorize"}
-                      </Button>
-                    </div>
+                    <Label htmlFor="category">Category</Label>
                     <Select
                       value={newTransaction.category_id}
                       onValueChange={(value) => setNewTransaction(prev => ({
