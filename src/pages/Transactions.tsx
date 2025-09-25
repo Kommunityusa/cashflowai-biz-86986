@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,11 +26,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { logAuditEvent } from "@/utils/auditLogger";
-
 import { SecureStorage } from "@/utils/encryption";
 import { TransactionSync } from "@/components/TransactionSync";
 import {
@@ -43,20 +51,29 @@ import {
   Trash2,
   Sparkles,
   Lock,
+  FileUp,
+  Check,
+  X,
 } from "lucide-react";
 
 export default function Transactions() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingCategory, setEditingCategory] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [uploadingPDF, setUploadingPDF] = useState(false);
+  const transactionsPerPage = 50;
+  
   const [newTransaction, setNewTransaction] = useState({
     description: "",
     amount: "",
@@ -66,6 +83,7 @@ export default function Transactions() {
     notes: "",
   });
   const [isAICategorizing, setIsAICategorizing] = useState(false);
+  const [isBulkCategorizing, setIsBulkCategorizing] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -99,26 +117,18 @@ export default function Transactions() {
       `)
       .eq('user_id', user?.id)
       .order('transaction_date', { ascending: false });
-    
-    if (error) {
-      console.error('Error fetching transactions:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load transactions",
-        variant: "destructive",
-      });
-    } else if (data) {
-      console.log('Fetched transactions:', data);
+
+    if (!error && data) {
       setTransactions(data);
     }
     setLoading(false);
   };
 
   const handleAICategorize = async () => {
-    if (!newTransaction.description || !newTransaction.amount) {
+    if (!newTransaction.description) {
       toast({
-        title: "Missing Information",
-        description: "Please enter description and amount first",
+        title: "Error",
+        description: "Please enter a description first",
         variant: "destructive",
       });
       return;
@@ -126,49 +136,115 @@ export default function Transactions() {
 
     setIsAICategorizing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('ai-categorize', {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error("Not authenticated");
+      }
+
+      const { data, error } = await supabase.functions.invoke('ai-categorize-transactions', {
         body: {
-          description: newTransaction.description,
-          amount: newTransaction.amount,
-          type: newTransaction.type,
-          existingCategories: categories,
+          transactions: [{
+            description: newTransaction.description,
+            amount: newTransaction.amount || 0,
+            type: newTransaction.type,
+          }]
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
         },
       });
 
       if (error) throw error;
 
-      const suggestedCategory = categories.find(
-        cat => cat.name === data.category && cat.type === newTransaction.type
-      );
-
-      if (suggestedCategory) {
-        setNewTransaction(prev => ({
-          ...prev,
-          category_id: suggestedCategory.id,
-        }));
+      if (data?.results?.[0]?.success) {
+        const result = data.results[0];
+        const category = categories.find(c => 
+          c.name === result.category && c.type === result.type
+        );
         
-        toast({
-          title: "Category Suggested",
-          description: `AI suggested: ${data.category}`,
-        });
+        if (category) {
+          setNewTransaction(prev => ({
+            ...prev,
+            category_id: category.id,
+            type: result.type,
+          }));
+          
+          toast({
+            title: "Success",
+            description: `Categorized as ${result.category}`,
+          });
+        }
       }
     } catch (error) {
-      console.error('Error categorizing:', error);
+      console.error('AI categorization error:', error);
       toast({
         title: "Error",
-        description: "Failed to auto-categorize",
+        description: "Failed to categorize transaction",
         variant: "destructive",
       });
-    } finally {
-      setIsAICategorizing(false);
     }
+    setIsAICategorizing(false);
+  };
+
+  const handleBulkAICategorize = async () => {
+    const uncategorized = filteredTransactions.filter(t => !t.category_id);
+    
+    if (uncategorized.length === 0) {
+      toast({
+        title: "Info",
+        description: "No uncategorized transactions found",
+      });
+      return;
+    }
+
+    setIsBulkCategorizing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error("Not authenticated");
+      }
+
+      const { data, error } = await supabase.functions.invoke('ai-categorize-transactions', {
+        body: {
+          transactions: uncategorized.map(t => ({
+            id: t.id,
+            description: t.description,
+            vendor_name: t.vendor_name,
+            amount: t.amount,
+            transaction_date: t.transaction_date,
+          }))
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+
+      const successCount = data?.results?.filter((r: any) => r.success).length || 0;
+      
+      toast({
+        title: "Success",
+        description: `Categorized ${successCount} transactions`,
+      });
+      
+      fetchTransactions();
+    } catch (error) {
+      console.error('Bulk categorization error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to categorize transactions",
+        variant: "destructive",
+      });
+    }
+    setIsBulkCategorizing(false);
   };
 
   const handleAddTransaction = async () => {
-    if (!newTransaction.description || !newTransaction.amount || !newTransaction.category_id) {
+    if (!newTransaction.description || !newTransaction.amount) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields",
+        title: "Error",
+        description: "Please fill in required fields",
         variant: "destructive",
       });
       return;
@@ -274,12 +350,135 @@ export default function Transactions() {
     }
   };
 
+  const handleEditCategory = (transactionId: string, currentCategoryId: string) => {
+    setEditingCategoryId(transactionId);
+    setEditingCategory(currentCategoryId || "");
+  };
+
+  const handleSaveCategory = async (transactionId: string) => {
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .update({ 
+          category_id: editingCategory || null,
+          ai_processed_at: new Date().toISOString(),
+        })
+        .eq('id', transactionId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Category updated",
+      });
+      
+      setEditingCategoryId(null);
+      fetchTransactions();
+    } catch (error) {
+      console.error('Error updating category:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update category",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCategoryId(null);
+    setEditingCategory("");
+  };
+
+  const handlePDFUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || file.type !== 'application/pdf') {
+      toast({
+        title: "Error",
+        description: "Please select a PDF file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingPDF(true);
+    try {
+      // Read PDF content
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const text = e.target?.result as string;
+        
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          throw new Error("Not authenticated");
+        }
+
+        // Parse PDF on the server
+        const { data, error } = await supabase.functions.invoke('parse-bank-statement', {
+          body: {
+            pdfText: text,
+            bankAccountId: null, // Optional: associate with a bank account
+          },
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (error) throw error;
+
+        if (data?.transactions && data.transactions.length > 0) {
+          // Auto-categorize the imported transactions
+          const { data: catData, error: catError } = await supabase.functions.invoke('ai-categorize-transactions', {
+            body: {
+              transactions: data.transactions
+            },
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          });
+
+          toast({
+            title: "Success",
+            description: `Imported ${data.count} transactions from PDF`,
+          });
+          
+          fetchTransactions();
+        } else {
+          toast({
+            title: "Warning",
+            description: "No transactions found in PDF",
+            variant: "destructive",
+          });
+        }
+      };
+      
+      reader.readAsText(file);
+    } catch (error) {
+      console.error('PDF upload error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process PDF",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingPDF(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === "all" || transaction.type === filterType;
     const matchesCategory = filterCategory === "all" || transaction.category_id === filterCategory;
     return matchesSearch && matchesType && matchesCategory;
   });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredTransactions.length / transactionsPerPage);
+  const startIndex = (currentPage - 1) * transactionsPerPage;
+  const endIndex = startIndex + transactionsPerPage;
+  const currentTransactions = filteredTransactions.slice(startIndex, endIndex);
 
   const exportTransactions = () => {
     const csv = [
@@ -354,6 +553,29 @@ export default function Transactions() {
             </Select>
           </div>
           <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleBulkAICategorize}
+              disabled={isBulkCategorizing}
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              {isBulkCategorizing ? "Categorizing..." : "Auto Categorize"}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/pdf"
+              onChange={handlePDFUpload}
+              className="hidden"
+            />
+            <Button 
+              variant="outline" 
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingPDF}
+            >
+              <FileUp className="mr-2 h-4 w-4" />
+              {uploadingPDF ? "Processing..." : "Upload PDF"}
+            </Button>
             <Button variant="outline" onClick={exportTransactions}>
               <Download className="mr-2 h-4 w-4" />
               Export
@@ -511,14 +733,14 @@ export default function Transactions() {
                     Loading transactions...
                   </TableCell>
                 </TableRow>
-              ) : filteredTransactions.length === 0 ? (
+              ) : currentTransactions.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8">
                     No transactions found. Add your first transaction to get started!
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredTransactions.map((transaction) => (
+                currentTransactions.map((transaction) => (
                   <TableRow key={transaction.id}>
                     <TableCell>
                       {new Date(transaction.transaction_date).toLocaleDateString()}
@@ -526,21 +748,74 @@ export default function Transactions() {
                     <TableCell>
                       <div>
                         <p className="font-medium">{transaction.description}</p>
+                        {transaction.vendor_name && (
+                          <p className="text-sm text-muted-foreground">
+                            Vendor: {transaction.vendor_name}
+                          </p>
+                        )}
                         {transaction.notes && (
                           <p className="text-sm text-muted-foreground">{transaction.notes}</p>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span 
-                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
-                        style={{
-                          backgroundColor: transaction.categories?.color + '20',
-                          color: transaction.categories?.color || '#888',
-                        }}
-                      >
-                        {transaction.categories?.name || 'Uncategorized'}
-                      </span>
+                      {editingCategoryId === transaction.id ? (
+                        <div className="flex items-center gap-2">
+                          <Select
+                            value={editingCategory}
+                            onValueChange={setEditingCategory}
+                          >
+                            <SelectTrigger className="w-[150px] h-8">
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {categories
+                                .filter(cat => cat.type === transaction.type)
+                                .map(cat => (
+                                  <SelectItem key={cat.id} value={cat.id}>
+                                    {cat.name}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            onClick={() => handleSaveCategory(transaction.id)}
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            onClick={handleCancelEdit}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span 
+                            className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+                            style={{
+                              backgroundColor: transaction.categories?.color + '20',
+                              color: transaction.categories?.color || '#888',
+                            }}
+                          >
+                            {transaction.categories?.name || 'Uncategorized'}
+                          </span>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6"
+                            onClick={() => handleEditCategory(transaction.id, transaction.category_id)}
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell>
                       <span className={`capitalize ${
@@ -567,6 +842,54 @@ export default function Transactions() {
             </TableBody>
           </Table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-4">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+                {[...Array(totalPages)].map((_, i) => {
+                  const page = i + 1;
+                  if (
+                    page === 1 ||
+                    page === totalPages ||
+                    (page >= currentPage - 1 && page <= currentPage + 1)
+                  ) {
+                    return (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          onClick={() => setCurrentPage(page)}
+                          isActive={currentPage === page}
+                          className="cursor-pointer"
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  } else if (
+                    page === currentPage - 2 ||
+                    page === currentPage + 2
+                  ) {
+                    return <PaginationEllipsis key={page} />;
+                  }
+                  return null;
+                })}
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
       </div>
     </div>
   );
