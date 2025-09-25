@@ -27,7 +27,9 @@ export type AuditAction =
   | 'PLAID_BENEFITS_VIEWED'
   | 'PLAID_LINK_INITIATED'
   | 'PLAID_SYNC_COMPLETED'
-  | 'AI_CATEGORIZATION_COMPLETED';
+  | 'AI_CATEGORIZATION_COMPLETED'
+  | 'DETECT_RECURRING'
+  | 'GENERATE_TAX_REPORT';
 
 interface AuditLogData {
   action: AuditAction;
