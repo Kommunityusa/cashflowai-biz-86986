@@ -43,9 +43,11 @@ export function TransactionStats({ transactions }: TransactionStatsProps) {
         <Card className="p-6 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/20 border-green-200 dark:border-green-800">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-green-700 dark:text-green-300">Total Income</p>
+              <p className="text-sm font-medium text-green-700 dark:text-green-300 flex items-center gap-1">
+                <span className="text-lg">↓</span> Money In (Income)
+              </p>
               <p className="text-2xl font-bold text-green-700 dark:text-green-400">
-                ${totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                +${totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
               <p className="text-xs text-green-600 dark:text-green-500 mt-1">
                 Avg: ${monthlyAvgIncome.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo
@@ -58,9 +60,11 @@ export function TransactionStats({ transactions }: TransactionStatsProps) {
         <Card className="p-6 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/20 dark:to-red-900/20 border-red-200 dark:border-red-800">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-red-700 dark:text-red-300">Total Expenses</p>
+              <p className="text-sm font-medium text-red-700 dark:text-red-300 flex items-center gap-1">
+                <span className="text-lg">↑</span> Money Out (Expenses)
+              </p>
               <p className="text-2xl font-bold text-red-700 dark:text-red-400">
-                ${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                -${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
               <p className="text-xs text-red-600 dark:text-red-500 mt-1">
                 Avg: ${monthlyAvgExpenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo

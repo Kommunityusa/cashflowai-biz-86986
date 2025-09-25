@@ -53,9 +53,15 @@ export function TransactionRow({
       <TableCell className="font-medium">
         <div className="flex items-center gap-2">
           {transaction.type === 'income' ? (
-            <TrendingUp className="h-4 w-4 text-green-600" />
+            <div className="flex items-center gap-1">
+              <TrendingUp className="h-4 w-4 text-green-600" />
+              <span className="text-xs text-green-600 font-medium">IN</span>
+            </div>
           ) : (
-            <TrendingDown className="h-4 w-4 text-red-600" />
+            <div className="flex items-center gap-1">
+              <TrendingDown className="h-4 w-4 text-red-600" />
+              <span className="text-xs text-red-600 font-medium">OUT</span>
+            </div>
           )}
           <span className="text-muted-foreground text-sm">
             {formatDate(transaction.transaction_date)}
