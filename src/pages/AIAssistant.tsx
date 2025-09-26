@@ -1,4 +1,5 @@
 import React from 'react';
+import { Header } from "@/components/layout/Header";
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';

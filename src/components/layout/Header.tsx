@@ -1,17 +1,23 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { 
   TrendingUp, 
-  Menu, 
-  X, 
-  Shield, 
-  LogOut,
-  User
+  User, 
+  LogOut, 
+  Settings, 
+  Menu,
+  Home,
+  FileText,
+  BarChart3,
+  CreditCard,
+  Bot,
+  Shield,
+  X
 } from "lucide-react";
-import { useState } from "react";
-import { useRole } from "@/hooks/useRole";
 import { useAuth } from "@/hooks/useAuth";
+import { useRole } from "@/hooks/useRole";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -22,265 +28,309 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-export const Header = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const { user } = useAuth(false); // Don't require auth in header
+export function Header() {
+  const { user } = useAuth(false);
   const { isAdmin } = useRole();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const isLandingPage = location.pathname === "/";
+  
+  const isLandingPage = location.pathname === "/" || 
+                        location.pathname === "/about" || 
+                        location.pathname === "/blog" ||
+                        location.pathname.startsWith("/blog/");
 
-  const navigation = [
-    { name: "Features", href: "#features" },
-    { name: "Pricing", href: "#pricing" },
-    { name: "About", href: "#about" },
+  const navigationLinks = [
+    { href: "/dashboard", label: "Dashboard", icon: Home },
+    { href: "/transactions", label: "Transactions", icon: FileText },
+    { href: "/reports", label: "Reports", icon: BarChart3 },
+    { href: "/ai-assistant", label: "AI Assistant", icon: Bot },
+    { href: "/settings", label: "Settings", icon: Settings },
   ];
 
-  const appNavigation = [
-    { name: "Dashboard", href: "/dashboard" },
-    { name: "Transactions", href: "/transactions" },
-    { name: "Reports", href: "/reports" },
-    { name: "Settings", href: "/settings" },
+  const landingLinks = [
+    { href: "/#features", label: "Features" },
+    { href: "/#pricing", label: "Pricing" },
+    { href: "/blog", label: "Blog" },
+    { href: "/about", label: "About" },
   ];
-
-  const currentNav = isLandingPage ? navigation : appNavigation;
 
   const handleLogout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      toast({
-        title: "Logged out successfully",
-        description: "You have been logged out of your account",
-      });
-      
-      navigate("/");
-    } catch (error) {
-      console.error("Error logging out:", error);
+    const { error } = await supabase.auth.signOut();
+    if (error) {
       toast({
         title: "Error",
-        description: "Failed to log out",
+        description: "Failed to log out. Please try again.",
         variant: "destructive",
       });
+    } else {
+      toast({
+        title: "Success",
+        description: "You have been logged out successfully.",
+      });
+      navigate("/");
     }
+    setMobileMenuOpen(false);
+  };
+
+  const isActive = (path: string) => {
+    if (path.startsWith("/#")) {
+      return false;
+    }
+    return location.pathname === path;
   };
 
   return (
-    <header className="fixed top-0 w-full bg-background/95 backdrop-blur-sm border-b border-border z-50">
-      <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center space-x-2">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex h-16 items-center justify-between">
+          {/* Logo */}
+          <Link 
+            to="/" 
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+          >
             <div className="p-2 bg-gradient-primary rounded-lg">
-              <TrendingUp className="h-6 w-6 text-primary-foreground" />
+              <TrendingUp className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="font-bold text-xl text-foreground">Cash Flow AI</span>
+            <span className="font-bold text-lg sm:text-xl text-foreground">Cash Flow AI</span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            {isLandingPage && !user ? (
+          <nav className="hidden lg:flex items-center gap-6">
+            {isLandingPage ? (
               <>
-                {navigation.map((item) => (
+                {landingLinks.map((link) => (
                   <a
-                    key={item.name}
-                    href={item.href}
-                    className="text-muted-foreground hover:text-primary transition-colors"
+                    key={link.href}
+                    href={link.href}
+                    className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
                   >
-                    {item.name}
+                    {link.label}
                   </a>
                 ))}
               </>
-            ) : user ? (
+            ) : (
               <>
-                {appNavigation.map((item) => (
+                {navigationLinks.map((link) => (
                   <Link
-                    key={item.name}
-                    to={item.href}
-                    className={`transition-colors ${
-                      location.pathname === item.href
-                        ? "text-primary font-medium"
+                    key={link.href}
+                    to={link.href}
+                    className={`text-sm font-medium transition-colors ${
+                      isActive(link.href) 
+                        ? "text-primary" 
                         : "text-muted-foreground hover:text-primary"
                     }`}
                   >
-                    {item.name}
+                    {link.label}
                   </Link>
                 ))}
                 {isAdmin && (
                   <Link
                     to="/admin"
-                    className={`transition-colors flex items-center gap-1 ${
-                      location.pathname === '/admin'
-                        ? "text-primary font-medium"
+                    className={`text-sm font-medium transition-colors ${
+                      isActive("/admin") 
+                        ? "text-primary" 
                         : "text-muted-foreground hover:text-primary"
                     }`}
                   >
-                    <Shield className="h-4 w-4" />
                     Admin
                   </Link>
                 )}
               </>
-            ) : null}
-          </div>
-
-          {/* Desktop CTA / User Menu */}
-          <div className="hidden md:flex items-center space-x-4">
-            {isLandingPage && !user ? (
-              <>
-                <Link to="/auth">
-                  <Button variant="ghost">Sign In</Button>
-                </Link>
-                <Link to="/auth">
-                  <Button variant="gradient">Start Free Trial</Button>
-                </Link>
-              </>
-            ) : user ? (
-              <>
-                {isAdmin && (
-                  <Badge variant="outline" className="bg-primary/10">
-                    Admin
-                  </Badge>
-                )}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <User className="h-4 w-4" />
-                      {user.email?.split('@')[0]}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel className="font-normal">
-                      <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none">Account</p>
-                        <p className="text-xs leading-none text-muted-foreground">
-                          {user.email}
-                        </p>
-                      </div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => navigate('/dashboard')}>
-                      <TrendingUp className="mr-2 h-4 w-4" />
-                      Dashboard
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/settings')}>
-                      <User className="mr-2 h-4 w-4" />
-                      Settings
-                    </DropdownMenuItem>
-                    {isAdmin && (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => navigate('/admin')}>
-                          <Shield className="mr-2 h-4 w-4" />
-                          Admin Dashboard
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout} className="text-red-600">
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Log Out
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </>
-            ) : null}
-          </div>
-
-          {/* Mobile menu button */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2"
-          >
-            {mobileMenuOpen ? (
-              <X className="h-6 w-6 text-foreground" />
-            ) : (
-              <Menu className="h-6 w-6 text-foreground" />
             )}
-          </button>
-        </div>
+          </nav>
 
-        {/* Mobile Navigation */}
-        {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-border">
-            <div className="flex flex-col space-y-4">
-              {isLandingPage && !user ? (
-                <>
-                  {navigation.map((item) => (
-                    <a
-                      key={item.name}
-                      href={item.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      {item.name}
-                    </a>
-                  ))}
-                  <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full">Sign In</Button>
-                  </Link>
-                  <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="gradient" className="w-full">Start Free Trial</Button>
-                  </Link>
-                </>
-              ) : user ? (
-                <>
-                  {appNavigation.map((item) => (
-                    <Link
-                      key={item.name}
-                      to={item.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`transition-colors ${
-                        location.pathname === item.href
-                          ? "text-primary font-medium"
-                          : "text-muted-foreground hover:text-primary"
-                      }`}
-                    >
-                      {item.name}
-                    </Link>
-                  ))}
+          {/* Desktop User Menu / Auth Buttons */}
+          <div className="hidden lg:flex items-center gap-4">
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="relative h-9 w-9 rounded-full">
+                    <Avatar className="h-9 w-9">
+                      <AvatarFallback className="bg-gradient-primary text-primary-foreground">
+                        {user.email?.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end">
+                  <DropdownMenuLabel>
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">Account</p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user.email}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate("/settings")}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    Settings
+                  </DropdownMenuItem>
                   {isAdmin && (
-                    <Link
-                      to="/admin"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`transition-colors flex items-center gap-1 ${
-                        location.pathname === '/admin'
-                          ? "text-primary font-medium"
-                          : "text-muted-foreground hover:text-primary"
-                      }`}
-                    >
-                      <Shield className="h-4 w-4" />
-                      Admin Dashboard
-                    </Link>
+                    <DropdownMenuItem onClick={() => navigate("/admin")}>
+                      <Shield className="mr-2 h-4 w-4" />
+                      Admin Panel
+                    </DropdownMenuItem>
                   )}
-                  <div className="pt-4 border-t space-y-2">
-                    <div className="px-2 text-sm text-muted-foreground">
-                      {user.email}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => navigate("/auth")}
+                >
+                  Sign In
+                </Button>
+                <Button 
+                  variant="gradient" 
+                  size="sm"
+                  onClick={() => navigate("/auth")}
+                >
+                  Start Free Trial
+                </Button>
+              </>
+            )}
+          </div>
+
+          {/* Mobile Menu Trigger */}
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild className="lg:hidden">
+              <Button variant="ghost" size="icon">
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Toggle menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[300px] sm:w-[350px]">
+              <SheetHeader className="pb-4 border-b">
+                <SheetTitle className="flex items-center gap-2">
+                  <div className="p-2 bg-gradient-primary rounded-lg">
+                    <TrendingUp className="h-4 w-4 text-primary-foreground" />
+                  </div>
+                  <span>Cash Flow AI</span>
+                </SheetTitle>
+              </SheetHeader>
+              
+              <nav className="flex flex-col gap-4 mt-6">
+                {user ? (
+                  <>
+                    {/* User Info */}
+                    <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback className="bg-gradient-primary text-primary-foreground">
+                          {user.email?.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{user.email}</p>
+                        <p className="text-xs text-muted-foreground">Account</p>
+                      </div>
+                    </div>
+
+                    {/* Navigation Links */}
+                    <div className="space-y-1">
+                      {navigationLinks.map((link) => {
+                        const Icon = link.icon;
+                        return (
+                          <Link
+                            key={link.href}
+                            to={link.href}
+                            onClick={() => setMobileMenuOpen(false)}
+                            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                              isActive(link.href)
+                                ? "bg-primary/10 text-primary"
+                                : "hover:bg-muted"
+                            }`}
+                          >
+                            <Icon className="h-4 w-4" />
+                            <span className="font-medium">{link.label}</span>
+                          </Link>
+                        );
+                      })}
                       {isAdmin && (
-                        <Badge variant="outline" className="ml-2 bg-primary/10">
-                          Admin
-                        </Badge>
+                        <Link
+                          to="/admin"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                            isActive("/admin")
+                              ? "bg-primary/10 text-primary"
+                              : "hover:bg-muted"
+                          }`}
+                        >
+                          <Shield className="h-4 w-4" />
+                          <span className="font-medium">Admin Panel</span>
+                        </Link>
                       )}
                     </div>
-                    <Button 
-                      variant="destructive" 
-                      className="w-full"
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        handleLogout();
-                      }}
+
+                    {/* Logout Button */}
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={handleLogout}
                     >
                       <LogOut className="mr-2 h-4 w-4" />
-                      Log Out
+                      Log out
                     </Button>
-                  </div>
-                </>
-              ) : null}
-            </div>
-          </div>
-        )}
-      </nav>
+                  </>
+                ) : (
+                  <>
+                    {/* Landing Navigation */}
+                    {isLandingPage && (
+                      <div className="space-y-1 mb-4">
+                        {landingLinks.map((link) => (
+                          <a
+                            key={link.href}
+                            href={link.href}
+                            onClick={() => setMobileMenuOpen(false)}
+                            className="flex items-center px-3 py-2 rounded-lg hover:bg-muted transition-colors"
+                          >
+                            <span className="font-medium">{link.label}</span>
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Auth Buttons */}
+                    <div className="space-y-3">
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => {
+                          navigate("/auth");
+                          setMobileMenuOpen(false);
+                        }}
+                      >
+                        Sign In
+                      </Button>
+                      <Button
+                        variant="gradient"
+                        className="w-full"
+                        onClick={() => {
+                          navigate("/auth");
+                          setMobileMenuOpen(false);
+                        }}
+                      >
+                        Start Free Trial
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </nav>
+            </SheetContent>
+          </Sheet>
+        </div>
+      </div>
     </header>
   );
 }
