@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Calculator, DollarSign, Calendar, Percent, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -13,11 +14,19 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-export function LoanCalculator() {
+interface LoanCalculatorProps {
+  showAsPopup?: boolean;
+  onClose?: () => void;
+}
+
+export function LoanCalculator({ showAsPopup = false, onClose }: LoanCalculatorProps) {
   const { toast } = useToast();
-  const [showEmailCapture, setShowEmailCapture] = useState(true);
+  const [showEmailCapture, setShowEmailCapture] = useState(false);
   const [email, setEmail] = useState("");
   const [calculatorUnlocked, setCalculatorUnlocked] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [hasSeenPopup, setHasSeenPopup] = useState(false);
   
   // Calculator state
   const [loanAmount, setLoanAmount] = useState(50000);
@@ -26,6 +35,62 @@ export function LoanCalculator() {
   const [monthlyPayment, setMonthlyPayment] = useState<number | null>(null);
   const [totalInterest, setTotalInterest] = useState<number | null>(null);
   const [totalPayment, setTotalPayment] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Check if user is authenticated
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
+      
+      // If authenticated, unlock calculator immediately
+      if (session) {
+        setCalculatorUnlocked(true);
+        calculateLoan();
+      }
+    };
+    
+    checkAuth();
+    
+    // Check localStorage for previous email submission
+    const hasSubmittedEmail = localStorage.getItem('loan_calculator_email_submitted');
+    const popupShowCount = parseInt(localStorage.getItem('loan_calculator_popup_count') || '0');
+    
+    if (hasSubmittedEmail) {
+      setCalculatorUnlocked(true);
+      calculateLoan();
+    }
+    
+    // Handle popup logic
+    if (showAsPopup && !hasSubmittedEmail && !isAuthenticated) {
+      // Show popup on initial load after 3 seconds
+      if (popupShowCount === 0) {
+        const timer = setTimeout(() => {
+          setIsOpen(true);
+          setHasSeenPopup(true);
+          localStorage.setItem('loan_calculator_popup_count', '1');
+        }, 3000);
+        
+        return () => clearTimeout(timer);
+      }
+      
+      // Set up exit intent detection for second show
+      if (popupShowCount === 1) {
+        const handleExitIntent = (e: MouseEvent) => {
+          if (e.clientY <= 0 && !hasSeenPopup) {
+            setIsOpen(true);
+            setHasSeenPopup(true);
+            localStorage.setItem('loan_calculator_popup_count', '2');
+          }
+        };
+        
+        document.addEventListener('mouseleave', handleExitIntent);
+        
+        return () => {
+          document.removeEventListener('mouseleave', handleExitIntent);
+        };
+      }
+    }
+  }, [showAsPopup, isAuthenticated, hasSeenPopup]);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,16 +104,25 @@ export function LoanCalculator() {
       return;
     }
 
+    // Store email submission in localStorage
+    localStorage.setItem('loan_calculator_email_submitted', 'true');
+    localStorage.setItem('loan_calculator_email', email);
+    
     // Here you would typically save the email to your database
     // For now, we'll just unlock the calculator
     setCalculatorUnlocked(true);
     setShowEmailCapture(false);
+    setIsOpen(false);
     calculateLoan();
     
     toast({
       title: "Calculator Unlocked!",
       description: "You now have full access to the business loan calculator",
     });
+    
+    if (onClose) {
+      onClose();
+    }
   };
 
   const calculateLoan = () => {
@@ -79,6 +153,54 @@ export function LoanCalculator() {
     }).format(amount);
   };
 
+  const handleClosePopup = () => {
+    setIsOpen(false);
+    if (onClose) {
+      onClose();
+    }
+  };
+
+  // If showing as popup, return the dialog version
+  if (showAsPopup) {
+    return (
+      <Dialog open={isOpen} onOpenChange={handleClosePopup}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Unlock Free Loan Calculator</DialogTitle>
+            <DialogDescription>
+              Enter your email to get instant access to our business loan calculator and receive 
+              financial tips for growing your business.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEmailSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="email">Email Address</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+            <Button type="submit" variant="gradient" className="w-full">
+              Unlock Calculator
+            </Button>
+            <p className="text-xs text-muted-foreground text-center">
+              We respect your privacy. Unsubscribe at any time.
+            </p>
+          </form>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Regular section display
   return (
     <section className="py-20 bg-gradient-subtle">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -142,6 +264,34 @@ export function LoanCalculator() {
                     </div>
                   </div>
                 </div>
+                
+                {/* Show inline email capture if not authenticated and hasn't submitted email */}
+                {!isAuthenticated && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-lg">
+                    <div className="p-6 max-w-sm w-full">
+                      <h3 className="text-lg font-semibold mb-2">Unlock Calculator</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Enter your email to access the free calculator
+                      </p>
+                      <form onSubmit={handleEmailSubmit} className="space-y-3">
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            type="email"
+                            placeholder="your@email.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="pl-10"
+                            required
+                          />
+                        </div>
+                        <Button type="submit" variant="gradient" className="w-full">
+                          Unlock Now
+                        </Button>
+                      </form>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <>
@@ -237,41 +387,6 @@ export function LoanCalculator() {
           </Card>
         </div>
       </div>
-
-      <Dialog open={showEmailCapture && !calculatorUnlocked} onOpenChange={setShowEmailCapture}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Unlock Free Loan Calculator</DialogTitle>
-            <DialogDescription>
-              Enter your email to get instant access to our business loan calculator and receive 
-              financial tips for growing your business.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleEmailSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="email">Email Address</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
-                  required
-                />
-              </div>
-            </div>
-            <Button type="submit" variant="gradient" className="w-full">
-              Unlock Calculator
-            </Button>
-            <p className="text-xs text-muted-foreground text-center">
-              We respect your privacy. Unsubscribe at any time.
-            </p>
-          </form>
-        </DialogContent>
-      </Dialog>
     </section>
   );
 }
