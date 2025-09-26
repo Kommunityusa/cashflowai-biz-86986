@@ -62,42 +62,44 @@ export default function Blog() {
 
           {/* Featured Post */}
           <div className="mb-16">
-            <Card className="overflow-hidden hover:shadow-glow transition-all duration-300 cursor-pointer border-primary/20"
-                  onClick={() => navigate(`/blog/${blogPosts[0].slug}`)}>
-              <CardHeader className="bg-gradient-subtle">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    {(() => {
-                      const Icon = blogPosts[0].icon;
-                      return <Icon className="h-5 w-5 text-primary" />;
-                    })()}
-                    <span className="text-sm font-medium text-primary">{blogPosts[0].category}</span>
-                  </div>
-                  <span className="text-sm text-muted-foreground">Featured Article</span>
-                </div>
-                <CardTitle className="text-2xl sm:text-3xl mb-2">{blogPosts[0].title}</CardTitle>
-                <CardDescription className="text-lg">{blogPosts[0].excerpt}</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      <span>{blogPosts[0].date}</span>
+            {(() => {
+              const FeaturedIcon = blogPosts[0].icon;
+              return (
+                <Card className="overflow-hidden hover:shadow-glow transition-all duration-300 cursor-pointer border-primary/20"
+                      onClick={() => navigate(`/blog/${blogPosts[0].slug}`)}>
+                  <CardHeader className="bg-gradient-subtle">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <FeaturedIcon className="h-5 w-5 text-primary" />
+                        <span className="text-sm font-medium text-primary">{blogPosts[0].category}</span>
+                      </div>
+                      <span className="text-sm text-muted-foreground">Featured Article</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
-                      <span>{blogPosts[0].readTime}</span>
+                    <CardTitle className="text-2xl sm:text-3xl mb-2">{blogPosts[0].title}</CardTitle>
+                    <CardDescription className="text-lg">{blogPosts[0].excerpt}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          <span>{blogPosts[0].date}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-4 w-4" />
+                          <span>{blogPosts[0].readTime}</span>
+                        </div>
+                        <span>By {blogPosts[0].author}</span>
+                      </div>
+                      <Button variant="ghost" size="sm" className="group">
+                        Read More
+                        <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                      </Button>
                     </div>
-                    <span>By {blogPosts[0].author}</span>
-                  </div>
-                  <Button variant="ghost" size="sm" className="group">
-                    Read More
-                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              );
+            })()}
           </div>
 
           {/* Recent Posts Grid */}
