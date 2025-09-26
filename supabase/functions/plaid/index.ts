@@ -105,7 +105,7 @@ serve(async (req) => {
         // This is not required for most banks and causes errors if not configured in Plaid dashboard
         let oauthRedirectUri = null;
         if (params?.use_oauth) {
-          const origin = req.headers.get('origin') || 'https://nbrcdphgadabjndynyvy.supabase.co';
+          const origin = req.headers.get('origin') || 'https://cashflowai.biz';
           oauthRedirectUri = `${origin}/plaid/oauth/callback`;
           console.log('[Plaid Function] OAuth Redirect URI:', oauthRedirectUri);
           requestBody.redirect_uri = oauthRedirectUri;
