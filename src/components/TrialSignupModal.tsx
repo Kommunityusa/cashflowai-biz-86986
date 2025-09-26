@@ -29,13 +29,13 @@ export function TrialSignupModal({ isOpen, onClose, onSubmit, isLoading, plan = 
   const getPlanDetails = () => {
     switch(plan) {
       case "Starter":
-        return { days: 7, price: "$19" };
+        return { days: 7, price: "$10" };
       case "Professional":
-        return { days: 14, price: "$49" };
+        return { days: 14, price: "$15" };
       case "Business":
-        return { days: 30, price: "$99" };
+        return { days: 30, price: "$25" };
       default:
-        return { days: 14, price: "$49" };
+        return { days: 14, price: "$15" };
     }
   };
 
