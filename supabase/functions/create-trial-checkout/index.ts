@@ -25,8 +25,8 @@ serve(async (req) => {
   try {
     logStep("Function started");
     
-    // Parse request body to get email (for unauthenticated users)
-    const { email } = await req.json();
+    // Parse request body to get email and plan
+    const { email, plan } = await req.json();
     
     // Check if user is authenticated (optional)
     const authHeader = req.headers.get("Authorization");
@@ -44,7 +44,33 @@ serve(async (req) => {
     }
     
     if (!userEmail) throw new Error("Email is required");
-    logStep("Processing checkout for", { email: userEmail });
+    logStep("Processing checkout for", { email: userEmail, plan });
+
+    // Determine trial period and price based on plan
+    let trialPeriodDays = 14; // Default to Professional plan
+    let priceId = "price_1SBQWPLKh5GKHicanc3VOXq3"; // Will need to be updated with actual price IDs
+    
+    switch(plan) {
+      case "Starter":
+        trialPeriodDays = 7;
+        // You'll need to create this price in Stripe for $10/month
+        priceId = "price_1SBQWPLKh5GKHicanc3VOXq3"; // Update with actual Starter price ID
+        break;
+      case "Professional":
+        trialPeriodDays = 14;
+        // You'll need to create this price in Stripe for $15/month
+        priceId = "price_1SBQWPLKh5GKHicanc3VOXq3"; // Update with actual Professional price ID
+        break;
+      case "Business":
+        trialPeriodDays = 30;
+        // You'll need to create this price in Stripe for $25/month
+        priceId = "price_1SBQWPLKh5GKHicanc3VOXq3"; // Update with actual Business price ID
+        break;
+      default:
+        trialPeriodDays = 14;
+    }
+
+    logStep("Selected plan details", { plan, trialPeriodDays, priceId });
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { 
       apiVersion: "2025-08-27.basil" 
@@ -102,19 +128,19 @@ serve(async (req) => {
       }
     }
 
-    // Create checkout session with 15-day trial
+    // Create checkout session with dynamic trial period
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : userEmail,
       line_items: [
         {
-          price: "price_1SBQWPLKh5GKHicanc3VOXq3", // Cash Flow AI Pro with trial
+          price: priceId,
           quantity: 1,
         },
       ],
       mode: "subscription",
       subscription_data: {
-        trial_period_days: 15,
+        trial_period_days: trialPeriodDays,
         trial_settings: {
           end_behavior: {
             missing_payment_method: 'create_invoice' // Will charge automatically after trial
@@ -122,7 +148,8 @@ serve(async (req) => {
         },
         metadata: {
           email: userEmail,
-          trial: 'true'
+          trial: 'true',
+          plan: plan || 'Professional'
         }
       },
       payment_method_collection: 'always', // Always collect payment method
@@ -131,14 +158,16 @@ serve(async (req) => {
       metadata: {
         email: userEmail,
         userId: userId || 'pending',
-        trial: 'true'
+        trial: 'true',
+        plan: plan || 'Professional'
       }
     });
 
     logStep("Checkout session created", { 
       sessionId: session.id,
       trial: true,
-      trialDays: 15 
+      trialDays: trialPeriodDays,
+      plan: plan || 'Professional'
     });
 
     return new Response(JSON.stringify({ url: session.url }), {

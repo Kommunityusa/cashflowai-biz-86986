@@ -11,12 +11,14 @@ export function Pricing() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [showTrialModal, setShowTrialModal] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<string>("");
 
   const handleGetStarted = () => {
     navigate("/auth");
   };
 
-  const handleUpgrade = async () => {
+  const handleUpgrade = async (planName: string) => {
+    setSelectedPlan(planName);
     // Check if user is logged in
     const { data: { session } } = await supabase.auth.getSession();
     
@@ -25,19 +27,22 @@ export function Pricing() {
       setShowTrialModal(true);
     } else {
       // Proceed with checkout for authenticated users
-      await processCheckout();
+      await processCheckout(undefined, planName);
     }
   };
 
-  const processCheckout = async (email?: string) => {
+  const processCheckout = async (email?: string, planName?: string) => {
     try {
       setIsLoading(true);
       setShowTrialModal(false);
       
       const { data: { session } } = await supabase.auth.getSession();
       
-      // Prepare the request body
-      const requestBody = email ? { email } : {};
+      // Prepare the request body with plan information
+      const requestBody = { 
+        email, 
+        plan: planName 
+      };
       const headers: any = {};
       
       if (session) {
@@ -116,7 +121,7 @@ export function Pricing() {
       ],
       cta: "Start 7-Day Free Trial",
       variant: "outline" as const,
-      onClick: handleUpgrade,
+      onClick: () => handleUpgrade("Starter"),
     },
     {
       name: "Professional",
@@ -138,7 +143,7 @@ export function Pricing() {
       ],
       cta: "Start 14-Day Free Trial",
       variant: "gradient" as const,
-      onClick: handleUpgrade,
+      onClick: () => handleUpgrade("Professional"),
     },
     {
       name: "Business",
@@ -159,7 +164,7 @@ export function Pricing() {
       ],
       cta: "Start 30-Day Free Trial",
       variant: "default" as const,
-      onClick: handleUpgrade,
+      onClick: () => handleUpgrade("Business"),
     },
   ];
 
@@ -244,7 +249,7 @@ export function Pricing() {
       <TrialSignupModal
         isOpen={showTrialModal}
         onClose={() => setShowTrialModal(false)}
-        onSubmit={processCheckout}
+        onSubmit={(email) => processCheckout(email, selectedPlan)}
         isLoading={isLoading}
       />
     </section>
