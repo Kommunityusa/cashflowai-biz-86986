@@ -237,3 +237,12 @@ verify_jwt = true
 
 [functions.parse-bank-statement]
 verify_jwt = true
+
+[functions.plaid-auto-sync]
+verify_jwt = false
+
+[functions.ai-funding-analysis]
+verify_jwt = true
+
+[functions.create-trial-checkout]
+verify_jwt = true
