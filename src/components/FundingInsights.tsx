@@ -71,31 +71,18 @@ export function FundingInsights() {
   const [realFundingOptions, setRealFundingOptions] = useState<any[]>([]);
 
   const fetchFundingAnalysis = async () => {
-    if (!user) {
-      console.error('No user found for funding analysis');
-      setLoading(false);
-      return;
-    }
-
     try {
       setRefreshing(true);
       
       // Get the current session to ensure we have a valid token
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session) {
-        console.error('No session found');
-        toast.error("Please log in to view funding analysis");
-        setLoading(false);
-        return;
-      }
-      
-      // Fetch AI-powered analysis with proper authentication
+      // Fetch AI-powered analysis - the edge function will handle auth
       const { data, error } = await supabase.functions.invoke('ai-funding-analysis', {
-        body: { userId: user.id },
-        headers: {
+        body: { userId: user?.id || session?.user?.id },
+        headers: session ? {
           Authorization: `Bearer ${session.access_token}`
-        }
+        } : undefined
       });
 
       if (error) {
