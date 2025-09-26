@@ -2,6 +2,7 @@ import { Header } from "@/components/layout/Header";
 import { Hero } from "@/components/landing/Hero";
 import { Features } from "@/components/landing/Features";
 import { Pricing } from "@/components/landing/Pricing";
+import { LoanCalculator } from "@/components/landing/LoanCalculator";
 import { Footer } from "@/components/landing/Footer";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -75,6 +76,7 @@ const Index = () => {
       <Header />
       <main>
         <Hero />
+        <LoanCalculator />
         <Features />
         <Pricing />
       </main>
