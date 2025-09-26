@@ -1,5 +1,5 @@
-import { TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
+import cashflowLogo from "@/assets/cashflow-ai-logo.png";
 
 export function Footer() {
   return (
@@ -8,9 +8,11 @@ export function Footer() {
         <div className="grid md:grid-cols-4 gap-8">
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <div className="p-2 bg-gradient-primary rounded-lg">
-                <TrendingUp className="h-5 w-5 text-primary-foreground" />
-              </div>
+              <img 
+                src={cashflowLogo} 
+                alt="Cash Flow AI" 
+                className="h-10 w-10 object-contain"
+              />
               <span className="font-bold text-lg text-foreground">Cash Flow AI</span>
             </div>
             <p className="text-muted-foreground text-sm">

@@ -2,7 +2,6 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
-  TrendingUp, 
   Menu, 
   X, 
   Shield, 
@@ -10,6 +9,7 @@ import {
   User
 } from "lucide-react";
 import { useState } from "react";
+import cashflowLogo from "@/assets/cashflow-ai-logo.png";
 import { useRole } from "@/hooks/useRole";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -73,9 +73,11 @@ export const Header = () => {
       <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="flex items-center space-x-2">
-            <div className="p-2 bg-gradient-primary rounded-lg">
-              <TrendingUp className="h-6 w-6 text-primary-foreground" />
-            </div>
+            <img 
+              src={cashflowLogo} 
+              alt="Cash Flow AI" 
+              className="h-10 w-10 object-contain"
+            />
             <span className="font-bold text-xl text-foreground">Cash Flow AI</span>
           </Link>
 
@@ -161,7 +163,7 @@ export const Header = () => {
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => navigate('/dashboard')}>
-                      <TrendingUp className="mr-2 h-4 w-4" />
+                      <img src={cashflowLogo} alt="Dashboard" className="mr-2 h-4 w-4 object-contain" />
                       Dashboard
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate('/settings')}>
