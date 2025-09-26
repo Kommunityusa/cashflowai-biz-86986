@@ -20,6 +20,11 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AIAssistant from "./pages/AIAssistant";
 import PlaidTesting from "./pages/PlaidTesting";
 import PlaidOAuthCallback from "./pages/PlaidOAuthCallback";
+import Blog from "./pages/Blog";
+import About from "./pages/About";
+import SmallBusinessBookkeepingGuide from "./pages/blog/SmallBusinessBookkeepingGuide";
+import DoubleEntryBookkeeping from "./pages/blog/DoubleEntryBookkeeping";
+import TaxSeasonChecklist from "./pages/blog/TaxSeasonChecklist";
 
 const queryClient = new QueryClient();
 
@@ -111,6 +116,11 @@ const App = () => (
             </ProtectedRoute>
           } />
           <Route path="/auth/callback" element={<PlaidOAuthCallback />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/blog/small-business-bookkeeping-guide" element={<SmallBusinessBookkeepingGuide />} />
+          <Route path="/blog/double-entry-bookkeeping-essentials" element={<DoubleEntryBookkeeping />} />
+          <Route path="/blog/tax-season-bookkeeping-checklist" element={<TaxSeasonChecklist />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
