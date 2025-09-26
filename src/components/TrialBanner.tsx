@@ -189,7 +189,7 @@ export function TrialBanner() {
         <div>
           <p className="font-semibold mb-1">Start Your 15-Day Free Trial</p>
           <p className="text-sm">
-            Get full access to all BizFlow Pro features. Credit card required. Cancel anytime.
+            Get full access to all Cash Flow AI Pro features. Credit card required. Cancel anytime.
           </p>
         </div>
         <Button 

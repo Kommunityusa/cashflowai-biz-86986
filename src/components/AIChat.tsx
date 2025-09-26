@@ -20,7 +20,7 @@ const AIChat = () => {
     {
       id: '1',
       role: 'assistant',
-      content: 'Hello! I\'m your BizFlow bookkeeping assistant. I can help you with:\n\n• Recording and categorizing transactions\n• Understanding financial statements\n• Tax preparation guidance\n• Cash flow analysis\n• Expense tracking best practices\n\nWhat bookkeeping task can I assist you with today?',
+      content: 'Hello! I\'m your Cash Flow AI bookkeeping assistant. I can help you with:\n\n• Recording and categorizing transactions\n• Understanding financial statements\n• Tax preparation guidance\n• Cash flow analysis\n• Expense tracking best practices\n\nWhat bookkeeping task can I assist you with today?',
       timestamp: new Date(),
     }
   ]);
@@ -111,7 +111,7 @@ const AIChat = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Bot className="h-5 w-5" />
-          BizFlow Bookkeeping Assistant
+          Cash Flow AI Bookkeeping Assistant
         </CardTitle>
         <CardDescription>
           Your expert AI bookkeeper for transaction management, financial analysis, and compliance

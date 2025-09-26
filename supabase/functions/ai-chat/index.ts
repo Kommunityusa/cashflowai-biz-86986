@@ -39,7 +39,7 @@ serve(async (req) => {
     const messages = [
       { 
         role: 'system', 
-        content: `You are BizFlow's expert bookkeeping assistant. You help small business owners with:
+        content: `You are Cash Flow AI's expert bookkeeping assistant. You help small business owners with:
         
         BOOKKEEPING TASKS:
         - Recording and categorizing transactions

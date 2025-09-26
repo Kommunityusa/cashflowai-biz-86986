@@ -22,7 +22,7 @@ export const AIChatBubble = () => {
     {
       id: '1',
       role: 'assistant',
-      content: 'Hello! I\'m your BizFlow bookkeeping assistant. I can help you with:\n\n• Recording and categorizing transactions\n• Understanding financial statements\n• Tax preparation guidance\n• Cash flow analysis\n• Expense tracking best practices\n\nWhat bookkeeping task can I assist you with today?',
+      content: 'Hello! I\'m your Cash Flow AI bookkeeping assistant. I can help you with:\n\n• Recording and categorizing transactions\n• Understanding financial statements\n• Tax preparation guidance\n• Cash flow analysis\n• Expense tracking best practices\n\nWhat bookkeeping task can I assist you with today?',
       timestamp: new Date(),
     }
   ]);

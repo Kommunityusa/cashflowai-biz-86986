@@ -108,7 +108,7 @@ serve(async (req) => {
       customer_email: customerId ? undefined : userEmail,
       line_items: [
         {
-          price: "price_1SBQWPLKh5GKHicanc3VOXq3", // BizFlow Pro with trial
+          price: "price_1SBQWPLKh5GKHicanc3VOXq3", // Cash Flow AI Pro with trial
           quantity: 1,
         },
       ],

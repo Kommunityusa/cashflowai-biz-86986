@@ -149,7 +149,7 @@ export function SubscriptionStatus() {
             )}
             <div>
               <h3 className="text-lg font-semibold text-foreground">
-                {isPro ? "BizFlow Pro" : "Free Plan"}
+                {isPro ? "Cash Flow AI Pro" : "Free Plan"}
               </h3>
               <p className="text-sm text-muted-foreground">
                 {isPro ? "$25 per month" : "No charge"}

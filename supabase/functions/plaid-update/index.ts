@@ -71,7 +71,7 @@ serve(async (req) => {
             user: {
               client_user_id: user.id,
             },
-            client_name: 'BizFlow',
+            client_name: 'Cash Flow AI',
             country_codes: ['US'],
             language: 'en',
             access_token: bankAccount.plaid_access_token,
