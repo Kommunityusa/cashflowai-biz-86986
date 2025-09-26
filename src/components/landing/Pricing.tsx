@@ -101,18 +101,18 @@ export function Pricing() {
       name: "Starter",
       price: "$10",
       period: "/month",
-      description: "Perfect for freelancers and solopreneurs",
+      description: "Perfect for freelancers just getting started",
       features: [
-        { text: "2 bank account connections", included: true },
+        { text: "1 bank account connection", included: true },
         { text: "Basic AI categorization", included: true },
         { text: "Monthly reports", included: true },
-        { text: "Up to 500 transactions/month", included: true },
+        { text: "Up to 250 transactions/month", included: true },
         { text: "Email support", included: true },
         { text: "Basic expense tracking", included: true },
         { text: "Advanced analytics", included: false },
         { text: "Tax preparation reports", included: false },
         { text: "Priority support", included: false },
-        { text: "Custom categories & rules", included: false },
+        { text: "Custom categories", included: false },
       ],
       cta: "Start 7-Day Free Trial",
       variant: "outline" as const,
@@ -122,23 +122,43 @@ export function Pricing() {
       name: "Professional",
       price: "$15",
       period: "/month",
-      description: "15-day free trial • Cancel anytime",
+      description: "Ideal for growing businesses",
       popular: true,
-      trial: "15-day free trial",
+      features: [
+        { text: "3 bank account connections", included: true },
+        { text: "Advanced AI categorization", included: true },
+        { text: "Weekly & monthly reports", included: true },
+        { text: "Up to 1,000 transactions/month", included: true },
+        { text: "Priority email support", included: true },
+        { text: "Tax preparation reports", included: true },
+        { text: "Custom categories", included: true },
+        { text: "Basic vendor management", included: true },
+        { text: "Unlimited transactions", included: false },
+        { text: "API access", included: false },
+      ],
+      cta: "Start 14-Day Free Trial",
+      variant: "gradient" as const,
+      onClick: handleUpgrade,
+    },
+    {
+      name: "Enterprise",
+      price: "$25",
+      period: "/month",
+      description: "For established businesses",
       features: [
         { text: "Unlimited bank connections", included: true },
-        { text: "Advanced AI categorization", included: true },
+        { text: "Advanced AI with custom rules", included: true },
         { text: "Real-time reports & analytics", included: true },
         { text: "Unlimited transactions", included: true },
-        { text: "Priority email & chat support", included: true },
-        { text: "Tax preparation reports", included: true },
+        { text: "Priority phone & chat support", included: true },
+        { text: "Advanced tax reports", included: true },
         { text: "Custom categories & rules", included: true },
-        { text: "Vendor management", included: true },
+        { text: "Full vendor management", included: true },
         { text: "Invoice generation", included: true },
         { text: "API access", included: true },
       ],
-      cta: "Start 15-Day Free Trial",
-      variant: "gradient" as const,
+      cta: "Start 30-Day Free Trial",
+      variant: "default" as const,
       onClick: handleUpgrade,
     },
   ];
@@ -159,7 +179,7 @@ export function Pricing() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {plans.map((plan) => (
             <div
               key={plan.name}
