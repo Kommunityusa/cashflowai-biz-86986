@@ -29,6 +29,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { SubscriptionStatus } from "@/components/SubscriptionStatus";
 import { AuditLogs } from "@/components/AuditLogs";
+import { CategoryManager } from "@/components/CategoryManager";
+import { VendorManager } from "@/components/VendorManager";
+import { BudgetManager } from "@/components/BudgetManager";
 import { scheduleDataRetention, exportUserData } from "@/utils/dataRetention";
 import {
   Dialog,
@@ -305,13 +308,28 @@ const Settings = () => {
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-[700px]">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
             <TabsTrigger value="profile">Profile</TabsTrigger>
+            <TabsTrigger value="categories">Categories</TabsTrigger>
+            <TabsTrigger value="vendors">Vendors</TabsTrigger>
+            <TabsTrigger value="budgets">Budgets</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
             <TabsTrigger value="billing">Billing</TabsTrigger>
             <TabsTrigger value="integrations">Integrations</TabsTrigger>
             <TabsTrigger value="preferences">Preferences</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="categories" className="space-y-6">
+            <CategoryManager />
+          </TabsContent>
+
+          <TabsContent value="vendors" className="space-y-6">
+            <VendorManager />
+          </TabsContent>
+
+          <TabsContent value="budgets" className="space-y-6">
+            <BudgetManager />
+          </TabsContent>
 
           <TabsContent value="profile" className="space-y-6">
             <Card className="p-6">
