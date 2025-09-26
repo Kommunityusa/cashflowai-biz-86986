@@ -8,6 +8,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -19,7 +24,7 @@ serve(async (req) => {
   );
 
   try {
-    console.log("[CHECK-SUBSCRIPTION] Function started");
+    logStep("Function started");
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) {
@@ -43,15 +48,21 @@ serve(async (req) => {
       throw new Error("User not authenticated or email not available");
     }
 
-    console.log("[CHECK-SUBSCRIPTION] User authenticated:", user.email);
+    logStep("User authenticated", { email: user.email });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
     if (customers.data.length === 0) {
-      console.log("[CHECK-SUBSCRIPTION] No customer found");
+      logStep("No customer found");
       return new Response(
-        JSON.stringify({ subscribed: false, plan: "free" }),
+        JSON.stringify({ 
+          subscribed: false, 
+          plan: "free",
+          inTrial: false,
+          trialDaysRemaining: null,
+          subscription_end: null
+        }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 200,
@@ -60,30 +71,68 @@ serve(async (req) => {
     }
 
     const customerId = customers.data[0].id;
-    console.log("[CHECK-SUBSCRIPTION] Found customer:", customerId);
+    logStep("Found customer", { customerId });
 
+    // Check for both active and trialing subscriptions
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
-      status: "active",
-      limit: 1,
+      status: "all",
+      limit: 10,
     });
 
-    const hasActiveSub = subscriptions.data.length > 0;
-    let plan = "free";
-    let subscriptionEnd = null;
+    // Find active or trialing subscription
+    const activeSubscription = subscriptions.data.find(
+      (sub: any) => sub.status === "active" || sub.status === "trialing"
+    );
 
-    if (hasActiveSub) {
-      const subscription = subscriptions.data[0];
-      subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
-      plan = "pro"; // We only have pro and free
-      console.log("[CHECK-SUBSCRIPTION] Active subscription found");
+    if (!activeSubscription) {
+      logStep("No active or trial subscription found");
+      return new Response(
+        JSON.stringify({ 
+          subscribed: false, 
+          plan: "free",
+          inTrial: false,
+          trialDaysRemaining: null,
+          subscription_end: null
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        }
+      );
     }
+
+    const inTrial = activeSubscription.status === "trialing";
+    const trialEnd = activeSubscription.trial_end;
+    let trialDaysRemaining = null;
+    
+    if (inTrial && trialEnd) {
+      const now = Math.floor(Date.now() / 1000);
+      const daysRemaining = Math.ceil((trialEnd - now) / (60 * 60 * 24));
+      trialDaysRemaining = Math.max(0, daysRemaining);
+      logStep("Trial subscription", { 
+        trialEnd: new Date(trialEnd * 1000).toISOString(),
+        daysRemaining: trialDaysRemaining 
+      });
+    }
+
+    const subscriptionEnd = new Date(activeSubscription.current_period_end * 1000).toISOString();
+    
+    logStep("Subscription details", { 
+      status: activeSubscription.status,
+      inTrial,
+      trialDaysRemaining
+    });
 
     return new Response(
       JSON.stringify({
-        subscribed: hasActiveSub,
-        plan: plan,
-        subscription_end: subscriptionEnd
+        subscribed: true,
+        plan: "pro",
+        inTrial,
+        trialDaysRemaining,
+        subscription_end: subscriptionEnd,
+        status: activeSubscription.status,
+        cancelAtPeriodEnd: activeSubscription.cancel_at_period_end
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -22,13 +22,13 @@ export function Pricing() {
       if (!session) {
         toast({
           title: "Sign up required",
-          description: "Please create an account to start your free trial",
+          description: "Please create an account to start your 15-day free trial",
         });
         navigate("/auth");
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
+      const { data, error } = await supabase.functions.invoke("create-trial-checkout", {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
@@ -38,9 +38,27 @@ export function Pricing() {
         throw error;
       }
       
+      if (data?.hasSubscription) {
+        toast({
+          title: "Already Subscribed",
+          description: "You already have an active subscription",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data?.hasTrial) {
+        toast({
+          title: "Trial Active",
+          description: "You already have an active trial",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       if (data?.url) {
-        // Open in same window for better UX
-        window.location.href = data.url;
+        // Open in new tab for Stripe checkout
+        window.open(data.url, '_blank');
       } else {
         throw new Error("No checkout URL received");
       }
@@ -80,8 +98,9 @@ export function Pricing() {
       name: "Pro",
       price: "$25",
       period: "/month",
-      description: "For growing businesses that need more",
+      description: "15-day free trial • Credit card required • Cancel anytime",
       popular: true,
+      trial: "15-day free trial",
       features: [
         { text: "Unlimited bank connections", included: true },
         { text: "Advanced AI categorization", included: true },
@@ -92,7 +111,7 @@ export function Pricing() {
         { text: "Custom categories & rules", included: true },
         { text: "API access", included: true },
       ],
-      cta: "Start Free Trial",
+      cta: "Start 15-Day Free Trial",
       variant: "gradient" as const,
       onClick: handleUpgrade,
     },

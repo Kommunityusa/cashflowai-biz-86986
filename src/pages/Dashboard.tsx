@@ -10,6 +10,7 @@ import { SecurityMonitor } from "@/components/SecurityMonitor";
 import { FundingInsights } from "@/components/FundingInsights";
 import { RecurringTransactionDetector } from "@/components/RecurringTransactionDetector";
 import { TaxPreparation } from "@/components/TaxPreparation";
+import { TrialBanner } from "@/components/TrialBanner";
 import { useState, useEffect } from "react";
 import { useRole } from "@/hooks/useRole";
 import { supabase } from "@/integrations/supabase/client";
@@ -304,6 +305,9 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
+        {/* Trial Banner */}
+        <TrialBanner />
+        
         {/* Welcome Section */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
           <div>
