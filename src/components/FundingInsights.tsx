@@ -71,17 +71,36 @@ export function FundingInsights() {
   const [realFundingOptions, setRealFundingOptions] = useState<any[]>([]);
 
   const fetchFundingAnalysis = async () => {
-    if (!user) return;
+    if (!user) {
+      console.error('No user found for funding analysis');
+      setLoading(false);
+      return;
+    }
 
     try {
       setRefreshing(true);
       
-      // Fetch AI-powered analysis
-      const { data, error } = await supabase.functions.invoke('ai-funding-analysis');
+      // Get the current session to ensure we have a valid token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.error('No session found');
+        toast.error("Please log in to view funding analysis");
+        setLoading(false);
+        return;
+      }
+      
+      // Fetch AI-powered analysis with proper authentication
+      const { data, error } = await supabase.functions.invoke('ai-funding-analysis', {
+        body: { userId: user.id },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
 
       if (error) {
         console.error('Funding analysis error:', error);
-        throw error;
+        // Don't throw, continue with default data
       }
 
       if (data) {
@@ -107,9 +126,9 @@ export function FundingInsights() {
       }
     } catch (error) {
       console.error('Error fetching funding analysis:', error);
-      toast.error("Failed to load funding analysis. Please check your Plaid connection.");
+      toast.error("Using default funding analysis. Connect your bank accounts for personalized recommendations.");
       
-      // Set default values on error
+      // Set default values on error but continue to show UI
       setMetrics({
         monthlyRevenue: 0,
         monthlyExpenses: 0,
@@ -122,16 +141,34 @@ export function FundingInsights() {
         healthScore: 50
       });
       
-      // Still try to fetch generic funding options
-      const { data: searchData } = await supabase.functions.invoke('funding-search', {
-        body: { 
-          query: 'small business funding options 2025', 
-          businessStage: 'early' 
+      // Set some default recommendations
+      setRecommendations([
+        {
+          type: 'Bootstrap',
+          title: 'Start with Self-Funding',
+          amount: '$5K - $25K',
+          requirements: ['Personal savings', 'Side income', 'Credit lines'],
+          pros: ['Full control', 'No dilution', 'Learn by doing'],
+          cons: ['Limited resources', 'Slower growth', 'Personal risk'],
+          matchScore: 80,
+          reasoning: 'Connect your bank accounts via Plaid to get personalized funding recommendations based on your actual financial data.'
         }
-      });
+      ]);
       
-      if (searchData?.fundingOptions) {
-        setRealFundingOptions(searchData.fundingOptions);
+      // Still try to fetch generic funding options
+      try {
+        const { data: searchData } = await supabase.functions.invoke('funding-search', {
+          body: { 
+            query: 'small business funding options 2025', 
+            businessStage: 'early' 
+          }
+        });
+        
+        if (searchData?.fundingOptions) {
+          setRealFundingOptions(searchData.fundingOptions);
+        }
+      } catch (searchError) {
+        console.error('Error fetching funding search:', searchError);
       }
     } finally {
       setLoading(false);

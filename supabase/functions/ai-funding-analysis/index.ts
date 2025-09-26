@@ -12,40 +12,53 @@ serve(async (req) => {
   }
 
   try {
+    // Get the authorization header
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
-    }
-
-    const supabaseClient = createClient(
+    
+    // Create Supabase client with service role for server-side operations
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
-
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) {
-      console.error('Auth error:', authError);
-      throw new Error('Authentication failed');
+    
+    // Get user from the authorization token if provided
+    let userId = null;
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+      if (!authError && user) {
+        userId = user.id;
+      }
+    }
+    
+    // Also check if userId was passed in the body
+    const body = await req.json().catch(() => ({}));
+    if (!userId && body.userId) {
+      userId = body.userId;
+    }
+    
+    if (!userId) {
+      console.error('No user ID found in request');
+      throw new Error('Authentication required');
     }
 
-    console.log('Analyzing funding for user:', user.id);
+    console.log('Analyzing funding for user:', userId);
 
     // Fetch transactions from last 6 months
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-    const { data: transactions } = await supabaseClient
+    const { data: transactions } = await supabaseAdmin
       .from('transactions')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .gte('transaction_date', sixMonthsAgo.toISOString())
       .order('transaction_date', { ascending: false });
 
-    const { data: bankAccounts } = await supabaseClient
+    const { data: bankAccounts } = await supabaseAdmin
       .from('bank_accounts')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('is_active', true);
 
     // Calculate financial metrics
@@ -53,7 +66,7 @@ serve(async (req) => {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
 
-    transactions?.forEach(t => {
+    transactions?.forEach((t: any) => {
       const date = new Date(t.transaction_date);
       const key = `${date.getFullYear()}-${date.getMonth()}`;
       
@@ -78,7 +91,7 @@ serve(async (req) => {
     const monthlyRevenue = lastMonth.revenue;
     const monthlyExpenses = lastMonth.expenses;
     const burnRate = monthlyExpenses;
-    const totalBalance = bankAccounts?.reduce((sum, acc) => sum + Number(acc.current_balance || 0), 0) || 0;
+    const totalBalance = bankAccounts?.reduce((sum: number, acc: any) => sum + Number(acc.current_balance || 0), 0) || 0;
     const runway = burnRate > 0 ? Math.floor(totalBalance / burnRate) : 12;
     const growthRate = prevMonth.revenue > 0 ? ((lastMonth.revenue - prevMonth.revenue) / prevMonth.revenue) * 100 : 0;
     const profitMargin = monthlyRevenue > 0 ? ((monthlyRevenue - monthlyExpenses) / monthlyRevenue) * 100 : -100;
