@@ -25,15 +25,26 @@ serve(async (req) => {
   try {
     logStep("Function started");
     
+    // Parse request body to get email (for unauthenticated users)
+    const { email } = await req.json();
+    
+    // Check if user is authenticated (optional)
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header");
+    let userEmail = email;
+    let userId = null;
     
-    const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data } = await supabaseClient.auth.getUser(token);
+      if (data.user) {
+        userEmail = data.user.email;
+        userId = data.user.id;
+        logStep("Authenticated user", { userId, email: userEmail });
+      }
+    }
     
-    if (!user?.email) throw new Error("User not authenticated or email not available");
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    if (!userEmail) throw new Error("Email is required");
+    logStep("Processing checkout for", { email: userEmail });
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { 
       apiVersion: "2025-08-27.basil" 
@@ -41,7 +52,7 @@ serve(async (req) => {
 
     // Check if customer already exists
     const customers = await stripe.customers.list({ 
-      email: user.email, 
+      email: userEmail, 
       limit: 1 
     });
     
@@ -94,7 +105,7 @@ serve(async (req) => {
     // Create checkout session with 15-day trial
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      customer_email: customerId ? undefined : user.email,
+      customer_email: customerId ? undefined : userEmail,
       line_items: [
         {
           price: "price_1SBQWPLKh5GKHicanc3VOXq3", // BizFlow Pro with trial
@@ -108,13 +119,18 @@ serve(async (req) => {
           end_behavior: {
             missing_payment_method: 'create_invoice' // Will charge automatically after trial
           }
+        },
+        metadata: {
+          email: userEmail,
+          trial: 'true'
         }
       },
       payment_method_collection: 'always', // Always collect payment method
-      success_url: `${req.headers.get("origin")}/dashboard?trial=started`,
+      success_url: `${req.headers.get("origin")}/auth?trial=started&checkout_email=${encodeURIComponent(userEmail)}`,
       cancel_url: `${req.headers.get("origin")}/`,
       metadata: {
-        userId: user.id,
+        email: userEmail,
+        userId: userId || 'pending',
         trial: 'true'
       }
     });

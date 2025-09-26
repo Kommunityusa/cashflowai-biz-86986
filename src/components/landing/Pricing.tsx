@@ -4,34 +4,49 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { TrialSignupModal } from "@/components/TrialSignupModal";
 
 export function Pricing() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [showTrialModal, setShowTrialModal] = useState(false);
 
   const handleGetStarted = () => {
     navigate("/auth");
   };
 
   const handleUpgrade = async () => {
+    // Check if user is logged in
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      // Show modal for email collection
+      setShowTrialModal(true);
+    } else {
+      // Proceed with checkout for authenticated users
+      await processCheckout();
+    }
+  };
+
+  const processCheckout = async (email?: string) => {
     try {
       setIsLoading(true);
+      setShowTrialModal(false);
+      
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session) {
-        toast({
-          title: "Sign up required",
-          description: "Please create an account to start your 15-day free trial",
-        });
-        navigate("/auth");
-        return;
+      // Prepare the request body
+      const requestBody = email ? { email } : {};
+      const headers: any = {};
+      
+      if (session) {
+        headers.Authorization = `Bearer ${session.access_token}`;
       }
 
       const { data, error } = await supabase.functions.invoke("create-trial-checkout", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        body: requestBody,
+        headers,
       });
 
       if (error) {
@@ -59,6 +74,13 @@ export function Pricing() {
       if (data?.url) {
         // Open in new tab for Stripe checkout
         window.open(data.url, '_blank');
+        
+        if (!session) {
+          toast({
+            title: "Complete Your Signup",
+            description: "After completing checkout, return here to create your account with the same email.",
+          });
+        }
       } else {
         throw new Error("No checkout URL received");
       }
@@ -194,6 +216,13 @@ export function Pricing() {
           </p>
         </div>
       </div>
+      
+      <TrialSignupModal
+        isOpen={showTrialModal}
+        onClose={() => setShowTrialModal(false)}
+        onSubmit={processCheckout}
+        isLoading={isLoading}
+      />
     </section>
   );
 }

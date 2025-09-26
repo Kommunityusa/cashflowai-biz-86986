@@ -24,8 +24,20 @@ export default function Auth() {
   const [user, setUser] = useState<User | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(validatePassword(""));
+  const [showTrialMessage, setShowTrialMessage] = useState(false);
 
   useEffect(() => {
+    // Check for trial signup redirect
+    const urlParams = new URLSearchParams(window.location.search);
+    const trialStarted = urlParams.get('trial');
+    const checkoutEmail = urlParams.get('checkout_email');
+    
+    if (trialStarted === 'started' && checkoutEmail) {
+      setEmail(decodeURIComponent(checkoutEmail));
+      setShowTrialMessage(true);
+      setMessage("Trial started! Create your account with the same email to access your dashboard.");
+    }
+    
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -313,8 +325,10 @@ export default function Auth() {
             )}
             
             {message && (
-              <Alert className="mt-4 border-primary/20 bg-primary/5">
-                <AlertDescription className="text-primary">{message}</AlertDescription>
+              <Alert className={`mt-4 ${showTrialMessage ? 'border-success/20 bg-success/5' : 'border-primary/20 bg-primary/5'}`}>
+                <AlertDescription className={showTrialMessage ? 'text-success font-medium' : 'text-primary'}>
+                  {message}
+                </AlertDescription>
               </Alert>
             )}
           </CardContent>
