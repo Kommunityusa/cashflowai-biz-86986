@@ -47,7 +47,6 @@ export function Header() {
     { href: "/transactions", label: "Transactions", icon: FileText },
     { href: "/reports", label: "Reports", icon: BarChart3 },
     { href: "/settings", label: "Settings", icon: Settings },
-    { href: "/settings", label: "Settings", icon: Settings },
   ];
 
   const landingLinks = [
