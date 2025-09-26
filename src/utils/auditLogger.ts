@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 export type AuditAction = 
   | 'LOGIN'
   | 'LOGOUT'
+  | 'GOOGLE_LOGIN'
   | 'VIEW_DASHBOARD'
   | 'VIEW_TRANSACTIONS'
   | 'CREATE_TRANSACTION'
