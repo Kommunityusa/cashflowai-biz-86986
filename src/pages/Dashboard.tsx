@@ -762,24 +762,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
         
-        {/* AI Assistant Card */}
-        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bot className="h-5 w-5 text-primary" />
-              AI Bookkeeping Assistant
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground mb-4">
-              Get expert bookkeeping help with transaction recording, financial statements, tax prep, and compliance guidance.
-            </p>
-            <Button onClick={() => navigate('/ai-assistant')} className="w-full">
-              <Bot className="mr-2 h-4 w-4" />
-              Chat with AI Assistant
-            </Button>
-          </CardContent>
-        </Card>
 
         {/* New Financial Analysis Section */}
         <Tabs defaultValue="funding" className="mt-8">

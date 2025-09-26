@@ -68,26 +68,46 @@ export function FundingInsights() {
   const [tips, setTips] = useState<FundingTip[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [realFundingOptions, setRealFundingOptions] = useState<any[]>([]);
 
   const fetchFundingAnalysis = async () => {
     if (!user) return;
 
     try {
       setRefreshing(true);
-      const { data, error } = await supabase.functions.invoke('ai-funding-analysis', {
-        body: { userId: user.id }
-      });
+      
+      // Fetch AI-powered analysis
+      const { data, error } = await supabase.functions.invoke('ai-funding-analysis');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Funding analysis error:', error);
+        throw error;
+      }
 
       if (data) {
         setMetrics(data.metrics);
         setRecommendations(data.recommendations || []);
         setTips(data.tips || []);
+        
+        // Fetch real funding options based on business stage
+        if (data.metrics?.businessStage) {
+          const searchQuery = `${data.metrics.businessStage} business funding ${data.metrics.monthlyRevenue > 50000 ? 'venture capital series A' : data.metrics.monthlyRevenue > 10000 ? 'angel investment seed' : 'small business loans microloans'} 2025`;
+          
+          const { data: searchData } = await supabase.functions.invoke('funding-search', {
+            body: { 
+              query: searchQuery, 
+              businessStage: data.metrics.businessStage 
+            }
+          });
+          
+          if (searchData?.fundingOptions) {
+            setRealFundingOptions(searchData.fundingOptions);
+          }
+        }
       }
     } catch (error) {
       console.error('Error fetching funding analysis:', error);
-      toast.error("Failed to load funding analysis");
+      toast.error("Failed to load funding analysis. Please check your Plaid connection.");
       
       // Set default values on error
       setMetrics({
@@ -101,6 +121,18 @@ export function FundingInsights() {
         businessStage: 'early',
         healthScore: 50
       });
+      
+      // Still try to fetch generic funding options
+      const { data: searchData } = await supabase.functions.invoke('funding-search', {
+        body: { 
+          query: 'small business funding options 2025', 
+          businessStage: 'early' 
+        }
+      });
+      
+      if (searchData?.fundingOptions) {
+        setRealFundingOptions(searchData.fundingOptions);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -487,6 +519,73 @@ export function FundingInsights() {
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* Real Funding Options from Web */}
+      {realFundingOptions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ExternalLink className="h-5 w-5 text-blue-500" />
+              Real Funding Sources Available Now
+            </CardTitle>
+            <CardDescription>
+              Current funding programs and platforms actively accepting applications
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4">
+              {realFundingOptions.map((option, index) => (
+                <Card key={index} className="border-l-4 border-l-blue-500">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle className="text-base">{option.name}</CardTitle>
+                        {option.source && (
+                          <Badge variant="outline" className="mt-1">
+                            {option.source}
+                          </Badge>
+                        )}
+                      </div>
+                      <Badge className="bg-blue-500">
+                        {option.amount}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      {option.description}
+                    </p>
+                    
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Requirements:</p>
+                      <ul className="text-sm space-y-1 text-muted-foreground">
+                        {option.requirements?.map((req: string, i: number) => (
+                          <li key={i} className="flex items-start gap-1">
+                            <CheckCircle className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
+                            <span>{req}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    
+                    {option.url && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="w-full"
+                        onClick={() => window.open(option.url, '_blank')}
+                      >
+                        Apply Now
+                        <ExternalLink className="h-3 w-3 ml-2" />
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* AI-Powered Tips */}
       <Card>
