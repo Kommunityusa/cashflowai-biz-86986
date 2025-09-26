@@ -251,6 +251,7 @@ export function Pricing() {
         onClose={() => setShowTrialModal(false)}
         onSubmit={(email) => processCheckout(email, selectedPlan)}
         isLoading={isLoading}
+        plan={selectedPlan}
       />
     </section>
   );
