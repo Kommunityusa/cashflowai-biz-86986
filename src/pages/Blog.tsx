@@ -67,7 +67,10 @@ export default function Blog() {
               <CardHeader className="bg-gradient-subtle">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <blogPosts[0].icon className="h-5 w-5 text-primary" />
+                    {(() => {
+                      const Icon = blogPosts[0].icon;
+                      return <Icon className="h-5 w-5 text-primary" />;
+                    })()}
                     <span className="text-sm font-medium text-primary">{blogPosts[0].category}</span>
                   </div>
                   <span className="text-sm text-muted-foreground">Featured Article</span>
@@ -105,7 +108,10 @@ export default function Blog() {
                     onClick={() => navigate(`/blog/${post.slug}`)}>
                 <CardHeader>
                   <div className="flex items-center gap-2 mb-3">
-                    <post.icon className="h-5 w-5 text-primary" />
+                    {(() => {
+                      const Icon = post.icon;
+                      return <Icon className="h-5 w-5 text-primary" />;
+                    })()}
                     <span className="text-sm font-medium text-primary">{post.category}</span>
                   </div>
                   <CardTitle className="text-xl mb-2">{post.title}</CardTitle>
