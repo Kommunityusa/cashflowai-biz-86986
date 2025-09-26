@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { PlaidLinkButton } from "@/components/PlaidLinkButton";
 import { PlaidSetupGuide } from "@/components/PlaidSetupGuide";
 import { TransactionSync } from "@/components/TransactionSync";
+import { PlaidConnectionTest } from "@/components/PlaidConnectionTest";
 import { 
   User, 
   Building,
@@ -531,6 +532,11 @@ const Settings = () => {
                     <h2 className="text-xl font-semibold text-foreground">Bank Connections</h2>
                     <p className="text-sm text-muted-foreground">Connect your bank accounts for automatic sync</p>
                   </div>
+                </div>
+                
+                {/* Plaid Connection Test */}
+                <div className="mb-6">
+                  <PlaidConnectionTest />
                 </div>
                 
                 <div className="space-y-4">
