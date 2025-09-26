@@ -1,10 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, CheckCircle, Play, TrendingUp } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 
 export function Hero() {
   const { user } = useAuth(false);
+  const navigate = useNavigate();
   
   return (
     <section className="relative pt-32 pb-20 overflow-hidden bg-gradient-subtle">
@@ -50,13 +51,10 @@ export function Hero() {
                 size="xl" 
                 variant="outline" 
                 className="group"
-                onClick={() => {
-                  const demoSection = document.getElementById('features');
-                  demoSection?.scrollIntoView({ behavior: 'smooth' });
-                }}
+                onClick={() => navigate('/demo')}
               >
                 <Play className="mr-2 h-5 w-5" />
-                View Features
+                View Demo
               </Button>
             </div>
             

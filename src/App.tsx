@@ -24,6 +24,7 @@ import About from "./pages/About";
 import SmallBusinessBookkeepingGuide from "./pages/blog/SmallBusinessBookkeepingGuide";
 import DoubleEntryBookkeeping from "./pages/blog/DoubleEntryBookkeeping";
 import TaxSeasonChecklist from "./pages/blog/TaxSeasonChecklist";
+import Demo from "./pages/Demo";
 
 const queryClient = new QueryClient();
 
@@ -115,6 +116,7 @@ const App = () => (
           <Route path="/blog/small-business-bookkeeping-guide" element={<SmallBusinessBookkeepingGuide />} />
           <Route path="/blog/double-entry-bookkeeping-essentials" element={<DoubleEntryBookkeeping />} />
           <Route path="/blog/tax-season-bookkeeping-checklist" element={<TaxSeasonChecklist />} />
+          <Route path="/demo" element={<Demo />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
