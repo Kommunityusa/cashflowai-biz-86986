@@ -7,6 +7,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -17,6 +18,7 @@ serve(async (req) => {
     // Get authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('No authorization header provided');
       throw new Error('No authorization header');
     }
 
@@ -36,16 +38,12 @@ serve(async (req) => {
 
     console.log('Fetching transactions for user:', user.id);
 
-    // Fetch user's transactions from the last 12 months
-    const twelveMonthsAgo = new Date();
-    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-    
+    // Fetch user's transactions from the database
     const { data: transactions, error: transactionsError } = await supabase
       .from('transactions')
       .select('*')
       .eq('user_id', user.id)
-      .gte('date', twelveMonthsAgo.toISOString().split('T')[0])
-      .order('date', { ascending: false });
+      .order('transaction_date', { ascending: false });
 
     if (transactionsError) {
       console.error('Error fetching transactions:', transactionsError);
@@ -59,42 +57,54 @@ serve(async (req) => {
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
     
-    // Get last month for comparison
-    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-    const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+    // Calculate date ranges for current and previous month
+    const firstDayCurrentMonth = new Date(currentYear, currentMonth, 1);
+    const lastDayCurrentMonth = new Date(currentYear, currentMonth + 1, 0);
+    const firstDayLastMonth = new Date(currentYear, currentMonth - 1, 1);
+    const lastDayLastMonth = new Date(currentYear, currentMonth, 0);
+    
+    console.log(`Current month: ${firstDayCurrentMonth.toISOString().split('T')[0]} to ${lastDayCurrentMonth.toISOString().split('T')[0]}`);
     
     // Filter transactions by month
     const currentMonthTransactions = transactions?.filter(t => {
-      const date = new Date(t.date);
-      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+      const tDate = new Date(t.transaction_date);
+      return tDate >= firstDayCurrentMonth && tDate <= lastDayCurrentMonth;
     }) || [];
     
     const lastMonthTransactions = transactions?.filter(t => {
-      const date = new Date(t.date);
-      return date.getMonth() === lastMonth && date.getFullYear() === lastMonthYear;
+      const tDate = new Date(t.transaction_date);
+      return tDate >= firstDayLastMonth && tDate <= lastDayLastMonth;
     }) || [];
+
+    console.log(`Current month transactions: ${currentMonthTransactions.length}`);
+    console.log(`Last month transactions: ${lastMonthTransactions.length}`);
 
     // Calculate monthly revenue and expenses
     const currentMonthRevenue = currentMonthTransactions
       .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
+      .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
     
     const currentMonthExpenses = Math.abs(currentMonthTransactions
       .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + (t.amount || 0), 0));
+      .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0));
     
     const lastMonthRevenue = lastMonthTransactions
       .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
+      .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+
+    console.log(`Current month revenue: ${currentMonthRevenue}, expenses: ${currentMonthExpenses}`);
+    console.log(`Last month revenue: ${lastMonthRevenue}`);
 
     // Calculate total balance (all income - all expenses)
     const totalIncome = transactions?.filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
+      .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0) || 0;
     
     const totalExpenses = Math.abs(transactions?.filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + (t.amount || 0), 0) || 0);
+      .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0) || 0);
     
     const totalBalance = totalIncome - totalExpenses;
+
+    console.log(`Total balance: ${totalBalance} (income: ${totalIncome}, expenses: ${totalExpenses})`);
 
     // Calculate burn rate (monthly expenses)
     const burnRate = currentMonthExpenses;
@@ -310,11 +320,15 @@ serve(async (req) => {
       timeframe: 'immediate' as const
     });
 
-    return new Response(JSON.stringify({
+    const responseData = {
       metrics,
       recommendations,
       tips
-    }), {
+    };
+
+    console.log('Returning funding analysis:', responseData);
+
+    return new Response(JSON.stringify(responseData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
