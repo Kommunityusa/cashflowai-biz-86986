@@ -141,7 +141,7 @@ export function Pricing() {
       onClick: handleUpgrade,
     },
     {
-      name: "Enterprise",
+      name: "Business",
       price: "$25",
       period: "/month",
       description: "For established businesses",
