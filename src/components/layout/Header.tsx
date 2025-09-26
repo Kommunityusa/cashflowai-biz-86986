@@ -12,7 +12,6 @@ import {
   FileText,
   BarChart3,
   CreditCard,
-  Bot,
   Shield,
   X
 } from "lucide-react";
@@ -47,7 +46,7 @@ export function Header() {
     { href: "/dashboard", label: "Dashboard", icon: Home },
     { href: "/transactions", label: "Transactions", icon: FileText },
     { href: "/reports", label: "Reports", icon: BarChart3 },
-    { href: "/ai-assistant", label: "AI Assistant", icon: Bot },
+    { href: "/settings", label: "Settings", icon: Settings },
     { href: "/settings", label: "Settings", icon: Settings },
   ];
 

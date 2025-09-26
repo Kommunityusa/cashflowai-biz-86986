@@ -17,7 +17,6 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Terms from "./pages/Terms";
 import Security from "./pages/Security";
 import AdminDashboard from "./pages/AdminDashboard";
-import AIAssistant from "./pages/AIAssistant";
 import PlaidTesting from "./pages/PlaidTesting";
 import PlaidOAuthCallback from "./pages/PlaidOAuthCallback";
 import Blog from "./pages/Blog";
@@ -103,11 +102,6 @@ const App = () => (
           <Route path="/admin" element={
             <ProtectedRoute>
               <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/ai-assistant" element={
-            <ProtectedRoute>
-              <AIAssistant />
             </ProtectedRoute>
           } />
           <Route path="/plaid-testing" element={
