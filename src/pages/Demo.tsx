@@ -17,6 +17,11 @@ import {
   ArrowRight
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import step1Screenshot from "@/assets/demo-screenshots/step-1-signup.jpg";
+import step2Screenshot from "@/assets/demo-screenshots/step-2-bank-connect.jpg";
+import step3Screenshot from "@/assets/demo-screenshots/step-3-ai-categorization.jpg";
+import step4Screenshot from "@/assets/demo-screenshots/step-4-insights.jpg";
+import step5Screenshot from "@/assets/demo-screenshots/step-5-reports.jpg";
 
 const Demo = () => {
   const navigate = useNavigate();
@@ -32,7 +37,8 @@ const Demo = () => {
         "Choose your subscription plan"
       ],
       icon: Users,
-      color: "from-primary/20 to-primary/10"
+      color: "from-primary/20 to-primary/10",
+      screenshot: step1Screenshot
     },
     {
       number: "02",
@@ -44,7 +50,8 @@ const Demo = () => {
         "Automatic transaction sync"
       ],
       icon: CreditCard,
-      color: "from-secondary/20 to-secondary/10"
+      color: "from-secondary/20 to-secondary/10",
+      screenshot: step2Screenshot
     },
     {
       number: "03",
@@ -56,7 +63,8 @@ const Demo = () => {
         "Custom rules and tags"
       ],
       icon: Brain,
-      color: "from-accent/20 to-accent/10"
+      color: "from-accent/20 to-accent/10",
+      screenshot: step3Screenshot
     },
     {
       number: "04",
@@ -68,7 +76,8 @@ const Demo = () => {
         "Funding readiness score"
       ],
       icon: TrendingUp,
-      color: "from-primary/20 to-primary/10"
+      color: "from-primary/20 to-primary/10",
+      screenshot: step4Screenshot
     },
     {
       number: "05",
@@ -80,7 +89,8 @@ const Demo = () => {
         "Export to PDF/CSV"
       ],
       icon: FileText,
-      color: "from-secondary/20 to-secondary/10"
+      color: "from-secondary/20 to-secondary/10",
+      screenshot: step5Screenshot
     }
   ];
 
@@ -183,14 +193,11 @@ const Demo = () => {
                       </ul>
                     </div>
                     <div className={`bg-gradient-to-br ${step.color} p-8 md:p-12 flex items-center justify-center`}>
-                      <div className="bg-background/50 backdrop-blur rounded-lg p-8 w-full max-w-sm">
-                        <div className="aspect-video bg-muted rounded flex items-center justify-center">
-                          <step.icon className="w-16 h-16 text-muted-foreground/30" />
-                        </div>
-                        <p className="text-xs text-muted-foreground text-center mt-4">
-                          Screenshot placeholder
-                        </p>
-                      </div>
+                      <img 
+                        src={step.screenshot} 
+                        alt={`${step.title} screenshot`}
+                        className="rounded-lg shadow-2xl w-full h-auto object-cover"
+                      />
                     </div>
                   </div>
                 </Card>
