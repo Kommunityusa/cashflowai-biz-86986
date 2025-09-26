@@ -14,9 +14,14 @@ export function encryptData(data: string, key: string): string {
 export function decryptData(encryptedData: string, key: string): string | null {
   try {
     const decrypted = CryptoJS.AES.decrypt(encryptedData, key);
-    return decrypted.toString(CryptoJS.enc.Utf8);
+    const result = decrypted.toString(CryptoJS.enc.Utf8);
+    // Validate decryption succeeded
+    if (!result) {
+      return null;
+    }
+    return result;
   } catch (error) {
-    console.error('Decryption failed:', error);
+    // Avoid logging sensitive information
     return null;
   }
 }
@@ -42,9 +47,14 @@ export function decryptWithSalt(encryptedData: string, key: string, salt: string
   try {
     const saltedKey = key + salt;
     const decrypted = CryptoJS.AES.decrypt(encryptedData, saltedKey);
-    return decrypted.toString(CryptoJS.enc.Utf8);
+    const result = decrypted.toString(CryptoJS.enc.Utf8);
+    // Validate decryption succeeded
+    if (!result) {
+      return null;
+    }
+    return result;
   } catch (error) {
-    console.error('Decryption with salt failed:', error);
+    // Avoid logging sensitive information
     return null;
   }
 }

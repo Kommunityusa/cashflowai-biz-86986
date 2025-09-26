@@ -58,7 +58,10 @@ export function SecurityMonitor() {
         analyzeLogsForThreats(logs || []);
       }
     } catch (error) {
-      console.error('Error checking security:', error);
+      // Remove sensitive error logging in production
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error checking security:', error);
+      }
     }
   };
 
