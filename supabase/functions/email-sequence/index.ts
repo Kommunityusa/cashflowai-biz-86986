@@ -283,16 +283,28 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     const url = new URL(req.url);
-    // Get the full path after /email-sequence/
-    const pathParts = url.pathname.split("/");
-    const functionIndex = pathParts.indexOf("email-sequence");
-    const path = pathParts[functionIndex + 1] || pathParts.pop();
     
-    console.log("Email sequence function called with path:", path);
+    // Handle the path more robustly
+    let path = "";
+    if (url.pathname.includes("/add-to-sequence")) {
+      path = "add-to-sequence";
+    } else if (url.pathname.includes("/process-welcome-sequence")) {
+      path = "process-welcome-sequence";
+    } else {
+      path = url.pathname.split("/").pop() || "";
+    }
+    
+    console.log("Email sequence function called with path:", path, "URL:", url.pathname);
 
     if (!MAILERLITE_API_KEY) {
       console.error("MailerLite API key not configured");
-      throw new Error("MailerLite API key not configured");
+      return new Response(
+        JSON.stringify({ error: "MailerLite API key not configured" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     switch (path) {
@@ -425,7 +437,23 @@ const handler = async (req: Request): Promise<Response> => {
 
       case "add-to-sequence": {
         // Add a new subscriber to the welcome sequence
-        const { email, name, source } = await req.json();
+        let body;
+        try {
+          const text = await req.text();
+          console.log("Received request body:", text);
+          body = JSON.parse(text);
+        } catch (e) {
+          console.error("Error parsing request body:", e);
+          return new Response(
+            JSON.stringify({ error: "Invalid JSON in request body" }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
+        
+        const { email, name, source } = body;
         
         console.log(`Adding ${email} to welcome sequence`);
 

@@ -9,18 +9,26 @@ export function TestEmailSender() {
   const sendTestEmail = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('email-sequence/add-to-sequence', {
-        body: {
+      // Call the edge function directly with full URL
+      const response = await fetch('https://nbrcdphgadabjndynyvy.supabase.co/functions/v1/email-sequence/add-to-sequence', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5icmNkcGhnYWRhYmpuZHlueXZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0MDMwNjYsImV4cCI6MjA3Mzk3OTA2Nn0.W-7_JNflDJYoAFPy19Hh2XAYBfQN5tzle5jgeB0Zlk8'}`,
+        },
+        body: JSON.stringify({
           email: 'amaury@kommunity.app',
           name: 'Amaury',
           source: 'test'
-        },
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        })
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+      }
+
+      const data = await response.json();
       
       toast.success("Test welcome email sent to amaury@kommunity.app!");
       console.log("Email sent successfully:", data);
