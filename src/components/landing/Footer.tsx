@@ -1,13 +1,12 @@
 import { Link } from "react-router-dom";
 import cashflowLogo from "@/assets/cashflow-ai-logo.png";
-import { NewsletterSignup } from "@/components/NewsletterSignup";
 
 export function Footer() {
   return (
     <footer className="bg-muted/50 border-t border-border">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid lg:grid-cols-5 gap-8">
-          <div className="lg:col-span-2 space-y-4">
+        <div className="grid md:grid-cols-4 gap-8">
+          <div className="space-y-4">
             <div className="flex items-center space-x-2">
               <img 
                 src={cashflowLogo} 
@@ -19,9 +18,6 @@ export function Footer() {
             <p className="text-muted-foreground text-sm">
               AI-powered bookkeeping for modern small businesses.
             </p>
-            <div className="pt-4">
-              <NewsletterSignup />
-            </div>
           </div>
 
           <div>

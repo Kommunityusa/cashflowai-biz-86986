@@ -3,6 +3,7 @@ import { Hero } from "@/components/landing/Hero";
 import { Features } from "@/components/landing/Features";
 import { Pricing } from "@/components/landing/Pricing";
 import { LoanCalculator } from "@/components/landing/LoanCalculator";
+import { NewsletterSection } from "@/components/landing/NewsletterSection";
 import { Footer } from "@/components/landing/Footer";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -90,6 +91,7 @@ const Index = () => {
         <Hero />
         <LoanCalculator />
         <Features />
+        <NewsletterSection />
         <Pricing />
       </main>
       <Footer />

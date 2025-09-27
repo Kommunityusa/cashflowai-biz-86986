@@ -11,6 +11,7 @@ import { FundingInsights } from "@/components/FundingInsights";
 import { RecurringTransactionDetector } from "@/components/RecurringTransactionDetector";
 import { TaxPreparation } from "@/components/TaxPreparation";
 import { TrialBanner } from "@/components/TrialBanner";
+import { NewsletterBanner } from "@/components/NewsletterBanner";
 import { useState, useEffect } from "react";
 import { useRole } from "@/hooks/useRole";
 import { supabase } from "@/integrations/supabase/client";
@@ -469,6 +470,9 @@ export default function Dashboard() {
           </div>
         ) : (
           <>
+            {/* Newsletter Banner - Shows once per user */}
+            <NewsletterBanner storageKey="dashboard-newsletter-dismissed" />
+            
             {/* Stats Cards */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-8">
               <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
