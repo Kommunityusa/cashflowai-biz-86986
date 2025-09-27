@@ -1,12 +1,13 @@
 import { Link } from "react-router-dom";
 import cashflowLogo from "@/assets/cashflow-ai-logo.png";
+import { NewsletterSignup } from "@/components/NewsletterSignup";
 
 export function Footer() {
   return (
     <footer className="bg-muted/50 border-t border-border">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid md:grid-cols-4 gap-8">
-          <div className="space-y-4">
+        <div className="grid lg:grid-cols-5 gap-8">
+          <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center space-x-2">
               <img 
                 src={cashflowLogo} 
@@ -18,6 +19,9 @@ export function Footer() {
             <p className="text-muted-foreground text-sm">
               AI-powered bookkeeping for modern small businesses.
             </p>
+            <div className="pt-4">
+              <NewsletterSignup />
+            </div>
           </div>
 
           <div>
@@ -43,14 +47,14 @@ export function Footer() {
               <li><Link to="/privacy" className="text-muted-foreground hover:text-primary transition-colors text-sm">Privacy Policy</Link></li>
               <li><Link to="/terms" className="text-muted-foreground hover:text-primary transition-colors text-sm">Terms of Service</Link></li>
               <li><Link to="/security" className="text-muted-foreground hover:text-primary transition-colors text-sm">Security</Link></li>
-              <li><a href="mailto:support@cashflowai.com" className="text-muted-foreground hover:text-primary transition-colors text-sm">Contact Support</a></li>
+              <li><a href="mailto:support@cashflowai.biz" className="text-muted-foreground hover:text-primary transition-colors text-sm">Contact Support</a></li>
             </ul>
           </div>
         </div>
 
         <div className="mt-8 pt-8 border-t border-border">
           <p className="text-center text-muted-foreground text-sm">
-            © 2024 Cash Flow AI. All rights reserved.
+            © 2024 Connex II Inc. dba Cash Flow AI. All rights reserved.
           </p>
         </div>
       </div>
