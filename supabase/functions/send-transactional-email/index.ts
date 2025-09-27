@@ -46,7 +46,7 @@ const handler = async (req: Request): Promise<Response> => {
       },
       body: JSON.stringify({
         from: {
-          email: "noreply@cashflowai.biz",
+          email: "support@cashflowai.biz",
           name: "Cash Flow AI"
         },
         to: [
