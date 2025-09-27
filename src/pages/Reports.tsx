@@ -277,64 +277,131 @@ export default function Reports() {
         <div className="grid gap-6 md:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Expense Categories</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <PieChart className="h-5 w-5 text-muted-foreground" />
+                Expense Categories
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {loading ? (
-                <div className="h-[300px] flex items-center justify-center">
-                  Loading...
+                <div className="h-[400px] flex items-center justify-center">
+                  <div className="text-muted-foreground">Loading...</div>
+                </div>
+              ) : reportData.categoryBreakdown.length > 0 ? (
+                <div className="space-y-4">
+                  <ResponsiveContainer width="100%" height={250}>
+                    <RePieChart>
+                      <Pie
+                        data={reportData.categoryBreakdown}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={90}
+                        paddingAngle={2}
+                        dataKey="value"
+                      >
+                        {reportData.categoryBreakdown.map((entry: any, index: number) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={entry.color || COLORS[index % COLORS.length]}
+                            className="hover:opacity-80 transition-opacity cursor-pointer"
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value: number) => `$${value.toFixed(2)}`}
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '6px',
+                        }}
+                      />
+                    </RePieChart>
+                  </ResponsiveContainer>
+                  
+                  {/* Category Legend */}
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {reportData.categoryBreakdown
+                      .sort((a: any, b: any) => b.value - a.value)
+                      .map((category: any, index: number) => {
+                        const percentage = ((category.value / reportData.summary.expenses) * 100).toFixed(1);
+                        return (
+                          <div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-3 h-3 rounded-full" 
+                                style={{ backgroundColor: category.color || COLORS[index % COLORS.length] }}
+                              />
+                              <span className="text-sm font-medium">{category.name}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs text-muted-foreground">{percentage}%</span>
+                              <span className="text-sm font-semibold">${category.value.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        );
+                    })}
+                  </div>
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={300}>
-                  <RePieChart>
-                    <Pie
-                      data={reportData.categoryBreakdown}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={(entry) => `${entry.name}: $${entry.value.toFixed(0)}`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {reportData.categoryBreakdown.map((entry: any, index: number) => (
-                        <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </RePieChart>
-                </ResponsiveContainer>
+                <div className="h-[400px] flex flex-col items-center justify-center text-muted-foreground">
+                  <PieChart className="h-12 w-12 mb-3 opacity-50" />
+                  <p className="text-sm">No expense data available</p>
+                  <p className="text-xs mt-1">Try adjusting the date range</p>
+                </div>
               )}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Top Transactions</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-muted-foreground" />
+                Top Transactions
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div>
-                  <h4 className="font-medium text-sm text-muted-foreground mb-2">Top Expenses</h4>
-                  {reportData.topExpenses.slice(0, 3).map((expense: any, index: number) => (
-                    <div key={index} className="flex justify-between items-center py-1">
-                      <span className="text-sm">{expense.description}</span>
-                      <span className="text-sm font-medium text-red-600">
-                        -${Number(expense.amount).toFixed(2)}
-                      </span>
-                    </div>
-                  ))}
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-medium text-sm text-muted-foreground">Top Expenses</h4>
+                    <ArrowDownIcon className="h-4 w-4 text-red-500" />
+                  </div>
+                  <div className="space-y-2">
+                    {reportData.topExpenses.length > 0 ? (
+                      reportData.topExpenses.slice(0, 3).map((expense: any, index: number) => (
+                        <div key={index} className="flex justify-between items-center p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                          <span className="text-sm truncate flex-1 mr-2">{expense.description}</span>
+                          <span className="text-sm font-semibold text-red-600 whitespace-nowrap">
+                            -${Number(expense.amount).toFixed(2)}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-2">No expenses</p>
+                    )}
+                  </div>
                 </div>
-                <div className="pt-2 border-t">
-                  <h4 className="font-medium text-sm text-muted-foreground mb-2">Top Income</h4>
-                  {reportData.topIncome.slice(0, 3).map((income: any, index: number) => (
-                    <div key={index} className="flex justify-between items-center py-1">
-                      <span className="text-sm">{income.description}</span>
-                      <span className="text-sm font-medium text-green-600">
-                        +${Number(income.amount).toFixed(2)}
-                      </span>
-                    </div>
-                  ))}
+                
+                <div className="border-t pt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-medium text-sm text-muted-foreground">Top Income</h4>
+                    <ArrowUpIcon className="h-4 w-4 text-green-500" />
+                  </div>
+                  <div className="space-y-2">
+                    {reportData.topIncome.length > 0 ? (
+                      reportData.topIncome.slice(0, 3).map((income: any, index: number) => (
+                        <div key={index} className="flex justify-between items-center p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                          <span className="text-sm truncate flex-1 mr-2">{income.description}</span>
+                          <span className="text-sm font-semibold text-green-600 whitespace-nowrap">
+                            +${Number(income.amount).toFixed(2)}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-2">No income</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </CardContent>
