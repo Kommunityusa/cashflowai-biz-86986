@@ -8,11 +8,12 @@ export function TestWebhook() {
   const testWebhook = async () => {
     setLoading(true);
     try {
-      // Simulate a MailerLite webhook event
+      // For testing, we'll send a test header that the function can recognize
       const response = await fetch('https://nbrcdphgadabjndynyvy.supabase.co/functions/v1/mailerlite/webhook', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Test-Mode': 'true', // Add test mode header
         },
         body: JSON.stringify({
           type: 'subscriber.created',

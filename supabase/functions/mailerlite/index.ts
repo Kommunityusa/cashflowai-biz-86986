@@ -49,9 +49,10 @@ const handler = async (req: Request): Promise<Response> => {
         // Handle MailerLite webhooks
         try {
           const body = await req.text();
+          const isTestMode = req.headers.get('X-Test-Mode') === 'true';
           
-          // Verify webhook signature if secret is configured
-          if (MAILERLITE_WEBHOOK_SECRET) {
+          // Verify webhook signature if secret is configured and not in test mode
+          if (MAILERLITE_WEBHOOK_SECRET && !isTestMode) {
             const signature = req.headers.get('X-MailerLite-Signature');
             
             if (!signature) {
@@ -90,7 +91,7 @@ const handler = async (req: Request): Promise<Response> => {
           }
           
           const webhookData = JSON.parse(body);
-          console.log("Received MailerLite webhook:", webhookData.type, webhookData);
+          console.log("Received MailerLite webhook:", webhookData.type, webhookData, isTestMode ? "(TEST MODE)" : "");
 
           // Always return success immediately to MailerLite
           // Process the webhook asynchronously to avoid timeouts
