@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, CheckCircle, Play, TrendingUp } from "lucide-react";
+import { ArrowRight, CheckCircle, Monitor, TrendingUp } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -53,7 +53,7 @@ export function Hero() {
                 className="group"
                 onClick={() => navigate('/demo')}
               >
-                <Play className="mr-2 h-5 w-5" />
+                <Monitor className="mr-2 h-5 w-5" />
                 View Demo
               </Button>
             </div>
