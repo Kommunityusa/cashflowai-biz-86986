@@ -3,6 +3,7 @@ import { Header } from "@/components/layout/Header";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -16,27 +17,15 @@ import { logAuditEvent } from "@/utils/auditLogger";
 import {
   FileText,
   Download,
-  TrendingUp,
   Calendar,
-  PieChart,
-  BarChart3,
+  RefreshCw,
   DollarSign,
-  ArrowUpIcon,
-  ArrowDownIcon,
+  TrendingUp,
+  BarChart3,
 } from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart as RePieChart,
-  Pie,
-  Cell,
-} from "recharts";
+import { ProfitLossStatement } from "@/components/reports/ProfitLossStatement";
+import { BalanceSheet } from "@/components/reports/BalanceSheet";
+import { CashFlowStatement } from "@/components/reports/CashFlowStatement";
 
 export default function Reports() {
   const { user } = useAuth();
@@ -44,20 +33,107 @@ export default function Reports() {
   const [period, setPeriod] = useState("month");
   const [year, setYear] = useState(new Date().getFullYear().toString());
   const [month, setMonth] = useState((new Date().getMonth() + 1).toString());
-  const [reportData, setReportData] = useState<any>({
-    summary: { income: 0, expenses: 0, netProfit: 0, taxDeductible: 0 },
-    categoryBreakdown: [],
-    monthlyTrend: [],
-    topExpenses: [],
-    topIncome: [],
-  });
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+  const [activeTab, setActiveTab] = useState("profit-loss");
+  
+  // Financial data states
+  const [profitLossData, setProfitLossData] = useState<any>({
+    revenue: { total: 0, breakdown: [] },
+    expenses: { total: 0, breakdown: [] },
+    grossProfit: 0,
+    netProfit: 0,
+    profitMargin: 0,
+    period: "",
+  });
+  
+  const [balanceSheetData, setBalanceSheetData] = useState<any>({
+    assets: {
+      current: [],
+      fixed: [],
+      totalCurrent: 0,
+      totalFixed: 0,
+      total: 0,
+    },
+    liabilities: {
+      current: [],
+      longTerm: [],
+      totalCurrent: 0,
+      totalLongTerm: 0,
+      total: 0,
+    },
+    equity: {
+      items: [],
+      total: 0,
+    },
+    date: "",
+  });
+  
+  const [cashFlowData, setCashFlowData] = useState<any>({
+    operating: { inflows: [], outflows: [], netCash: 0 },
+    investing: { inflows: [], outflows: [], netCash: 0 },
+    financing: { inflows: [], outflows: [], netCash: 0 },
+    beginningCash: 0,
+    endingCash: 0,
+    netChange: 0,
+    period: "",
+  });
 
   useEffect(() => {
     if (user) {
       generateReport();
+      checkLastSync();
     }
   }, [user, period, year, month]);
+
+  const checkLastSync = async () => {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("last_report_sync")
+      .eq("user_id", user?.id)
+      .single();
+    
+    if (profile?.last_report_sync) {
+      setLastSyncTime(new Date(profile.last_report_sync));
+    }
+  };
+
+  const syncTransactions = async () => {
+    setSyncing(true);
+    try {
+      // Call the plaid-auto-sync edge function to sync latest transactions
+      const { error } = await supabase.functions.invoke('plaid-auto-sync', {
+        body: { autoSync: true }
+      });
+      
+      if (error) throw error;
+      
+      // Update last sync time
+      await supabase
+        .from("profiles")
+        .update({ last_report_sync: new Date().toISOString() })
+        .eq("user_id", user?.id);
+      
+      toast({
+        title: "Success",
+        description: "Transactions synced successfully",
+      });
+      
+      // Regenerate report with fresh data
+      await generateReport();
+      checkLastSync();
+    } catch (error) {
+      console.error("Sync error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to sync transactions",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const generateReport = async () => {
     setLoading(true);
@@ -70,6 +146,7 @@ export default function Reports() {
         period,
         year,
         month: period === 'month' ? month : undefined,
+        reportType: activeTab,
       }
     });
     
@@ -86,64 +163,147 @@ export default function Reports() {
       endDate = new Date(parseInt(year), 11, 31);
     }
 
+    // Fetch transactions
     const { data: transactions } = await supabase
       .from("transactions")
-      .select("*, categories!transactions_category_id_fkey(name, color)")
+      .select("*, categories!transactions_category_id_fkey(name, color, type)")
       .eq("user_id", user?.id)
       .gte("transaction_date", startDate.toISOString().split("T")[0])
       .lte("transaction_date", endDate.toISOString().split("T")[0])
       .order("transaction_date");
 
-    if (transactions) {
-      const income = transactions
-        ?.filter((t) => t.type === "income")
-        .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
-      
-      const expenses = transactions
-        ?.filter((t) => t.type === "expense")
-        .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
-      
-      const taxDeductible = transactions
-        ?.filter((t) => t.tax_deductible)
-        .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+    // Fetch bank accounts for balance sheet
+    const { data: bankAccounts } = await supabase
+      .from("bank_accounts")
+      .select("*")
+      .eq("user_id", user?.id)
+      .eq("is_active", true);
 
-      const categoryMap = new Map();
-      const categoryColors = new Map();
-      let colorIndex = 0;
+    if (transactions) {
+      // Process Profit & Loss data
+      const revenueByCategory = new Map<string, number>();
+      const expensesByCategory = new Map<string, number>();
       
-      transactions?.forEach((t) => {
-        if (t.type === "expense") {
-          const categoryName = t.categories?.name || "Uncategorized";
-          
-          // Assign a unique color to each category
-          if (!categoryColors.has(categoryName)) {
-            categoryColors.set(categoryName, COLORS[colorIndex % COLORS.length]);
-            colorIndex++;
-          }
-          
-          if (!categoryMap.has(categoryName)) {
-            categoryMap.set(categoryName, { 
-              name: categoryName, 
-              value: 0, 
-              color: t.categories?.color || categoryColors.get(categoryName)
-            });
-          }
-          const current = categoryMap.get(categoryName);
-          current.value += Number(t.amount);
+      transactions.forEach((t) => {
+        const categoryName = t.categories?.name || "Uncategorized";
+        const amount = Number(t.amount);
+        
+        if (t.type === "income") {
+          revenueByCategory.set(categoryName, (revenueByCategory.get(categoryName) || 0) + amount);
+        } else if (t.type === "expense") {
+          expensesByCategory.set(categoryName, (expensesByCategory.get(categoryName) || 0) + amount);
         }
       });
-
-      setReportData({
-        summary: {
-          income,
-          expenses,
-          netProfit: income - expenses,
-          taxDeductible,
+      
+      const totalRevenue = Array.from(revenueByCategory.values()).reduce((sum, val) => sum + val, 0);
+      const totalExpenses = Array.from(expensesByCategory.values()).reduce((sum, val) => sum + val, 0);
+      const netProfit = totalRevenue - totalExpenses;
+      
+      setProfitLossData({
+        revenue: {
+          total: totalRevenue,
+          breakdown: Array.from(revenueByCategory.entries()).map(([category, amount]) => ({
+            category,
+            amount,
+          })),
         },
-        categoryBreakdown: Array.from(categoryMap.values()),
-        monthlyTrend: [],
-        topExpenses: transactions?.filter((t) => t.type === "expense").slice(0, 5) || [],
-        topIncome: transactions?.filter((t) => t.type === "income").slice(0, 5) || [],
+        expenses: {
+          total: totalExpenses,
+          breakdown: Array.from(expensesByCategory.entries()).map(([category, amount]) => ({
+            category,
+            amount,
+          })),
+        },
+        grossProfit: totalRevenue,
+        netProfit,
+        profitMargin: totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0,
+        period: `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`,
+      });
+
+      // Process Balance Sheet data
+      const totalCash = bankAccounts?.reduce((sum, acc) => sum + Number(acc.current_balance || 0), 0) || 0;
+      const accountsReceivable = transactions
+        .filter(t => t.type === "income" && t.status === "pending")
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      
+      setBalanceSheetData({
+        assets: {
+          current: [
+            { name: "Cash and Bank", amount: totalCash },
+            { name: "Accounts Receivable", amount: accountsReceivable },
+          ],
+          fixed: [
+            { name: "Equipment", amount: 0 },
+            { name: "Property", amount: 0 },
+          ],
+          totalCurrent: totalCash + accountsReceivable,
+          totalFixed: 0,
+          total: totalCash + accountsReceivable,
+        },
+        liabilities: {
+          current: [
+            { name: "Accounts Payable", amount: 0 },
+            { name: "Credit Cards", amount: 0 },
+          ],
+          longTerm: [
+            { name: "Loans", amount: 0 },
+          ],
+          totalCurrent: 0,
+          totalLongTerm: 0,
+          total: 0,
+        },
+        equity: {
+          items: [
+            { name: "Owner's Capital", amount: totalCash + accountsReceivable },
+            { name: "Retained Earnings", amount: netProfit },
+          ],
+          total: totalCash + accountsReceivable + netProfit,
+        },
+        date: endDate.toLocaleDateString(),
+      });
+
+      // Process Cash Flow data
+      const operatingInflows = transactions
+        .filter(t => t.type === "income" && t.categories?.name !== "Investment Income")
+        .map(t => ({ name: t.description, amount: Number(t.amount) }));
+      
+      const operatingOutflows = transactions
+        .filter(t => t.type === "expense" && !["Equipment", "Property"].includes(t.categories?.name || ""))
+        .map(t => ({ name: t.description, amount: Number(t.amount) }));
+      
+      const investingInflows = transactions
+        .filter(t => t.type === "income" && t.categories?.name === "Investment Income")
+        .map(t => ({ name: t.description, amount: Number(t.amount) }));
+      
+      const investingOutflows = transactions
+        .filter(t => t.type === "expense" && ["Equipment", "Property"].includes(t.categories?.name || ""))
+        .map(t => ({ name: t.description, amount: Number(t.amount) }));
+      
+      const operatingNet = operatingInflows.reduce((sum, i) => sum + i.amount, 0) - 
+                          operatingOutflows.reduce((sum, o) => sum + o.amount, 0);
+      const investingNet = investingInflows.reduce((sum, i) => sum + i.amount, 0) - 
+                          investingOutflows.reduce((sum, o) => sum + o.amount, 0);
+      
+      setCashFlowData({
+        operating: {
+          inflows: operatingInflows.slice(0, 5),
+          outflows: operatingOutflows.slice(0, 5),
+          netCash: operatingNet,
+        },
+        investing: {
+          inflows: investingInflows,
+          outflows: investingOutflows,
+          netCash: investingNet,
+        },
+        financing: {
+          inflows: [],
+          outflows: [],
+          netCash: 0,
+        },
+        beginningCash: totalCash - netProfit,
+        endingCash: totalCash,
+        netChange: netProfit,
+        period: `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`,
       });
     }
 
@@ -151,35 +311,41 @@ export default function Reports() {
   };
 
   const exportCSV = () => {
+    // Export the current statement as CSV
+    let csvContent = "";
+    const statementType = activeTab.replace("-", " ").toUpperCase();
+    
+    if (activeTab === "profit-loss") {
+      csvContent = "PROFIT & LOSS STATEMENT\n";
+      csvContent += `Period: ${profitLossData.period}\n\n`;
+      csvContent += "Category,Amount\n";
+      csvContent += "REVENUE\n";
+      profitLossData.revenue.breakdown.forEach((item: any) => {
+        csvContent += `${item.category},${item.amount}\n`;
+      });
+      csvContent += `Total Revenue,${profitLossData.revenue.total}\n\n`;
+      csvContent += "EXPENSES\n";
+      profitLossData.expenses.breakdown.forEach((item: any) => {
+        csvContent += `${item.category},${item.amount}\n`;
+      });
+      csvContent += `Total Expenses,${profitLossData.expenses.total}\n\n`;
+      csvContent += `Net Profit,${profitLossData.netProfit}\n`;
+      csvContent += `Profit Margin,${profitLossData.profitMargin}%\n`;
+    }
+    
+    // Create download link
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${statementType}_${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    
     toast({
       title: "Success",
-      description: "Report exported as CSV",
+      description: `${statementType} exported as CSV`,
     });
   };
-
-  // Extended color palette for unique category colors
-  const COLORS = [
-    "#10B981", // Emerald
-    "#3B82F6", // Blue
-    "#F59E0B", // Amber
-    "#8B5CF6", // Violet
-    "#EC4899", // Pink
-    "#14B8A6", // Teal
-    "#F97316", // Orange
-    "#6366F1", // Indigo
-    "#84CC16", // Lime
-    "#06B6D4", // Cyan
-    "#A855F7", // Purple
-    "#FB923C", // Orange-400
-    "#FACC15", // Yellow
-    "#34D399", // Emerald-400
-    "#60A5FA", // Blue-400
-    "#C084FC", // Purple-400
-    "#FB7185", // Rose-400
-    "#4ADE80", // Green-400
-    "#FDE047", // Yellow-300
-    "#94A3B8", // Slate-400
-  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -187,15 +353,26 @@ export default function Reports() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Financial Reports</h1>
+            <h1 className="text-3xl font-bold">Financial Statements</h1>
             <p className="text-muted-foreground">
-              Generate and export detailed financial reports
+              Professional accounting reports with automatic data sync
             </p>
+            {lastSyncTime && (
+              <p className="text-sm text-muted-foreground mt-1">
+                Last synced: {lastSyncTime.toLocaleString()}
+              </p>
+            )}
           </div>
-          <Button onClick={exportCSV}>
-            <Download className="mr-2 h-4 w-4" />
-            Export CSV
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={syncTransactions} variant="outline" disabled={syncing}>
+              <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+              Sync Data
+            </Button>
+            <Button onClick={exportCSV}>
+              <Download className="mr-2 h-4 w-4" />
+              Export CSV
+            </Button>
+          </div>
         </div>
 
         {/* Report Controls */}
@@ -254,193 +431,35 @@ export default function Reports() {
           </CardContent>
         </Card>
 
-        {/* Summary Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Income</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                ${reportData.summary.income.toFixed(2)}
-              </div>
-            </CardContent>
-          </Card>
+        {/* Financial Statements Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="profit-loss" className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Profit & Loss
+            </TabsTrigger>
+            <TabsTrigger value="balance-sheet" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Balance Sheet
+            </TabsTrigger>
+            <TabsTrigger value="cash-flow" className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Cash Flow
+            </TabsTrigger>
+          </TabsList>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                ${reportData.summary.expenses.toFixed(2)}
-              </div>
-            </CardContent>
-          </Card>
+          <TabsContent value="profit-loss" className="mt-6">
+            <ProfitLossStatement data={profitLossData} loading={loading} />
+          </TabsContent>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold ${
-                reportData.summary.netProfit >= 0 ? "text-green-600" : "text-red-600"
-              }`}>
-                ${reportData.summary.netProfit.toFixed(2)}
-              </div>
-            </CardContent>
-          </Card>
+          <TabsContent value="balance-sheet" className="mt-6">
+            <BalanceSheet data={balanceSheetData} loading={loading} />
+          </TabsContent>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Tax Deductible</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                ${reportData.summary.taxDeductible.toFixed(2)}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Charts */}
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PieChart className="h-5 w-5 text-muted-foreground" />
-                Expense Categories
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="h-[400px] flex items-center justify-center">
-                  <div className="text-muted-foreground">Loading...</div>
-                </div>
-              ) : reportData.categoryBreakdown.length > 0 ? (
-                <div className="space-y-4">
-                  <ResponsiveContainer width="100%" height={250}>
-                    <RePieChart>
-                      <Pie
-                        data={reportData.categoryBreakdown}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={90}
-                        paddingAngle={2}
-                        dataKey="value"
-                      >
-                        {reportData.categoryBreakdown.map((entry: any, index: number) => (
-                          <Cell 
-                            key={`cell-${index}`} 
-                            fill={entry.color}
-                            className="hover:opacity-80 transition-opacity cursor-pointer"
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        formatter={(value: number) => `$${value.toFixed(2)}`}
-                        contentStyle={{
-                          backgroundColor: 'hsl(var(--card))',
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '6px',
-                        }}
-                      />
-                    </RePieChart>
-                  </ResponsiveContainer>
-                  
-                  {/* Category Legend */}
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
-                    {reportData.categoryBreakdown
-                      .sort((a: any, b: any) => b.value - a.value)
-                      .map((category: any, index: number) => {
-                        const percentage = ((category.value / reportData.summary.expenses) * 100).toFixed(1);
-                        return (
-                          <div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                            <div className="flex items-center gap-2">
-                              <div 
-                                className="w-3 h-3 rounded-full flex-shrink-0" 
-                                style={{ backgroundColor: category.color }}
-                              />
-                              <span className="text-sm font-medium">{category.name}</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <span className="text-xs text-muted-foreground">{percentage}%</span>
-                              <span className="text-sm font-semibold">${category.value.toFixed(2)}</span>
-                            </div>
-                          </div>
-                        );
-                    })}
-                  </div>
-                </div>
-              ) : (
-                <div className="h-[400px] flex flex-col items-center justify-center text-muted-foreground">
-                  <PieChart className="h-12 w-12 mb-3 opacity-50" />
-                  <p className="text-sm">No expense data available</p>
-                  <p className="text-xs mt-1">Try adjusting the date range</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-muted-foreground" />
-                Top Transactions
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium text-sm text-muted-foreground">Top Expenses</h4>
-                    <ArrowDownIcon className="h-4 w-4 text-red-500" />
-                  </div>
-                  <div className="space-y-2">
-                    {reportData.topExpenses.length > 0 ? (
-                      reportData.topExpenses.slice(0, 3).map((expense: any, index: number) => (
-                        <div key={index} className="flex justify-between items-center p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                          <span className="text-sm truncate flex-1 mr-2">{expense.description}</span>
-                          <span className="text-sm font-semibold text-red-600 whitespace-nowrap">
-                            -${Number(expense.amount).toFixed(2)}
-                          </span>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-muted-foreground text-center py-2">No expenses</p>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="border-t pt-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium text-sm text-muted-foreground">Top Income</h4>
-                    <ArrowUpIcon className="h-4 w-4 text-green-500" />
-                  </div>
-                  <div className="space-y-2">
-                    {reportData.topIncome.length > 0 ? (
-                      reportData.topIncome.slice(0, 3).map((income: any, index: number) => (
-                        <div key={index} className="flex justify-between items-center p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                          <span className="text-sm truncate flex-1 mr-2">{income.description}</span>
-                          <span className="text-sm font-semibold text-green-600 whitespace-nowrap">
-                            +${Number(income.amount).toFixed(2)}
-                          </span>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-muted-foreground text-center py-2">No income</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+          <TabsContent value="cash-flow" className="mt-6">
+            <CashFlowStatement data={cashFlowData} loading={loading} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
