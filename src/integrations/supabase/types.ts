@@ -650,6 +650,7 @@ export type Database = {
           fiscal_year_start: number | null
           id: string
           last_name: string | null
+          last_report_sync: string | null
           phone: string | null
           plaid_consent_date: string | null
           plaid_consent_details: Json | null
@@ -672,6 +673,7 @@ export type Database = {
           fiscal_year_start?: number | null
           id?: string
           last_name?: string | null
+          last_report_sync?: string | null
           phone?: string | null
           plaid_consent_date?: string | null
           plaid_consent_details?: Json | null
@@ -694,6 +696,7 @@ export type Database = {
           fiscal_year_start?: number | null
           id?: string
           last_name?: string | null
+          last_report_sync?: string | null
           phone?: string | null
           plaid_consent_date?: string | null
           plaid_consent_details?: Json | null
