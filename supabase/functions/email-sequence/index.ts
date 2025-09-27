@@ -534,7 +534,7 @@ const handler = async (req: Request): Promise<Response> => {
               body: JSON.stringify({
                 type: "regular",
                 subject: firstEmail.subject,
-                from: "support@cashflowai.biz",
+                from: "hello@cashflowai.biz",
                 from_name: "Cash Flow AI",
                 groups: [],
               }),
