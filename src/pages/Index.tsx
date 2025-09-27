@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, TrendingUp } from "lucide-react";
 import { TestEmailSender } from "@/components/TestEmailSender";
+import { TestWebhook } from "@/components/TestWebhook";
 
 const Index = () => {
   const { user, loading } = useAuth(false); // Don't require auth on landing
@@ -91,6 +92,7 @@ const Index = () => {
       <main>
         <Hero />
         <TestEmailSender />
+        <TestWebhook />
         <LoanCalculator />
         <Features />
         <NewsletterSection />
