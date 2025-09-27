@@ -108,16 +108,19 @@ export default function Reports() {
         .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
 
       const categoryMap = new Map();
+      let categoryIndex = 0;
       transactions?.forEach((t) => {
         if (t.type === "expense") {
           const categoryName = t.categories?.name || "Uncategorized";
-          const current = categoryMap.get(categoryName) || { 
-            name: categoryName, 
-            value: 0, 
-            color: t.categories?.color || "#888" 
-          };
+          if (!categoryMap.has(categoryName)) {
+            categoryMap.set(categoryName, { 
+              name: categoryName, 
+              value: 0, 
+              color: t.categories?.color || getCategoryColor(categoryName, categoryIndex++)
+            });
+          }
+          const current = categoryMap.get(categoryName);
           current.value += Number(t.amount);
-          categoryMap.set(categoryName, current);
         }
       });
 
@@ -145,7 +148,40 @@ export default function Reports() {
     });
   };
 
-  const COLORS = ["#10B981", "#3B82F6", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899"];
+  // Extended color palette for unique category colors
+  const COLORS = [
+    "#10B981", // Emerald
+    "#3B82F6", // Blue
+    "#F59E0B", // Amber
+    "#EF4444", // Red
+    "#8B5CF6", // Violet
+    "#EC4899", // Pink
+    "#14B8A6", // Teal
+    "#F97316", // Orange
+    "#6366F1", // Indigo
+    "#84CC16", // Lime
+    "#06B6D4", // Cyan
+    "#A855F7", // Purple
+    "#FB923C", // Orange-400
+    "#FACC15", // Yellow
+    "#34D399", // Emerald-400
+    "#60A5FA", // Blue-400
+    "#C084FC", // Purple-400
+    "#FB7185", // Rose-400
+    "#4ADE80", // Green-400
+    "#FDE047", // Yellow-300
+  ];
+  
+  // Function to generate a unique color for a category based on its name
+  const getCategoryColor = (categoryName: string, index: number) => {
+    // Use a hash of the category name to consistently assign the same color
+    let hash = 0;
+    for (let i = 0; i < categoryName.length; i++) {
+      hash = categoryName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const colorIndex = Math.abs(hash) % COLORS.length;
+    return COLORS[colorIndex];
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -303,7 +339,7 @@ export default function Reports() {
                         {reportData.categoryBreakdown.map((entry: any, index: number) => (
                           <Cell 
                             key={`cell-${index}`} 
-                            fill={entry.color || COLORS[index % COLORS.length]}
+                            fill={entry.color}
                             className="hover:opacity-80 transition-opacity cursor-pointer"
                           />
                         ))}
@@ -329,8 +365,8 @@ export default function Reports() {
                           <div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
                             <div className="flex items-center gap-2">
                               <div 
-                                className="w-3 h-3 rounded-full" 
-                                style={{ backgroundColor: category.color || COLORS[index % COLORS.length] }}
+                                className="w-3 h-3 rounded-full flex-shrink-0" 
+                                style={{ backgroundColor: category.color }}
                               />
                               <span className="text-sm font-medium">{category.name}</span>
                             </div>
