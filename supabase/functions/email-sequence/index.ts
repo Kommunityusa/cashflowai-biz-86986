@@ -283,9 +283,15 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     const url = new URL(req.url);
-    const path = url.pathname.split("/").pop();
+    // Get the full path after /email-sequence/
+    const pathParts = url.pathname.split("/");
+    const functionIndex = pathParts.indexOf("email-sequence");
+    const path = pathParts[functionIndex + 1] || pathParts.pop();
+    
+    console.log("Email sequence function called with path:", path);
 
     if (!MAILERLITE_API_KEY) {
+      console.error("MailerLite API key not configured");
       throw new Error("MailerLite API key not configured");
     }
 
