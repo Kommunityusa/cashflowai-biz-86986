@@ -9,7 +9,7 @@ export function TestEmailSender() {
   const sendTestEmail = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('email-sequence', {
+      const { data, error } = await supabase.functions.invoke('email-sequence/add-to-sequence', {
         body: {
           email: 'amaury@kommunity.app',
           name: 'Amaury',
