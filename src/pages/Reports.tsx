@@ -108,15 +108,24 @@ export default function Reports() {
         .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
 
       const categoryMap = new Map();
-      let categoryIndex = 0;
+      const categoryColors = new Map();
+      let colorIndex = 0;
+      
       transactions?.forEach((t) => {
         if (t.type === "expense") {
           const categoryName = t.categories?.name || "Uncategorized";
+          
+          // Assign a unique color to each category
+          if (!categoryColors.has(categoryName)) {
+            categoryColors.set(categoryName, COLORS[colorIndex % COLORS.length]);
+            colorIndex++;
+          }
+          
           if (!categoryMap.has(categoryName)) {
             categoryMap.set(categoryName, { 
               name: categoryName, 
               value: 0, 
-              color: t.categories?.color || getCategoryColor(categoryName, categoryIndex++)
+              color: t.categories?.color || categoryColors.get(categoryName)
             });
           }
           const current = categoryMap.get(categoryName);
@@ -153,7 +162,6 @@ export default function Reports() {
     "#10B981", // Emerald
     "#3B82F6", // Blue
     "#F59E0B", // Amber
-    "#EF4444", // Red
     "#8B5CF6", // Violet
     "#EC4899", // Pink
     "#14B8A6", // Teal
@@ -170,18 +178,8 @@ export default function Reports() {
     "#FB7185", // Rose-400
     "#4ADE80", // Green-400
     "#FDE047", // Yellow-300
+    "#94A3B8", // Slate-400
   ];
-  
-  // Function to generate a unique color for a category based on its name
-  const getCategoryColor = (categoryName: string, index: number) => {
-    // Use a hash of the category name to consistently assign the same color
-    let hash = 0;
-    for (let i = 0; i < categoryName.length; i++) {
-      hash = categoryName.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const colorIndex = Math.abs(hash) % COLORS.length;
-    return COLORS[colorIndex];
-  };
 
   return (
     <div className="min-h-screen bg-background">
