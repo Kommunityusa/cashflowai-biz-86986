@@ -47,61 +47,128 @@ const handler = async (req: Request): Promise<Response> => {
       case "webhook": {
         // Handle MailerLite webhooks
         const webhookData = await req.json();
-        console.log("Received MailerLite webhook:", webhookData);
+        console.log("Received MailerLite webhook:", webhookData.type, webhookData);
 
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
         // Handle different webhook events
-        if (webhookData.type === "subscriber.unsubscribe") {
-          const email = webhookData.data?.subscriber?.email;
-          if (email) {
-            // Update our database when someone unsubscribes
-            await supabase
-              .from("email_subscribers")
-              .update({
-                unsubscribed: true,
-                unsubscribed_at: new Date().toISOString(),
-              })
-              .eq("email", email);
-            
-            console.log(`Marked ${email} as unsubscribed in database`);
-          }
-        } else if (webhookData.type === "subscriber.bounce") {
-          const email = webhookData.data?.subscriber?.email;
-          if (email) {
-            // Log bounce events
-            const { data: subscriber } = await supabase
-              .from("email_subscribers")
-              .select("id")
-              .eq("email", email)
-              .single();
+        switch (webhookData.type) {
+          case "subscriber.created":
+            console.log("New subscriber created:", webhookData.data?.subscriber?.email);
+            // Could sync with our database if needed
+            break;
 
-            if (subscriber) {
+          case "subscriber.updated":
+            console.log("Subscriber updated:", webhookData.data?.subscriber?.email);
+            break;
+
+          case "subscriber.unsubscribed":
+            const unsubEmail = webhookData.data?.subscriber?.email;
+            if (unsubEmail) {
               await supabase
-                .from("email_logs")
-                .insert({
-                  subscriber_id: subscriber.id,
-                  email_number: 0,
-                  subject: "Bounce Event",
-                  status: "bounced",
-                  error_message: "Email bounced",
-                });
+                .from("email_subscribers")
+                .update({
+                  unsubscribed: true,
+                  unsubscribed_at: new Date().toISOString(),
+                })
+                .eq("email", unsubEmail);
+              console.log(`Marked ${unsubEmail} as unsubscribed in database`);
             }
-          }
-        } else if (webhookData.type === "subscriber.complaint") {
-          const email = webhookData.data?.subscriber?.email;
-          if (email) {
-            // Handle spam complaints
-            await supabase
-              .from("email_subscribers")
-              .update({
-                unsubscribed: true,
-                unsubscribed_at: new Date().toISOString(),
-              })
-              .eq("email", email);
-            
-            console.log(`Marked ${email} as unsubscribed due to complaint`);
-          }
+            break;
+
+          case "subscriber.bounced":
+            const bouncedEmail = webhookData.data?.subscriber?.email;
+            if (bouncedEmail) {
+              const { data: subscriber } = await supabase
+                .from("email_subscribers")
+                .select("id")
+                .eq("email", bouncedEmail)
+                .single();
+
+              if (subscriber) {
+                await supabase
+                  .from("email_logs")
+                  .insert({
+                    subscriber_id: subscriber.id,
+                    email_number: 0,
+                    subject: "Bounce Event",
+                    status: "bounced",
+                    error_message: "Email bounced",
+                  });
+              }
+              console.log(`Logged bounce event for ${bouncedEmail}`);
+            }
+            break;
+
+          case "subscriber.spam_reported":
+            const spamEmail = webhookData.data?.subscriber?.email;
+            if (spamEmail) {
+              await supabase
+                .from("email_subscribers")
+                .update({
+                  unsubscribed: true,
+                  unsubscribed_at: new Date().toISOString(),
+                })
+                .eq("email", spamEmail);
+              console.log(`Marked ${spamEmail} as unsubscribed due to spam complaint`);
+            }
+            break;
+
+          case "subscriber.deleted":
+            const deletedEmail = webhookData.data?.subscriber?.email;
+            if (deletedEmail) {
+              await supabase
+                .from("email_subscribers")
+                .update({
+                  unsubscribed: true,
+                  unsubscribed_at: new Date().toISOString(),
+                })
+                .eq("email", deletedEmail);
+              console.log(`Marked ${deletedEmail} as deleted/unsubscribed`);
+            }
+            break;
+
+          case "campaign.click":
+            console.log("Campaign click:", webhookData.data);
+            // Could track engagement metrics
+            break;
+
+          case "campaign.open":
+            console.log("Campaign opened:", webhookData.data);
+            // Could track open rates
+            break;
+
+          case "campaign.sent":
+            console.log("Campaign sent:", webhookData.data);
+            // Could update email logs
+            break;
+
+          case "subscriber.automation_triggered":
+            console.log("Automation triggered:", webhookData.data);
+            break;
+
+          case "subscriber.automation_completed":
+            console.log("Automation completed:", webhookData.data);
+            break;
+
+          case "subscriber.form_submitted":
+            console.log("Form submitted:", webhookData.data);
+            break;
+
+          case "subscriber.active":
+            console.log("Subscriber activated:", webhookData.data);
+            break;
+
+          case "subscriber.removed_from_group":
+            console.log("Subscriber removed from group:", webhookData.data);
+            break;
+
+          case "subscriber.added_to_group":
+            console.log("Subscriber added to group:", webhookData.data);
+            break;
+
+          default:
+            console.log("Unknown webhook event:", webhookData.type);
         }
 
         return new Response(JSON.stringify({ received: true }), {
