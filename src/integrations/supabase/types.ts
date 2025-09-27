@@ -303,6 +303,86 @@ export type Database = {
           },
         ]
       }
+      email_logs: {
+        Row: {
+          email_number: number
+          error_message: string | null
+          id: string
+          sent_at: string
+          status: string | null
+          subject: string
+          subscriber_id: string | null
+        }
+        Insert: {
+          email_number: number
+          error_message?: string | null
+          id?: string
+          sent_at?: string
+          status?: string | null
+          subject: string
+          subscriber_id?: string | null
+        }
+        Update: {
+          email_number?: number
+          error_message?: string | null
+          id?: string
+          sent_at?: string
+          status?: string | null
+          subject?: string
+          subscriber_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_logs_subscriber_id_fkey"
+            columns: ["subscriber_id"]
+            isOneToOne: false
+            referencedRelation: "email_subscribers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_subscribers: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          last_email_sent: number | null
+          last_email_sent_at: string | null
+          name: string | null
+          source: string | null
+          subscribed_at: string
+          unsubscribed: boolean | null
+          unsubscribed_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          last_email_sent?: number | null
+          last_email_sent_at?: string | null
+          name?: string | null
+          source?: string | null
+          subscribed_at?: string
+          unsubscribed?: boolean | null
+          unsubscribed_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          last_email_sent?: number | null
+          last_email_sent_at?: string | null
+          name?: string | null
+          source?: string | null
+          subscribed_at?: string
+          unsubscribed?: boolean | null
+          unsubscribed_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       encryption_keys: {
         Row: {
           created_at: string
