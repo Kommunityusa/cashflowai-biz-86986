@@ -24,6 +24,9 @@ export default function PrivacyPolicy() {
               <div className="bg-muted rounded-lg p-4 mb-6">
                 <p className="text-muted-foreground font-medium">Connex II Inc.</p>
                 <p className="text-muted-foreground">A Delaware Corporation</p>
+                <p className="text-muted-foreground">50 S 16th St, Floor 1700</p>
+                <p className="text-muted-foreground">Philadelphia, PA 19102</p>
+                <p className="text-muted-foreground">Phone: (215) 821-6061</p>
                 <p className="text-muted-foreground">Email: privacy@cashflowai.biz</p>
                 <p className="text-muted-foreground">Website: https://cashflowai.biz</p>
               </div>
@@ -260,6 +263,9 @@ export default function PrivacyPolicy() {
               <div className="bg-muted rounded-lg p-4">
                 <p className="text-muted-foreground font-medium">Connex II Inc.</p>
                 <p className="text-muted-foreground">Attn: Data Protection Officer</p>
+                <p className="text-muted-foreground">50 S 16th St, Floor 1700</p>
+                <p className="text-muted-foreground">Philadelphia, PA 19102</p>
+                <p className="text-muted-foreground">Phone: (215) 821-6061</p>
                 <p className="text-muted-foreground">Email: privacy@cashflowai.biz</p>
                 <p className="text-muted-foreground">Website: https://cashflowai.biz</p>
                 <p className="text-muted-foreground mt-2">For general inquiries: support@cashflowai.biz</p>
