@@ -62,9 +62,10 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error("MailerSend API error:", error);
-      throw new Error(`MailerSend API error: ${error}`);
+      const errorText = await response.text();
+      console.error("MailerSend API error response:", errorText);
+      console.error("MailerSend API status:", response.status);
+      throw new Error(`MailerSend API error (${response.status}): ${errorText}`);
     }
 
     const result = await response.json();
