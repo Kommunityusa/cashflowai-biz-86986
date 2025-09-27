@@ -14,7 +14,7 @@ export function Hero() {
           <div className="space-y-8">
             <div className="inline-flex items-center px-4 py-2 bg-success/10 text-success rounded-full text-sm font-medium">
               <CheckCircle className="h-4 w-4 mr-2" />
-              Trusted by 10,000+ small businesses
+              AI-Powered Financial Management
             </div>
             
             <h1 className="text-5xl lg:text-6xl font-bold text-foreground leading-tight">
