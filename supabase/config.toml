@@ -246,3 +246,6 @@ verify_jwt = true
 
 [functions.create-trial-checkout]
 verify_jwt = true
+
+[functions.mailerlite]
+verify_jwt = false
