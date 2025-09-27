@@ -249,3 +249,6 @@ verify_jwt = true
 
 [functions.mailerlite]
 verify_jwt = false
+
+[functions.email-sequence]
+verify_jwt = false
