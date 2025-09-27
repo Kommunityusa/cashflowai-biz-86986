@@ -423,110 +423,177 @@ const handler = async (req: Request): Promise<Response> => {
         
         console.log(`Adding ${email} to welcome sequence`);
 
-        // Check if subscriber already exists
-        const { data: existing } = await supabase
-          .from("email_subscribers")
-          .select("id")
-          .eq("email", email)
-          .single();
-
-        if (existing) {
-          return new Response(
-            JSON.stringify({ message: "Subscriber already exists" }), 
-            {
-              status: 200,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            }
-          );
-        }
-
-        // Add to our database
-        const { data: newSubscriber, error: insertError } = await supabase
-          .from("email_subscribers")
-          .insert({
-            email,
-            name,
-            source: source || "newsletter",
-            last_email_sent: 0,
-          })
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-
-        // Send the first email immediately
-        const firstEmail = emailTemplates[0];
-        
         try {
-          const emailResponse = await fetch(`${MAILERLITE_API_URL}/campaigns`, {
-            method: "POST",
-            headers: {
-              "X-MailerLite-ApiKey": MAILERLITE_API_KEY,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              type: "regular",
-              subject: firstEmail.subject,
-              from: "support@cashflowai.biz",
-              from_name: "Cash Flow AI",
-              groups: [],
-              emails: [email],
-            }),
-          });
+          // Check if subscriber already exists
+          const { data: existing, error: checkError } = await supabase
+            .from("email_subscribers")
+            .select("id")
+            .eq("email", email)
+            .maybeSingle();
 
-          if (emailResponse.ok) {
-            const campaign = await emailResponse.json();
+          if (checkError) {
+            console.error("Error checking existing subscriber:", checkError);
+            throw checkError;
+          }
+
+          if (existing) {
+            console.log(`Subscriber ${email} already exists`);
+            return new Response(
+              JSON.stringify({ message: "Subscriber already exists" }), 
+              {
+                status: 200,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              }
+            );
+          }
+
+          // Add to our database
+          const { data: newSubscriber, error: insertError } = await supabase
+            .from("email_subscribers")
+            .insert({
+              email,
+              name,
+              source: source || "newsletter",
+              last_email_sent: 0,
+            })
+            .select()
+            .single();
+
+          if (insertError) {
+            console.error("Error inserting subscriber:", insertError);
+            throw insertError;
+          }
+
+          console.log("Subscriber added to database:", newSubscriber.id);
+
+          // Send the first email immediately
+          const firstEmail = emailTemplates[0];
+          
+          try {
+            console.log("Attempting to send welcome email via MailerLite");
             
-            // Update content and send
-            await fetch(`${MAILERLITE_API_URL}/campaigns/${campaign.id}/content`, {
-              method: "PUT",
+            // First add subscriber to MailerLite
+            const subscriberRes = await fetch(`${MAILERLITE_API_URL}/subscribers`, {
+              method: "POST",
               headers: {
                 "X-MailerLite-ApiKey": MAILERLITE_API_KEY,
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                html: firstEmail.getContent(name || ''),
-                plain: firstEmail.getContent(name || '').replace(/<[^>]*>/g, ''),
+                email,
+                name: name || '',
               }),
             });
+            
+            if (!subscriberRes.ok) {
+              const error = await subscriberRes.text();
+              console.log("MailerLite subscriber response:", error);
+            }
 
-            await fetch(`${MAILERLITE_API_URL}/campaigns/${campaign.id}/actions/send`, {
+            // Create campaign
+            const emailResponse = await fetch(`${MAILERLITE_API_URL}/campaigns`, {
               method: "POST",
               headers: {
                 "X-MailerLite-ApiKey": MAILERLITE_API_KEY,
+                "Content-Type": "application/json",
               },
+              body: JSON.stringify({
+                type: "regular",
+                subject: firstEmail.subject,
+                from: "support@cashflowai.biz",
+                from_name: "Cash Flow AI",
+                groups: [],
+              }),
             });
 
-            // Update subscriber
-            await supabase
-              .from("email_subscribers")
-              .update({
-                last_email_sent: 1,
-                last_email_sent_at: new Date().toISOString(),
-              })
-              .eq("id", newSubscriber.id);
+            if (emailResponse.ok) {
+              const campaign = await emailResponse.json();
+              console.log("Campaign created:", campaign.id);
+              
+              // Update content
+              const contentRes = await fetch(`${MAILERLITE_API_URL}/campaigns/${campaign.id}/content`, {
+                method: "PUT",
+                headers: {
+                  "X-MailerLite-ApiKey": MAILERLITE_API_KEY,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  html: firstEmail.getContent(name || ''),
+                  plain: firstEmail.getContent(name || '').replace(/<[^>]*>/g, ''),
+                }),
+              });
 
-            // Log the email
+              if (!contentRes.ok) {
+                console.error("Failed to set content:", await contentRes.text());
+              }
+
+              // Send to specific email
+              const sendRes = await fetch(`${MAILERLITE_API_URL}/campaigns/${campaign.id}/actions/send`, {
+                method: "POST",
+                headers: {
+                  "X-MailerLite-ApiKey": MAILERLITE_API_KEY,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  emails: [email]
+                }),
+              });
+
+              if (!sendRes.ok) {
+                console.error("Failed to send:", await sendRes.text());
+              } else {
+                console.log("Welcome email sent successfully");
+              }
+
+              // Update subscriber
+              await supabase
+                .from("email_subscribers")
+                .update({
+                  last_email_sent: 1,
+                  last_email_sent_at: new Date().toISOString(),
+                })
+                .eq("id", newSubscriber.id);
+
+              // Log the email
+              await supabase
+                .from("email_logs")
+                .insert({
+                  subscriber_id: newSubscriber.id,
+                  email_number: 1,
+                  subject: firstEmail.subject,
+                  status: "sent",
+                });
+            } else {
+              const error = await emailResponse.text();
+              console.error("Failed to create campaign:", error);
+              throw new Error(`MailerLite API error: ${error}`);
+            }
+          } catch (emailError: any) {
+            console.error("Error sending welcome email:", emailError);
+            
+            // Log the error but don't fail the subscription
             await supabase
               .from("email_logs")
               .insert({
                 subscriber_id: newSubscriber.id,
                 email_number: 1,
                 subject: firstEmail.subject,
-                status: "sent",
+                status: "error",
+                error_message: emailError?.message || "Unknown error",
               });
           }
-        } catch (error) {
-          console.error("Error sending welcome email:", error);
-        }
 
-        return new Response(
-          JSON.stringify({ success: true, message: "Added to welcome sequence" }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
+          return new Response(
+            JSON.stringify({ success: true, message: "Added to welcome sequence" }),
+            {
+              status: 200,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        } catch (error: any) {
+          console.error("Error in add-to-sequence:", error);
+          throw error;
+        }
       }
 
       default:
