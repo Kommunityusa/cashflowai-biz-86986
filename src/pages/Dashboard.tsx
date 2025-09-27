@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { AIInsights } from "@/components/AIInsights";
 import { BankAccounts } from "@/components/BankAccounts";
 import { SecurityMonitor } from "@/components/SecurityMonitor";
+import { TestTransactionalEmail } from "@/components/TestTransactionalEmail";
 import { FundingInsights } from "@/components/FundingInsights";
 import { RecurringTransactionDetector } from "@/components/RecurringTransactionDetector";
 import { TaxPreparation } from "@/components/TaxPreparation";
@@ -712,6 +713,9 @@ export default function Dashboard() {
 
             {/* Security Monitor */}
             <SecurityMonitor />
+            
+            {/* Test Transactional Email */}
+            <TestTransactionalEmail />
 
             {/* Recent Transactions */}
             <Card className="mb-8">

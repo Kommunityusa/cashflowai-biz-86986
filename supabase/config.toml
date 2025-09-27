@@ -252,3 +252,6 @@ verify_jwt = false
 
 [functions.email-sequence]
 verify_jwt = false
+
+[functions.send-transactional-email]
+verify_jwt = true
