@@ -11,15 +11,30 @@ export default function Terms() {
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-foreground mb-4">Terms of Service</h1>
-            <p className="text-muted-foreground">Effective Date: {new Date().toLocaleDateString()}</p>
+            <p className="text-muted-foreground">Effective Date: January 1, 2024</p>
+            <p className="text-muted-foreground">Last Updated: {new Date().toLocaleDateString()}</p>
           </div>
 
           <Card className="p-8 space-y-8">
             <section>
+              <h2 className="text-2xl font-semibold mb-4">Agreement Between You and Connex II Inc.</h2>
+              <p className="text-muted-foreground mb-4">
+                These Terms of Service ("Terms") constitute a legally binding agreement between you and <strong>Connex II Inc.</strong>, 
+                a Delaware corporation ("Company", "we", "us", or "our"), concerning your access to and use of the Cash Flow AI 
+                website and application (collectively, the "Service").
+              </p>
+              <p className="text-muted-foreground">
+                By accessing or using the Service, you agree to be bound by these Terms. If you disagree with any part of these 
+                terms, then you may not access the Service.
+              </p>
+            </section>
+
+            <section>
               <h2 className="text-2xl font-semibold mb-4">1. Acceptance of Terms</h2>
               <p className="text-muted-foreground">
-                By accessing and using Cash Flow AI ("the Service"), you agree to be bound by these Terms of Service. 
-                If you do not agree to these terms, please do not use our Service.
+                By creating an account, accessing, or using Cash Flow AI, you acknowledge that you have read, understood, and 
+                agree to be bound by these Terms of Service and our Privacy Policy. You must be at least 18 years old and have 
+                the legal capacity to enter into contracts to use this Service.
               </p>
             </section>
 
@@ -173,7 +188,7 @@ export default function Terms() {
             <section>
               <h2 className="text-2xl font-semibold mb-4">10. Indemnification</h2>
               <p className="text-muted-foreground">
-                You agree to indemnify and hold harmless Cash Flow AI, its affiliates, and their respective officers, 
+                You agree to indemnify and hold harmless Connex II Inc., Cash Flow AI, its affiliates, and their respective officers, 
                 directors, employees, and agents from any claims, damages, losses, or expenses arising from your violation 
                 of these Terms or your use of the Service.
               </p>
@@ -211,12 +226,17 @@ export default function Terms() {
             <section>
               <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
                 <Scale className="h-6 w-6 text-primary" />
-                13. Governing Law
+                13. Governing Law and Dispute Resolution
               </h2>
+              <p className="text-muted-foreground mb-3">
+                These Terms shall be governed by and construed in accordance with the laws of the State of Delaware, United States, 
+                without regard to its conflict of law provisions. Connex II Inc. is organized under Delaware law, and all disputes 
+                relating to these Terms shall be subject to the exclusive jurisdiction of the state and federal courts located in Delaware.
+              </p>
               <p className="text-muted-foreground">
-                These Terms shall be governed by and construed in accordance with the laws of the State of Delaware, 
-                without regard to its conflict of law provisions. Any disputes shall be resolved through binding arbitration 
-                in accordance with the rules of the American Arbitration Association.
+                <strong>Arbitration:</strong> Any disputes arising out of or relating to these Terms or the Service shall be resolved 
+                through binding arbitration in accordance with the rules of the American Arbitration Association. The arbitration shall 
+                be conducted in Delaware, and judgment on the award may be entered in any court having jurisdiction.
               </p>
             </section>
 
@@ -232,16 +252,19 @@ export default function Terms() {
             <section>
               <h2 className="text-2xl font-semibold mb-4">15. Contact Information</h2>
               <div className="bg-muted rounded-lg p-4">
-                <p className="text-muted-foreground">Email: legal@cashflowai.com</p>
-                <p className="text-muted-foreground">Phone: 1-800-CASH-FLW</p>
-                <p className="text-muted-foreground">Address: 123 Financial District, Suite 456, New York, NY 10004</p>
+                <p className="text-muted-foreground font-medium">Connex II Inc.</p>
+                <p className="text-muted-foreground">A Delaware Corporation</p>
+                <p className="text-muted-foreground">Email: legal@cashflowai.biz</p>
+                <p className="text-muted-foreground">Website: https://cashflowai.biz</p>
+                <p className="text-muted-foreground mt-2">For support: support@cashflowai.biz</p>
               </div>
             </section>
 
             <section className="border-t pt-8">
               <p className="text-sm text-muted-foreground">
                 By using Cash Flow AI, you acknowledge that you have read, understood, and agree to be bound by these 
-                Terms of Service. Last updated: {new Date().toLocaleDateString()}.
+                Terms of Service as set forth by Connex II Inc. These Terms constitute the entire agreement between you 
+                and Connex II Inc. regarding the use of the Service. Last updated: {new Date().toLocaleDateString()}.
               </p>
             </section>
           </Card>

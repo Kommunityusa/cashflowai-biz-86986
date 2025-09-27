@@ -11,18 +11,32 @@ export default function PrivacyPolicy() {
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-foreground mb-4">Privacy Policy</h1>
-            <p className="text-muted-foreground">Effective Date: {new Date().toLocaleDateString()}</p>
+            <p className="text-muted-foreground">Effective Date: January 1, 2024</p>
+            <p className="text-muted-foreground">Last Updated: {new Date().toLocaleDateString()}</p>
           </div>
 
           <Card className="p-8 space-y-8">
+            <section>
+              <h2 className="text-2xl font-semibold mb-4">Company Information</h2>
+              <p className="text-muted-foreground mb-4">
+                Cash Flow AI is a product of <strong>Connex II Inc.</strong>, a Delaware corporation organized and existing under the laws of the State of Delaware, United States of America.
+              </p>
+              <div className="bg-muted rounded-lg p-4 mb-6">
+                <p className="text-muted-foreground font-medium">Connex II Inc.</p>
+                <p className="text-muted-foreground">A Delaware Corporation</p>
+                <p className="text-muted-foreground">Email: privacy@cashflowai.biz</p>
+                <p className="text-muted-foreground">Website: https://cashflowai.biz</p>
+              </div>
+            </section>
+
             <section>
               <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
                 <Shield className="h-6 w-6 text-primary" />
                 Our Commitment to Privacy
               </h2>
               <p className="text-muted-foreground mb-4">
-                At Cash Flow AI, we take your privacy and data security seriously. This Privacy Policy explains how we collect, 
-                use, protect, and share your information when you use our financial management platform.
+                Connex II Inc., operating Cash Flow AI, takes your privacy and data security seriously. This Privacy Policy explains how we collect, 
+                use, protect, and share your information when you use our financial management platform. We comply with all applicable United States federal and Delaware state privacy laws.
               </p>
             </section>
 
@@ -130,10 +144,25 @@ export default function PrivacyPolicy() {
                   </p>
                 </div>
                 <div>
+                  <h3 className="font-medium mb-2">Google OAuth</h3>
+                  <p className="text-muted-foreground">
+                    We use Google OAuth for authentication services. When you sign in with Google, we only access your basic profile information 
+                    (name, email, profile picture) with your explicit consent. We do not access or store any other Google account data. 
+                    Your use of Google sign-in is subject to Google's Privacy Policy and Terms of Service.
+                  </p>
+                </div>
+                <div>
                   <h3 className="font-medium mb-2">OpenAI</h3>
                   <p className="text-muted-foreground">
                     AI-powered insights are generated using OpenAI's API. Financial data sent for analysis is anonymized 
-                    and processed securely without storing personal identifiers.
+                    and processed securely without storing personal identifiers. No personal information is retained by OpenAI.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-medium mb-2">Stripe</h3>
+                  <p className="text-muted-foreground">
+                    Payment processing is handled by Stripe, Inc., a PCI-DSS compliant payment processor. We never store credit card 
+                    information directly. All payment data is encrypted and processed securely through Stripe's infrastructure.
                   </p>
                 </div>
                 <div>
@@ -190,14 +219,50 @@ export default function PrivacyPolicy() {
             </section>
 
             <section>
+              <h2 className="text-2xl font-semibold mb-4">California Privacy Rights (CCPA)</h2>
+              <p className="text-muted-foreground mb-3">
+                California residents have additional rights under the California Consumer Privacy Act (CCPA):
+              </p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-2">
+                <li>Right to know what personal information is collected</li>
+                <li>Right to know whether personal information is sold or disclosed</li>
+                <li>Right to opt-out of the sale of personal information</li>
+                <li>Right to non-discrimination for exercising privacy rights</li>
+              </ul>
+              <p className="text-muted-foreground mt-3">
+                <strong>We do not sell your personal information to third parties.</strong>
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-semibold mb-4">International Data Transfers</h2>
+              <p className="text-muted-foreground">
+                Cash Flow AI operates from the United States. If you access our services from outside the United States, 
+                your information will be transferred to and processed in the United States in accordance with this Privacy Policy 
+                and applicable United States laws.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-semibold mb-4">Children's Privacy</h2>
+              <p className="text-muted-foreground">
+                Our services are not directed to individuals under the age of 18. We do not knowingly collect personal 
+                information from children under 18. If we become aware that we have collected personal information from 
+                a child under 18, we will take steps to delete such information.
+              </p>
+            </section>
+
+            <section>
               <h2 className="text-2xl font-semibold mb-4">Contact Information</h2>
               <p className="text-muted-foreground mb-3">
-                For privacy-related questions or concerns, please contact us:
+                For privacy-related questions, concerns, or to exercise your privacy rights, please contact our Data Protection Officer:
               </p>
               <div className="bg-muted rounded-lg p-4">
-                <p className="text-muted-foreground">Email: privacy@cashflowai.com</p>
-                <p className="text-muted-foreground">Phone: 1-800-CASH-FLW</p>
-                <p className="text-muted-foreground">Address: 123 Financial District, Suite 456, New York, NY 10004</p>
+                <p className="text-muted-foreground font-medium">Connex II Inc.</p>
+                <p className="text-muted-foreground">Attn: Data Protection Officer</p>
+                <p className="text-muted-foreground">Email: privacy@cashflowai.biz</p>
+                <p className="text-muted-foreground">Website: https://cashflowai.biz</p>
+                <p className="text-muted-foreground mt-2">For general inquiries: support@cashflowai.biz</p>
               </div>
             </section>
 
