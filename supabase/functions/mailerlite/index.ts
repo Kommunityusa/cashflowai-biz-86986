@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const MAILERLITE_API_KEY = Deno.env.get("MAILERLITE_API_KEY");
 const MAILERLITE_API_URL = "https://api.mailerlite.com/api/v2";
+const MAILERLITE_WEBHOOK_SECRET = Deno.env.get("MAILERLITE_WEBHOOK_SECRET");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -47,7 +48,48 @@ const handler = async (req: Request): Promise<Response> => {
       case "webhook": {
         // Handle MailerLite webhooks
         try {
-          const webhookData = await req.json();
+          const body = await req.text();
+          
+          // Verify webhook signature if secret is configured
+          if (MAILERLITE_WEBHOOK_SECRET) {
+            const signature = req.headers.get('X-MailerLite-Signature');
+            
+            if (!signature) {
+              console.error("Missing webhook signature");
+              return new Response(JSON.stringify({ error: "Unauthorized" }), {
+                status: 401,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              });
+            }
+            
+            // Create HMAC signature using Web Crypto API
+            const encoder = new TextEncoder();
+            const key = await globalThis.crypto.subtle.importKey(
+              "raw",
+              encoder.encode(MAILERLITE_WEBHOOK_SECRET),
+              { name: "HMAC", hash: "SHA-256" },
+              false,
+              ["sign"]
+            );
+            
+            const signatureBuffer = await globalThis.crypto.subtle.sign(
+              "HMAC",
+              key,
+              encoder.encode(body)
+            );
+            
+            const expectedSignature = btoa(String.fromCharCode(...new Uint8Array(signatureBuffer)));
+            
+            if (signature !== expectedSignature) {
+              console.error("Invalid webhook signature");
+              return new Response(JSON.stringify({ error: "Unauthorized" }), {
+                status: 401,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              });
+            }
+          }
+          
+          const webhookData = JSON.parse(body);
           console.log("Received MailerLite webhook:", webhookData.type, webhookData);
 
           // Always return success immediately to MailerLite
