@@ -54,6 +54,7 @@ export function Header() {
     { href: "/#pricing", label: "Pricing" },
     { href: "/blog", label: "Blog" },
     { href: "/about", label: "About" },
+    { href: "/investors", label: "Investors" },
   ];
 
   const handleLogout = async () => {
