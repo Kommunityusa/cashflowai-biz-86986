@@ -553,6 +553,122 @@ export type Database = {
         }
         Relationships: []
       }
+      lender_contacts: {
+        Row: {
+          contact_date: string | null
+          contact_type: string
+          created_at: string
+          id: string
+          lender_id: string
+          notes: string | null
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_date?: string | null
+          contact_type: string
+          created_at?: string
+          id?: string
+          lender_id: string
+          notes?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_date?: string | null
+          contact_type?: string
+          created_at?: string
+          id?: string
+          lender_id?: string
+          notes?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lender_contacts_lender_id_fkey"
+            columns: ["lender_id"]
+            isOneToOne: false
+            referencedRelation: "lenders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lenders: {
+        Row: {
+          address: string | null
+          city: string | null
+          counties_served: string[] | null
+          created_at: string
+          description: string | null
+          email: string | null
+          id: string
+          industries_served: string[] | null
+          is_active: boolean | null
+          is_cdfi: boolean | null
+          loan_range_max: number | null
+          loan_range_min: number | null
+          loan_types: string[] | null
+          name: string
+          organization_type: string | null
+          phone: string | null
+          services: string[] | null
+          state: string | null
+          updated_at: string
+          website: string | null
+          zip_code: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          counties_served?: string[] | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          industries_served?: string[] | null
+          is_active?: boolean | null
+          is_cdfi?: boolean | null
+          loan_range_max?: number | null
+          loan_range_min?: number | null
+          loan_types?: string[] | null
+          name: string
+          organization_type?: string | null
+          phone?: string | null
+          services?: string[] | null
+          state?: string | null
+          updated_at?: string
+          website?: string | null
+          zip_code?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          counties_served?: string[] | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          industries_served?: string[] | null
+          is_active?: boolean | null
+          is_cdfi?: boolean | null
+          loan_range_max?: number | null
+          loan_range_min?: number | null
+          loan_types?: string[] | null
+          name?: string
+          organization_type?: string | null
+          phone?: string | null
+          services?: string[] | null
+          state?: string | null
+          updated_at?: string
+          website?: string | null
+          zip_code?: string | null
+        }
+        Relationships: []
+      }
       login_attempts: {
         Row: {
           created_at: string
