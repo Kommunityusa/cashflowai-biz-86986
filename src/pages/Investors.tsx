@@ -230,16 +230,20 @@ export default function Investors() {
                   <h4 className="font-semibold mb-4">Revenue Streams</h4>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                      <span>SaaS Subscription</span>
-                      <span className="font-semibold">$49-199/mo</span>
+                      <span>Starter Plan</span>
+                      <span className="font-semibold">$10/mo</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                      <span>Professional Plan</span>
+                      <span className="font-semibold">$15/mo</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                      <span>Business Plan</span>
+                      <span className="font-semibold">$25/mo</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
                       <span>Lender Referral Fees</span>
                       <span className="font-semibold">2-4% commission</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                      <span>Premium AI Features</span>
-                      <span className="font-semibold">$29/mo add-on</span>
                     </div>
                   </div>
                 </div>
@@ -370,34 +374,9 @@ export default function Investors() {
                     <div className="flex-1">
                       <h3 className="text-xl font-bold mb-1">Amaury Abreu</h3>
                       <p className="text-primary font-semibold mb-2">Founder & CEO</p>
-                      <p className="text-muted-foreground mb-3">
+                      <p className="text-muted-foreground">
                         Loan Officer at Impact Loan Fund
                       </p>
-                      <div className="space-y-2 text-sm">
-                        <p>
-                          • 8+ years in small business lending, processed $50M+ in loans
-                        </p>
-                        <p>
-                          • Deep understanding of funding requirements and pain points
-                        </p>
-                        <p>
-                          • Combining lending expertise with bookkeeping innovation to bridge the gap between financial management and funding access
-                        </p>
-                        <p>
-                          • Network of 200+ lenders and financial institutions
-                        </p>
-                      </div>
-                      <div className="mt-4 flex gap-2 flex-wrap">
-                        <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium">
-                          Small Business Lending
-                        </span>
-                        <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium">
-                          Financial Analysis
-                        </span>
-                        <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium">
-                          Risk Assessment
-                        </span>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -460,7 +439,7 @@ export default function Investors() {
                     </tr>
                     <tr className="border-b">
                       <td className="py-3 px-2">Starting Price</td>
-                      <td className="text-center font-semibold text-primary">$49/mo</td>
+                      <td className="text-center font-semibold text-primary">$10/mo</td>
                       <td className="text-center text-muted-foreground">$30/mo</td>
                       <td className="text-center text-muted-foreground">$15/mo</td>
                       <td className="text-center text-muted-foreground">Free/$16/mo</td>
