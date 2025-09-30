@@ -191,19 +191,20 @@ export function Header() {
               </DropdownMenu>
             ) : (
               <>
+                <LanguageToggle />
                 <Button 
                   variant="ghost" 
                   size="sm"
                   onClick={() => navigate("/auth")}
                 >
-                  Sign In
+                  {t('nav.signIn')}
                 </Button>
                 <Button 
                   variant="gradient" 
                   size="sm"
                   onClick={() => navigate("/auth")}
                 >
-                  Start Free Trial
+                  {t('hero.startFreeTrial')}
                 </Button>
               </>
             )}
@@ -230,6 +231,12 @@ export function Header() {
               <nav className="flex flex-col gap-4 mt-6">
                 {user ? (
                   <>
+                    {/* Language Toggle */}
+                    <div className="flex items-center justify-between px-3 py-2 border-b">
+                      <span className="text-sm font-medium">{t('common.language')}</span>
+                      <LanguageToggle />
+                    </div>
+                    
                     {/* User Info */}
                     <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                       <Avatar className="h-10 w-10">
@@ -291,6 +298,12 @@ export function Header() {
                   </>
                 ) : (
                   <>
+                    {/* Language Toggle for non-authenticated users */}
+                    <div className="flex items-center justify-between px-3 py-2 border-b mb-4">
+                      <span className="text-sm font-medium">{t('common.language')}</span>
+                      <LanguageToggle />
+                    </div>
+                    
                     {/* Landing Navigation */}
                     {isLandingPage && (
                       <div className="space-y-1 mb-4">

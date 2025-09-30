@@ -43,6 +43,20 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 // Translation strings
 const translations: Record<Language, Record<string, string>> = {
   en: {
+    // Hero
+    'hero.aiPowered': 'AI-Powered Financial Management',
+    'hero.bookkeepingMade': 'Bookkeeping Made',
+    'hero.effortless': 'Effortless',
+    'hero.withAI': 'with AI',
+    'hero.subtitle': 'Automate your bookkeeping, connect your bank accounts, and generate professional reports in seconds. Let AI handle the numbers while you focus on growing your business.',
+    'hero.startFreeTrial': 'Start Free Trial',
+    'hero.goToDashboard': 'Go to Dashboard',
+    'hero.watchDemo': 'Watch Demo',
+    'hero.features': 'Features',
+    'hero.pricing': 'Pricing',
+    'hero.blog': 'Blog',
+    'hero.about': 'About',
+    
     // Navigation
     'nav.dashboard': 'Dashboard',
     'nav.transactions': 'Transactions',
@@ -51,6 +65,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.funding': 'Funding',
     'nav.admin': 'Admin',
     'nav.signOut': 'Sign Out',
+    'nav.signIn': 'Sign In',
     
     // Auth
     'auth.welcomeBack': 'Welcome Back',
@@ -109,6 +124,20 @@ const translations: Record<Language, Record<string, string>> = {
     'common.language': 'Language',
   },
   es: {
+    // Hero
+    'hero.aiPowered': 'Gestión Financiera con IA',
+    'hero.bookkeepingMade': 'Contabilidad',
+    'hero.effortless': 'Sin Esfuerzo',
+    'hero.withAI': 'con IA',
+    'hero.subtitle': 'Automatiza tu contabilidad, conecta tus cuentas bancarias y genera informes profesionales en segundos. Deja que la IA maneje los números mientras te enfocas en hacer crecer tu negocio.',
+    'hero.startFreeTrial': 'Iniciar Prueba Gratis',
+    'hero.goToDashboard': 'Ir al Panel',
+    'hero.watchDemo': 'Ver Demo',
+    'hero.features': 'Características',
+    'hero.pricing': 'Precios',
+    'hero.blog': 'Blog',
+    'hero.about': 'Acerca de',
+    
     // Navigation
     'nav.dashboard': 'Panel',
     'nav.transactions': 'Transacciones',
@@ -117,6 +146,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.funding': 'Financiamiento',
     'nav.admin': 'Admin',
     'nav.signOut': 'Cerrar Sesión',
+    'nav.signIn': 'Iniciar Sesión',
     
     // Auth
     'auth.welcomeBack': 'Bienvenido de Nuevo',
