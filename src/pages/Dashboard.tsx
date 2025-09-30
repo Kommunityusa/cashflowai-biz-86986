@@ -7,8 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { AIInsights } from "@/components/AIInsights";
 import { BankAccounts } from "@/components/BankAccounts";
 import { SecurityMonitor } from "@/components/SecurityMonitor";
-import { useLanguage } from "@/contexts/LanguageContext";
-import { useSubscription } from "@/contexts/SubscriptionContext";
+
 import { FundingInsights } from "@/components/FundingInsights";
 import { RecurringTransactionDetector } from "@/components/RecurringTransactionDetector";
 import { TaxPreparation } from "@/components/TaxPreparation";

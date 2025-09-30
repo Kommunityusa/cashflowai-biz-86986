@@ -6,8 +6,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AIChatBubble } from "@/components/AIChatBubble";
-import { LanguageProvider } from "@/contexts/LanguageContext";
-import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -29,8 +27,6 @@ import TaxSeasonChecklist from "./pages/blog/TaxSeasonChecklist";
 import Demo from "./pages/Demo";
 import Investors from "./pages/Investors";
 import Funding from "./pages/Funding";
-import SelectPlan from "./pages/SelectPlan";
-import GoogleAuthCallback from "./pages/GoogleAuthCallback";
 
 const queryClient = new QueryClient();
 
@@ -72,78 +68,68 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <LanguageProvider>
-      <SubscriptionProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/auth/callback" element={<GoogleAuthCallback />} />
-              <Route path="/select-plan" element={
-                <ProtectedRoute>
-                  <SelectPlan />
-                </ProtectedRoute>
-              } />
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/transactions" element={
-                <ProtectedRoute>
-                  <Transactions />
-                </ProtectedRoute>
-              } />
-              <Route path="/reports" element={
-                <ProtectedRoute>
-                  <Reports />
-                </ProtectedRoute>
-              } />
-              <Route path="/settings" element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
-              } />
-              <Route path="/funding" element={
-                <ProtectedRoute>
-                  <Funding />
-                </ProtectedRoute>
-              } />
-              <Route path="/privacy" element={<PrivacyPolicy />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/security" element={
-                <ProtectedRoute>
-                  <Security />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin" element={
-                <ProtectedRoute>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/plaid-testing" element={
-                <ProtectedRoute>
-                  <PlaidTesting />
-                </ProtectedRoute>
-              } />
-              <Route path="/oauth/callback" element={<PlaidOAuthCallback />} />
-              <Route path="/blog" element={<Blog />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/blog/small-business-bookkeeping-guide" element={<SmallBusinessBookkeepingGuide />} />
-              <Route path="/blog/double-entry-bookkeeping-essentials" element={<DoubleEntryBookkeeping />} />
-              <Route path="/blog/tax-season-bookkeeping-checklist" element={<TaxSeasonChecklist />} />
-              <Route path="/demo" element={<Demo />} />
-              <Route path="/investors" element={<Investors />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </SubscriptionProvider>
-    </LanguageProvider>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/transactions" element={
+            <ProtectedRoute>
+              <Transactions />
+            </ProtectedRoute>
+          } />
+          <Route path="/reports" element={
+            <ProtectedRoute>
+              <Reports />
+            </ProtectedRoute>
+          } />
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          } />
+          <Route path="/funding" element={
+            <ProtectedRoute>
+              <Funding />
+            </ProtectedRoute>
+          } />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/security" element={
+            <ProtectedRoute>
+              <Security />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin" element={
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/plaid-testing" element={
+            <ProtectedRoute>
+              <PlaidTesting />
+            </ProtectedRoute>
+          } />
+          <Route path="/auth/callback" element={<PlaidOAuthCallback />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/blog/small-business-bookkeeping-guide" element={<SmallBusinessBookkeepingGuide />} />
+          <Route path="/blog/double-entry-bookkeeping-essentials" element={<DoubleEntryBookkeeping />} />
+          <Route path="/blog/tax-season-bookkeeping-checklist" element={<TaxSeasonChecklist />} />
+          <Route path="/demo" element={<Demo />} />
+          <Route path="/investors" element={<Investors />} />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </TooltipProvider>
   </QueryClientProvider>
 );
 

@@ -13,12 +13,9 @@ import { Session, User } from "@supabase/supabase-js";
 import { validatePassword } from "@/utils/passwordValidation";
 import { Progress } from "@/components/ui/progress";
 import { checkRateLimit, logLoginAttempt, logAuditEvent } from "@/utils/auditLogger";
-import { useLanguage } from "@/contexts/LanguageContext";
-import { LanguageToggle } from "@/components/LanguageToggle";
 
 export default function Auth() {
   const navigate = useNavigate();
-  const { t } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -156,13 +153,10 @@ export default function Auth() {
     setMessage(null);
     setLoading(true);
 
-    // Check if this is a new user by checking for existing sessions
-    const { data: { session: existingSession } } = await supabase.auth.getSession();
-    
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/dashboard`,
       }
     });
 
@@ -178,9 +172,6 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
-      <div className="absolute top-4 right-4">
-        <LanguageToggle />
-      </div>
       <div className="w-full max-w-md">
         <Link to="/" className="flex items-center justify-center space-x-2 mb-8">
           <div className="p-2 bg-gradient-primary rounded-lg">
@@ -191,26 +182,26 @@ export default function Auth() {
 
         <Card className="border-border/50 shadow-xl">
           <CardHeader>
-            <CardTitle className="text-2xl text-center">{t('auth.welcomeBack')}</CardTitle>
+            <CardTitle className="text-2xl text-center">Welcome Back</CardTitle>
             <CardDescription className="text-center">
-              {t('auth.manageFinances')}
+              Manage your business finances with AI-powered insights
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="signin" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">{t('auth.signIn')}</TabsTrigger>
-                <TabsTrigger value="signup">{t('auth.signUp')}</TabsTrigger>
+                <TabsTrigger value="signin">Sign In</TabsTrigger>
+                <TabsTrigger value="signup">Sign Up</TabsTrigger>
               </TabsList>
               
               <TabsContent value="signin">
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signin-email">{t('auth.email')}</Label>
+                    <Label htmlFor="signin-email">Email</Label>
                     <Input
                       id="signin-email"
                       type="email"
-                      placeholder={t('auth.emailPlaceholder')}
+                      placeholder="your@email.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
@@ -218,11 +209,11 @@ export default function Auth() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signin-password">{t('auth.password')}</Label>
+                    <Label htmlFor="signin-password">Password</Label>
                     <Input
                       id="signin-password"
                       type="password"
-                      placeholder={t('auth.passwordPlaceholder')}
+                      placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
@@ -235,7 +226,7 @@ export default function Auth() {
                     variant="gradient"
                     disabled={loading}
                   >
-                    {loading ? t('auth.signingIn') : t('auth.signIn')}
+                    {loading ? "Signing in..." : "Sign In"}
                   </Button>
                 </form>
 
@@ -246,7 +237,7 @@ export default function Auth() {
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
                       <span className="bg-background px-2 text-muted-foreground">
-                        {t('auth.orContinueWith')}
+                        Or continue with
                       </span>
                     </div>
                   </div>
@@ -277,7 +268,7 @@ export default function Auth() {
                       />
                       <path d="M1 1h22v22H1z" fill="none" />
                     </svg>
-                    {t('auth.continueWithGoogle')}
+                    Continue with Google
                   </Button>
                 </div>
               </TabsContent>
@@ -285,11 +276,11 @@ export default function Auth() {
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">{t('auth.email')}</Label>
+                    <Label htmlFor="signup-email">Email</Label>
                     <Input
                       id="signup-email"
                       type="email"
-                      placeholder={t('auth.emailPlaceholder')}
+                      placeholder="your@email.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
@@ -297,12 +288,12 @@ export default function Auth() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">{t('auth.password')}</Label>
+                    <Label htmlFor="signup-password">Password</Label>
                     <div className="relative">
                       <Input
                         id="signup-password"
                         type={showPassword ? "text" : "password"}
-                        placeholder={t('auth.passwordPlaceholder')}
+                        placeholder="••••••••"
                         value={password}
                         onChange={(e) => {
                           setPassword(e.target.value);
@@ -385,7 +376,7 @@ export default function Auth() {
                     variant="gradient"
                     disabled={loading}
                   >
-                    {loading ? t('auth.creatingAccount') : t('auth.createAccount')}
+                    {loading ? "Creating account..." : "Create Account"}
                   </Button>
                 </form>
               </TabsContent>
@@ -407,7 +398,7 @@ export default function Auth() {
             )}
           </CardContent>
           <CardFooter className="flex flex-col space-y-2 text-sm text-muted-foreground">
-            <p>{t('auth.bySigningUp')}</p>
+            <p>By signing up, you agree to our Terms of Service and Privacy Policy</p>
           </CardFooter>
         </Card>
       </div>

@@ -2,12 +2,10 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, CheckCircle, Monitor, TrendingUp } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useLanguage } from "@/contexts/LanguageContext";
 
 export function Hero() {
   const { user } = useAuth(false);
   const navigate = useNavigate();
-  const { t } = useLanguage();
   
   return (
     <section className="relative pt-32 pb-20 overflow-hidden bg-gradient-subtle">
@@ -16,19 +14,20 @@ export function Hero() {
           <div className="space-y-8">
             <div className="inline-flex items-center px-4 py-2 bg-success/10 text-success rounded-full text-sm font-medium">
               <CheckCircle className="h-4 w-4 mr-2" />
-              {t('hero.aiPowered')}
+              AI-Powered Financial Management
             </div>
             
             <h1 className="text-5xl lg:text-6xl font-bold text-foreground leading-tight">
-              {t('hero.bookkeepingMade')}{" "}
+              Bookkeeping Made{" "}
               <span className="bg-gradient-primary bg-clip-text text-transparent">
-                {t('hero.effortless')}
+                Effortless
               </span>{" "}
-              {t('hero.withAI')}
+              with AI
             </h1>
             
             <p className="text-xl text-muted-foreground">
-              {t('hero.subtitle')}
+              Automate your bookkeeping, connect your bank accounts, and generate professional 
+              reports in seconds. Let AI handle the numbers while you focus on growing your business.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4">
@@ -36,14 +35,14 @@ export function Hero() {
                 <Link to="/dashboard">
                   <Button size="xl" variant="gradient" className="group">
                     <TrendingUp className="mr-2 h-5 w-5" />
-                    {t('hero.goToDashboard')}
+                    Go to Dashboard
                     <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
               ) : (
                 <Link to="/auth">
                   <Button size="xl" variant="gradient" className="group">
-                    {t('hero.startFreeTrial')}
+                    Start Free Trial
                     <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
@@ -55,7 +54,7 @@ export function Hero() {
                 onClick={() => navigate('/demo')}
               >
                 <Monitor className="mr-2 h-5 w-5" />
-                {t('hero.watchDemo')}
+                View Demo
               </Button>
             </div>
             
