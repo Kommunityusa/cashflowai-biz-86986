@@ -2,6 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mobile-first responsive utilities */
+@layer utilities {
+  .container-mobile {
+    @apply w-full px-4 sm:px-6 lg:px-8;
+  }
+  
+  .grid-mobile {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+  }
+  
+  .text-mobile {
+    @apply text-sm sm:text-base;
+  }
+  
+  .padding-mobile {
+    @apply p-4 sm:p-6 lg:p-8;
+  }
+}
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */

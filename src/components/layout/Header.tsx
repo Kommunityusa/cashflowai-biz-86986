@@ -20,6 +20,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { LanguageToggle } from "@/components/LanguageToggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +37,8 @@ export function Header() {
   const { user } = useAuth(false);
   const { isAdmin } = useRole();
   const { toast } = useToast();
+  const { t } = useLanguage();
+  const { hasFeature } = useSubscription();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -44,12 +49,12 @@ export function Header() {
                         location.pathname.startsWith("/blog/");
 
   const navigationLinks = [
-    { href: "/dashboard", label: "Dashboard", icon: Home },
-    { href: "/transactions", label: "Transactions", icon: FileText },
-    { href: "/reports", label: "Reports", icon: BarChart3 },
-    { href: "/funding", label: "Funding", icon: DollarSign },
-    { href: "/settings", label: "Settings", icon: Settings },
-  ];
+    { href: "/dashboard", label: t('nav.dashboard'), icon: Home, feature: null },
+    { href: "/transactions", label: t('nav.transactions'), icon: FileText, feature: null },
+    { href: "/reports", label: t('nav.reports'), icon: BarChart3, feature: null },
+    { href: "/funding", label: t('nav.funding'), icon: DollarSign, feature: 'funding_access' },
+    { href: "/settings", label: t('nav.settings'), icon: Settings, feature: null },
+  ].filter(link => !link.feature || hasFeature(link.feature));
 
   const landingLinks = [
     { href: "/#features", label: "Features" },
@@ -145,6 +150,7 @@ export function Header() {
 
           {/* Desktop User Menu / Auth Buttons */}
           <div className="hidden lg:flex items-center gap-4">
+            <LanguageToggle />
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

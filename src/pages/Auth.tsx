@@ -153,10 +153,13 @@ export default function Auth() {
     setMessage(null);
     setLoading(true);
 
+    // Check if this is a new user by checking for existing sessions
+    const { data: { session: existingSession } } = await supabase.auth.getSession();
+    
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/dashboard`,
+        redirectTo: `${window.location.origin}/auth/callback`,
       }
     });
 
