@@ -772,6 +772,7 @@ export type Database = {
           plaid_consent_details: Json | null
           plaid_consent_version: string | null
           state: string | null
+          subscription_plan: string | null
           tax_id: string | null
           updated_at: string
           user_id: string
@@ -795,6 +796,7 @@ export type Database = {
           plaid_consent_details?: Json | null
           plaid_consent_version?: string | null
           state?: string | null
+          subscription_plan?: string | null
           tax_id?: string | null
           updated_at?: string
           user_id: string
@@ -818,6 +820,7 @@ export type Database = {
           plaid_consent_details?: Json | null
           plaid_consent_version?: string | null
           state?: string | null
+          subscription_plan?: string | null
           tax_id?: string | null
           updated_at?: string
           user_id?: string
