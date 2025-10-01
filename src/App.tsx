@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AIChatBubble } from "@/components/AIChatBubble";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -27,22 +28,52 @@ import TaxSeasonChecklist from "./pages/blog/TaxSeasonChecklist";
 import Demo from "./pages/Demo";
 import Investors from "./pages/Investors";
 import Funding from "./pages/Funding";
+import SelectPlan from "./pages/SelectPlan";
 
 const queryClient = new QueryClient();
 
-// Protected Route component with AI Chat Bubble
+// Protected Route component with AI Chat Bubble and Plan Check
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
+  const [hasPlan, setHasPlan] = useState<boolean | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setAuthenticated(!!session);
+    const checkAuthAndPlan = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
+        setAuthenticated(true);
+        
+        // Check if user has selected a plan
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('subscription_plan')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+        
+        setHasPlan(profile?.subscription_plan ? true : false);
+      } else {
+        setAuthenticated(false);
+      }
+      
       setLoading(false);
-    });
+    };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    checkAuthAndPlan();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setAuthenticated(!!session);
+      
+      if (session) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('subscription_plan')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+        
+        setHasPlan(profile?.subscription_plan ? true : false);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -56,80 +87,89 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return authenticated ? (
+  if (!authenticated) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  if (hasPlan === false) {
+    return <Navigate to="/select-plan" replace />;
+  }
+
+  return (
     <>
       {children}
       <AIChatBubble />
     </>
-  ) : (
-    <Navigate to="/auth" replace />
   );
 }
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/transactions" element={
-            <ProtectedRoute>
-              <Transactions />
-            </ProtectedRoute>
-          } />
-          <Route path="/reports" element={
-            <ProtectedRoute>
-              <Reports />
-            </ProtectedRoute>
-          } />
-          <Route path="/settings" element={
-            <ProtectedRoute>
-              <Settings />
-            </ProtectedRoute>
-          } />
-          <Route path="/funding" element={
-            <ProtectedRoute>
-              <Funding />
-            </ProtectedRoute>
-          } />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/security" element={
-            <ProtectedRoute>
-              <Security />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin" element={
-            <ProtectedRoute>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/plaid-testing" element={
-            <ProtectedRoute>
-              <PlaidTesting />
-            </ProtectedRoute>
-          } />
-          <Route path="/auth/callback" element={<PlaidOAuthCallback />} />
-          <Route path="/blog" element={<Blog />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/blog/small-business-bookkeeping-guide" element={<SmallBusinessBookkeepingGuide />} />
-          <Route path="/blog/double-entry-bookkeeping-essentials" element={<DoubleEntryBookkeeping />} />
-          <Route path="/blog/tax-season-bookkeeping-checklist" element={<TaxSeasonChecklist />} />
-          <Route path="/demo" element={<Demo />} />
-          <Route path="/investors" element={<Investors />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <LanguageProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/select-plan" element={<SelectPlan />} />
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/transactions" element={
+              <ProtectedRoute>
+                <Transactions />
+              </ProtectedRoute>
+            } />
+            <Route path="/reports" element={
+              <ProtectedRoute>
+                <Reports />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            } />
+            <Route path="/funding" element={
+              <ProtectedRoute>
+                <Funding />
+              </ProtectedRoute>
+            } />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/security" element={
+              <ProtectedRoute>
+                <Security />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin" element={
+              <ProtectedRoute>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/plaid-testing" element={
+              <ProtectedRoute>
+                <PlaidTesting />
+              </ProtectedRoute>
+            } />
+            <Route path="/auth/callback" element={<PlaidOAuthCallback />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/blog/small-business-bookkeeping-guide" element={<SmallBusinessBookkeepingGuide />} />
+            <Route path="/blog/double-entry-bookkeeping-essentials" element={<DoubleEntryBookkeeping />} />
+            <Route path="/blog/tax-season-bookkeeping-checklist" element={<TaxSeasonChecklist />} />
+            <Route path="/demo" element={<Demo />} />
+            <Route path="/investors" element={<Investors />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </LanguageProvider>
   </QueryClientProvider>
 );
 
