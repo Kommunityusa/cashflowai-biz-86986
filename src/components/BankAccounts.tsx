@@ -39,10 +39,15 @@ import {
 
 import { SecureStorage } from "@/utils/encryption";
 import { logAuditEvent } from "@/utils/auditLogger";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
+import { FeatureGuard } from "@/components/FeatureGuard";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export function BankAccounts() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
+  const { canUseFeature, getFeatureLimit } = useFeatureAccess();
   const [accounts, setAccounts] = useState<any[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -77,9 +82,20 @@ export function BankAccounts() {
   };
 
   const addAccount = async () => {
+    // Check bank account limits based on plan
+    const bankAccountLimit = getFeatureLimit('bankAccounts');
+    if (typeof bankAccountLimit === 'number' && accounts.length >= bankAccountLimit) {
+      toast({
+        title: t.common.error,
+        description: `You have reached your limit of ${bankAccountLimit === Infinity ? 'unlimited' : bankAccountLimit} bank accounts. Please upgrade your plan to add more.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (!newAccount.account_name || !newAccount.bank_name) {
       toast({
-        title: "Error",
+        title: t.common.error,
         description: "Please fill in all required fields",
         variant: "destructive",
       });

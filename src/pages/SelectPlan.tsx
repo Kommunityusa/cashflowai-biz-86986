@@ -17,57 +17,55 @@ const SelectPlan = () => {
 
   const plans = [
     {
-      id: 'free',
-      name: t.plans.free,
-      price: '$0',
-      features: [
-        '10 transactions per month',
-        'Basic categorization',
-        'Monthly reports',
-        'Email support'
-      ],
-      popular: false
-    },
-    {
       id: 'starter',
       name: t.plans.starter,
-      price: '$29',
+      price: '$10',
       features: [
-        '500 transactions per month',
-        'AI categorization',
-        'Bank connections',
-        'Weekly reports',
-        'Priority support'
+        t.features.oneBank,
+        t.features.basicAI,
+        t.features.monthlyReports,
+        t.features.transactions250,
+        t.features.emailSupport,
+        t.features.basicExpense
       ],
-      popular: false
+      popular: false,
+      trialDays: 7
     },
     {
       id: 'professional',
       name: t.plans.professional,
-      price: '$79',
+      price: '$15',
       features: [
-        'Unlimited transactions',
-        'Advanced AI insights',
-        'Multiple bank connections',
-        'Real-time reports',
-        'Tax preparation tools',
-        'Phone support'
+        t.features.threeBanks,
+        t.features.advancedAI,
+        t.features.weeklyReports,
+        t.features.transactions1000,
+        t.features.prioritySupport,
+        t.features.taxReports,
+        t.features.customCategories,
+        t.features.vendorManagement
       ],
-      popular: true
+      popular: true,
+      trialDays: 14
     },
     {
       id: 'business',
       name: t.plans.business,
-      price: '$199',
+      price: '$25',
       features: [
-        'Everything in Professional',
-        'Multi-user access',
-        'API access',
-        'Custom integrations',
-        'Dedicated account manager',
-        'Funding opportunities access'
+        t.features.unlimitedBanks,
+        t.features.aiCustomRules,
+        t.features.realtimeReports,
+        t.features.unlimitedTransactions,
+        t.features.phoneSupport,
+        t.features.advancedTax,
+        t.features.customCategoriesRules,
+        t.features.fullVendor,
+        t.features.invoiceGen,
+        t.features.apiAccess
       ],
-      popular: false
+      popular: false,
+      trialDays: 30
     }
   ];
 

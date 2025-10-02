@@ -1,14 +1,16 @@
 import { Button } from "@/components/ui/button";
-import { Check, X } from "lucide-react";
+import { Check, X, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { TrialSignupModal } from "@/components/TrialSignupModal";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export function Pricing() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
   const [showTrialModal, setShowTrialModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string>("");
@@ -103,68 +105,68 @@ export function Pricing() {
 
   const plans = [
     {
-      name: "Starter",
+      name: t.plans.starter,
       price: "$10",
-      period: "/month",
-      description: "Perfect for freelancers just getting started",
+      period: t.plans.perMonth,
+      description: t.features.basicExpense,
       features: [
-        { text: "1 bank account connection", included: true },
-        { text: "Basic AI categorization", included: true },
-        { text: "Monthly reports", included: true },
-        { text: "Up to 250 transactions/month", included: true },
-        { text: "Email support", included: true },
-        { text: "Basic expense tracking", included: true },
-        { text: "Advanced analytics", included: false },
-        { text: "Tax preparation reports", included: false },
-        { text: "Priority support", included: false },
-        { text: "Custom categories", included: false },
+        { text: t.features.oneBank, included: true },
+        { text: t.features.basicAI, included: true },
+        { text: t.features.monthlyReports, included: true },
+        { text: t.features.transactions250, included: true },
+        { text: t.features.emailSupport, included: true },
+        { text: t.features.basicExpense, included: true },
+        { text: t.features.taxReports, included: false },
+        { text: t.features.prioritySupport, included: false },
+        { text: t.features.customCategories, included: false },
+        { text: t.features.vendorManagement, included: false },
       ],
-      cta: "Start 7-Day Free Trial",
+      cta: `${t.common.start} 7-Day Trial`,
       variant: "outline" as const,
-      onClick: () => handleUpgrade("Starter"),
+      onClick: () => handleUpgrade("starter"),
     },
     {
-      name: "Professional",
+      name: t.plans.professional,
       price: "$15",
-      period: "/month",
-      description: "Ideal for growing businesses",
+      period: t.plans.perMonth,
+      description: t.features.advancedAI,
       popular: true,
       features: [
-        { text: "3 bank account connections", included: true },
-        { text: "Advanced AI categorization", included: true },
-        { text: "Weekly & monthly reports", included: true },
-        { text: "Up to 1,000 transactions/month", included: true },
-        { text: "Priority email support", included: true },
-        { text: "Tax preparation reports", included: true },
-        { text: "Custom categories", included: true },
-        { text: "Basic vendor management", included: true },
-        { text: "Unlimited transactions", included: false },
-        { text: "API access (Coming Soon)", included: false },
+        { text: t.features.threeBanks, included: true },
+        { text: t.features.advancedAI, included: true },
+        { text: t.features.weeklyReports, included: true },
+        { text: t.features.transactions1000, included: true },
+        { text: t.features.prioritySupport, included: true },
+        { text: t.features.taxReports, included: true },
+        { text: t.features.customCategories, included: true },
+        { text: t.features.vendorManagement, included: true },
+        { text: t.features.unlimitedTransactions, included: false },
+        { text: t.features.apiAccess, included: false },
       ],
-      cta: "Start 14-Day Free Trial",
+      cta: `${t.common.start} 14-Day Trial`,
       variant: "gradient" as const,
-      onClick: () => handleUpgrade("Professional"),
+      onClick: () => handleUpgrade("professional"),
     },
     {
-      name: "Business",
+      name: t.plans.business,
       price: "$25",
-      period: "/month",
-      description: "For established businesses",
+      period: t.plans.perMonth,
+      description: t.features.aiCustomRules,
       features: [
-        { text: "Unlimited bank connections", included: true },
-        { text: "Advanced AI with custom rules", included: true },
-        { text: "Real-time reports & analytics", included: true },
-        { text: "Unlimited transactions", included: true },
-        { text: "Priority phone & chat support", included: true },
-        { text: "Advanced tax reports", included: true },
-        { text: "Custom categories & rules", included: true },
-        { text: "Full vendor management", included: true },
-        { text: "Invoice generation", included: true },
-        { text: "API access (Coming Soon)", included: true },
+        { text: t.features.unlimitedBanks, included: true },
+        { text: t.features.aiCustomRules, included: true },
+        { text: t.features.realtimeReports, included: true },
+        { text: t.features.unlimitedTransactions, included: true },
+        { text: t.features.phoneSupport, included: true },
+        { text: t.features.advancedTax, included: true },
+        { text: t.features.customCategoriesRules, included: true },
+        { text: t.features.fullVendor, included: true },
+        { text: t.features.invoiceGen, included: true },
+        { text: t.features.apiAccess, included: true },
       ],
-      cta: "Start 30-Day Free Trial",
+      cta: `${t.common.start} 30-Day Trial`,
       variant: "default" as const,
-      onClick: () => handleUpgrade("Business"),
+      onClick: () => handleUpgrade("business"),
     },
   ];
 

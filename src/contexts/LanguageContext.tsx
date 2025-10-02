@@ -48,11 +48,12 @@ interface Translations {
     create: string;
     update: string;
     view: string;
-    signOut: string;
-    signIn: string;
-    signUp: string;
-    forgotPassword: string;
-    resetPassword: string;
+      signOut: string;
+      signIn: string;
+      signUp: string;
+      forgotPassword: string;
+      resetPassword: string;
+      start: string;
   };
   
   // Navigation
@@ -223,6 +224,34 @@ interface Translations {
     noLenders: string;
     cdfiNetwork: string;
   };
+  
+  // Features
+  features: {
+    oneBank: string;
+    threeBanks: string;
+    unlimitedBanks: string;
+    basicAI: string;
+    advancedAI: string;
+    aiCustomRules: string;
+    monthlyReports: string;
+    weeklyReports: string;
+    realtimeReports: string;
+    transactions250: string;
+    transactions1000: string;
+    unlimitedTransactions: string;
+    emailSupport: string;
+    prioritySupport: string;
+    phoneSupport: string;
+    basicExpense: string;
+    taxReports: string;
+    advancedTax: string;
+    customCategories: string;
+    customCategoriesRules: string;
+    vendorManagement: string;
+    fullVendor: string;
+    invoiceGen: string;
+    apiAccess: string;
+  };
 }
 
 const translations: Record<Language, Translations> = {
@@ -275,7 +304,8 @@ const translations: Record<Language, Translations> = {
       signIn: "Sign In",
       signUp: "Sign Up",
       forgotPassword: "Forgot Password?",
-      resetPassword: "Reset Password"
+      resetPassword: "Reset Password",
+      start: "Start"
     },
     nav: {
       dashboard: "Dashboard",
@@ -427,6 +457,32 @@ const translations: Record<Language, Translations> = {
       loanRange: "Loan Range",
       noLenders: "No lenders found",
       cdfiNetwork: "PA CDFI Network"
+    },
+    features: {
+      oneBank: "1 bank account connection",
+      threeBanks: "3 bank account connections",
+      unlimitedBanks: "Unlimited bank connections",
+      basicAI: "Basic AI categorization",
+      advancedAI: "Advanced AI categorization",
+      aiCustomRules: "Advanced AI with custom rules",
+      monthlyReports: "Monthly reports",
+      weeklyReports: "Weekly & monthly reports",
+      realtimeReports: "Real-time reports & analytics",
+      transactions250: "Up to 250 transactions/month",
+      transactions1000: "Up to 1,000 transactions/month",
+      unlimitedTransactions: "Unlimited transactions",
+      emailSupport: "Email support",
+      prioritySupport: "Priority email support",
+      phoneSupport: "Priority phone & chat support",
+      basicExpense: "Basic expense tracking",
+      taxReports: "Tax preparation reports",
+      advancedTax: "Advanced tax reports",
+      customCategories: "Custom categories",
+      customCategoriesRules: "Custom categories & rules",
+      vendorManagement: "Basic vendor management",
+      fullVendor: "Full vendor management",
+      invoiceGen: "Invoice generation",
+      apiAccess: "API access (Coming Soon)"
     }
   },
   es: {
@@ -478,7 +534,8 @@ const translations: Record<Language, Translations> = {
       signIn: "Iniciar sesión",
       signUp: "Registrarse",
       forgotPassword: "¿Olvidaste tu contraseña?",
-      resetPassword: "Restablecer contraseña"
+      resetPassword: "Restablecer contraseña",
+      start: "Comenzar"
     },
     nav: {
       dashboard: "Panel",
@@ -630,6 +687,32 @@ const translations: Record<Language, Translations> = {
       loanRange: "Rango de préstamo",
       noLenders: "No se encontraron prestamistas",
       cdfiNetwork: "Red CDFI de PA"
+    },
+    features: {
+      oneBank: "1 conexión de cuenta bancaria",
+      threeBanks: "3 conexiones de cuentas bancarias",
+      unlimitedBanks: "Conexiones bancarias ilimitadas",
+      basicAI: "Categorización básica con IA",
+      advancedAI: "Categorización avanzada con IA",
+      aiCustomRules: "IA avanzada con reglas personalizadas",
+      monthlyReports: "Informes mensuales",
+      weeklyReports: "Informes semanales y mensuales",
+      realtimeReports: "Informes y análisis en tiempo real",
+      transactions250: "Hasta 250 transacciones/mes",
+      transactions1000: "Hasta 1,000 transacciones/mes",
+      unlimitedTransactions: "Transacciones ilimitadas",
+      emailSupport: "Soporte por correo electrónico",
+      prioritySupport: "Soporte prioritario por correo",
+      phoneSupport: "Soporte prioritario por teléfono y chat",
+      basicExpense: "Seguimiento básico de gastos",
+      taxReports: "Informes de preparación de impuestos",
+      advancedTax: "Informes fiscales avanzados",
+      customCategories: "Categorías personalizadas",
+      customCategoriesRules: "Categorías y reglas personalizadas",
+      vendorManagement: "Gestión básica de proveedores",
+      fullVendor: "Gestión completa de proveedores",
+      invoiceGen: "Generación de facturas",
+      apiAccess: "Acceso API (Próximamente)"
     }
   }
 };
