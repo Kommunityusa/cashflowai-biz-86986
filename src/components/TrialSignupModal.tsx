@@ -25,14 +25,15 @@ export function TrialSignupModal({ isOpen, onClose, onSubmit, isLoading, plan = 
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
 
-  // Get trial days and price based on plan
+  // Get trial days and price based on plan (case-insensitive)
   const getPlanDetails = () => {
-    switch(plan) {
-      case "Starter":
+    const planLower = plan.toLowerCase();
+    switch(planLower) {
+      case "starter":
         return { days: 7, price: "$10" };
-      case "Professional":
+      case "professional":
         return { days: 14, price: "$15" };
-      case "Business":
+      case "business":
         return { days: 30, price: "$25" };
       default:
         return { days: 14, price: "$15" };

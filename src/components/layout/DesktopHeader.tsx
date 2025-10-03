@@ -22,6 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { LanguageToggle } from "@/components/LanguageToggle";
 
 export const Header = () => {
   const location = useLocation();
@@ -129,6 +130,7 @@ export const Header = () => {
 
           {/* Desktop CTA / User Menu */}
           <div className="hidden md:flex items-center space-x-4">
+            <LanguageToggle />
             {isLandingPage && !user ? (
               <>
                 <Link to="/auth">

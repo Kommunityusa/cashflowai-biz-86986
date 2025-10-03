@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { LanguageToggle } from "@/components/LanguageToggle";
 
 export function Header() {
   const { user } = useAuth(false);
@@ -145,6 +146,7 @@ export function Header() {
 
           {/* Desktop User Menu / Auth Buttons */}
           <div className="hidden lg:flex items-center gap-4">
+            <LanguageToggle />
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

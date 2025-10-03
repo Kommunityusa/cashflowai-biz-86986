@@ -74,51 +74,30 @@ const SelectPlan = () => {
     setSelectedPlan(planId);
     
     try {
-      // For free plan, just update the user's profile
-      if (planId === 'free') {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase
-            .from('profiles')
-            .upsert({
-              user_id: user.id,
-              subscription_plan: 'free',
-              updated_at: new Date().toISOString()
-            });
-        }
-        
+      // For paid plans, redirect to Stripe checkout with trial
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
         toast({
-          title: t.common.success,
-          description: 'Free plan activated successfully'
+          title: t.common.error,
+          description: 'Please sign in to continue',
+          variant: 'destructive'
         });
-        
-        navigate('/dashboard');
-      } else {
-        // For paid plans, redirect to Stripe checkout
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
-          toast({
-            title: t.common.error,
-            description: 'Please sign in to continue',
-            variant: 'destructive'
-          });
-          navigate('/auth');
-          return;
-        }
+        navigate('/auth');
+        return;
+      }
 
-        const { data, error } = await supabase.functions.invoke('create-checkout', {
-          body: { planId },
-          headers: {
-            Authorization: `Bearer ${session.access_token}`
-          }
-        });
-
-        if (error) throw error;
-        
-        if (data?.url) {
-          window.location.href = data.url;
+      const { data, error } = await supabase.functions.invoke('create-trial-checkout', {
+        body: { plan: planId },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
+      });
+
+      if (error) throw error;
+      
+      if (data?.url) {
+        window.location.href = data.url;
       }
     } catch (error) {
       console.error('Error selecting plan:', error);
@@ -152,7 +131,7 @@ const SelectPlan = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {plans.map((plan) => (
               <Card 
                 key={plan.id}
