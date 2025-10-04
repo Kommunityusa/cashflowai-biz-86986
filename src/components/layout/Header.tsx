@@ -41,6 +41,7 @@ export function Header() {
   
   const isLandingPage = location.pathname === "/" || 
                         location.pathname === "/about" || 
+                        location.pathname === "/demo" ||
                         location.pathname === "/blog" ||
                         location.pathname.startsWith("/blog/");
 

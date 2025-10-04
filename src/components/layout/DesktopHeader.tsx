@@ -31,7 +31,11 @@ export const Header = () => {
   const { user } = useAuth(false); // Don't require auth in header
   const { isAdmin } = useRole();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const isLandingPage = location.pathname === "/";
+  const isLandingPage = location.pathname === "/" || 
+                        location.pathname === "/about" || 
+                        location.pathname === "/demo" ||
+                        location.pathname === "/blog" ||
+                        location.pathname.startsWith("/blog/");
 
   const navigation = [
     { name: "Features", href: "#features" },
