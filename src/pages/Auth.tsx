@@ -36,7 +36,7 @@ export default function Auth() {
     if (trialStarted === 'started' && checkoutEmail) {
       setEmail(decodeURIComponent(checkoutEmail));
       setShowTrialMessage(true);
-      setMessage("Trial started! Create your account with the same email to access your dashboard.");
+      setMessage("Trial payment successful! Create your account with the same email to access your dashboard.");
     }
     
     // Set up auth state listener FIRST

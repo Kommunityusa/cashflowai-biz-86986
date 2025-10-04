@@ -128,6 +128,11 @@ serve(async (req) => {
     }
 
     // Create checkout session with dynamic trial period
+    // Set success URL based on authentication status
+    const successUrl = userId 
+      ? `${req.headers.get("origin")}/dashboard?trial=success`
+      : `${req.headers.get("origin")}/select-plan?trial=pending&checkout_email=${encodeURIComponent(userEmail)}`;
+    
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : userEmail,
@@ -152,7 +157,7 @@ serve(async (req) => {
         }
       },
       payment_method_collection: 'always', // Always collect payment method
-      success_url: `${req.headers.get("origin")}/auth?trial=started&checkout_email=${encodeURIComponent(userEmail)}`,
+      success_url: successUrl,
       cancel_url: `${req.headers.get("origin")}/`,
       metadata: {
         email: userEmail,

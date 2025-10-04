@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,22 @@ const SelectPlan = () => {
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Check for trial redirect from Stripe
+    const urlParams = new URLSearchParams(window.location.search);
+    const trialStatus = urlParams.get('trial');
+    const checkoutEmail = urlParams.get('checkout_email');
+    
+    if (trialStatus === 'pending' && checkoutEmail) {
+      // User completed Stripe checkout but needs to create account
+      toast({
+        title: t.common.success,
+        description: 'Trial payment successful! Now create your account to access your dashboard.',
+      });
+      navigate(`/auth?trial=started&checkout_email=${checkoutEmail}`);
+    }
+  }, [navigate, toast, t]);
 
   const plans = [
     {
