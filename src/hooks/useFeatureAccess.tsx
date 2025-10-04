@@ -72,9 +72,11 @@ const FEATURE_LIMITS: Record<string, FeatureLimit> = {
 };
 
 export const useFeatureAccess = () => {
-  const { subscriptionPlan } = useAuth();
+  const { subscriptionPlan, user } = useAuth();
   
-  const plan = subscriptionPlan as PlanType;
+  // Admin users have access to all business features
+  const isAdmin = user?.email === 'admin@cashflowai.com'; // You should implement proper role checking
+  const plan = isAdmin ? 'business' : (subscriptionPlan as PlanType);
   
   const hasFeature = (feature: keyof typeof FEATURE_LIMITS): boolean => {
     if (!plan) return false;

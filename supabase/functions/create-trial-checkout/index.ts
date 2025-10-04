@@ -46,28 +46,27 @@ serve(async (req) => {
     if (!userEmail) throw new Error("Email is required");
     logStep("Processing checkout for", { email: userEmail, plan });
 
-    // Determine trial period and price based on plan
-    let trialPeriodDays = 14; // Default to Professional plan
-    let priceId = "price_1SBQWPLKh5GKHicanc3VOXq3"; // Will need to be updated with actual price IDs
+    // Determine trial period and price based on plan (case-insensitive)
+    const planLower = (plan || '').toLowerCase();
+    let trialPeriodDays = 14;
+    let priceId = "price_1SENITLKh5GKHicarzt9DKVB"; // Default to Professional
     
-    switch(plan) {
-      case "Starter":
+    switch(planLower) {
+      case "starter":
         trialPeriodDays = 7;
-        // You'll need to create this price in Stripe for $10/month
-        priceId = "price_1SBQWPLKh5GKHicanc3VOXq3"; // Update with actual Starter price ID
+        priceId = "price_1SENIMLKh5GKHicaLNHx3kRr"; // $10/month
         break;
-      case "Professional":
+      case "professional":
         trialPeriodDays = 14;
-        // You'll need to create this price in Stripe for $15/month
-        priceId = "price_1SBQWPLKh5GKHicanc3VOXq3"; // Update with actual Professional price ID
+        priceId = "price_1SENITLKh5GKHicarzt9DKVB"; // $15/month
         break;
-      case "Business":
+      case "business":
         trialPeriodDays = 30;
-        // You'll need to create this price in Stripe for $25/month
-        priceId = "price_1SBQWPLKh5GKHicanc3VOXq3"; // Update with actual Business price ID
+        priceId = "price_1SBQWPLKh5GKHicanc3VOXq3"; // $25/month
         break;
       default:
         trialPeriodDays = 14;
+        priceId = "price_1SENITLKh5GKHicarzt9DKVB";
     }
 
     logStep("Selected plan details", { plan, trialPeriodDays, priceId });

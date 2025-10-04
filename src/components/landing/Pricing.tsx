@@ -40,10 +40,15 @@ export function Pricing() {
       
       const { data: { session } } = await supabase.auth.getSession();
       
+      // Capitalize plan name for backend
+      const capitalizedPlan = planName 
+        ? planName.charAt(0).toUpperCase() + planName.slice(1) 
+        : 'Professional';
+      
       // Prepare the request body with plan information
       const requestBody = { 
         email, 
-        plan: planName 
+        plan: capitalizedPlan 
       };
       const headers: any = {};
       

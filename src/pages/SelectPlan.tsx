@@ -87,8 +87,11 @@ const SelectPlan = () => {
         return;
       }
 
+      // Capitalize plan name for backend
+      const planName = planId.charAt(0).toUpperCase() + planId.slice(1);
+      
       const { data, error } = await supabase.functions.invoke('create-trial-checkout', {
-        body: { plan: planId },
+        body: { plan: planName },
         headers: {
           Authorization: `Bearer ${session.access_token}`
         }
