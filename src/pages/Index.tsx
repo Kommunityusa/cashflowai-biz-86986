@@ -10,12 +10,14 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, TrendingUp } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Index = () => {
   const { user, loading } = useAuth(false); // Don't require auth on landing
   const navigate = useNavigate();
   const [redirecting, setRedirecting] = useState(false);
   const [showLoanCalculatorPopup, setShowLoanCalculatorPopup] = useState(false);
+  const { t } = useLanguage();
 
   useEffect(() => {
     // If user is logged in and not loading, redirect to dashboard
@@ -46,7 +48,7 @@ const Index = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Checking authentication...</p>
+          <p className="text-muted-foreground">{t.common.loading}</p>
         </div>
       </div>
     );
@@ -59,7 +61,7 @@ const Index = () => {
         <div className="text-center space-y-6">
           <div className="space-y-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <h2 className="text-2xl font-semibold">Welcome back!</h2>
+            <h2 className="text-2xl font-semibold">{t.dashboard.welcome}!</h2>
             <p className="text-muted-foreground">Redirecting to your dashboard...</p>
           </div>
           
@@ -70,7 +72,7 @@ const Index = () => {
               className="group"
             >
               <TrendingUp className="mr-2 h-5 w-5" />
-              Go to Dashboard Now
+              {t.nav.dashboard}
               <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>

@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export function Header() {
   const { user } = useAuth(false);
@@ -38,6 +39,7 @@ export function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { t } = useLanguage();
   
   const isLandingPage = location.pathname === "/" || 
                         location.pathname === "/about" || 
@@ -46,31 +48,31 @@ export function Header() {
                         location.pathname.startsWith("/blog/");
 
   const navigationLinks = [
-    { href: "/dashboard", label: "Dashboard", icon: Home },
-    { href: "/transactions", label: "Transactions", icon: FileText },
-    { href: "/reports", label: "Reports", icon: BarChart3 },
-    { href: "/funding", label: "Funding", icon: DollarSign },
-    { href: "/settings", label: "Settings", icon: Settings },
+    { href: "/dashboard", label: t.nav.dashboard, icon: Home },
+    { href: "/transactions", label: t.nav.transactions, icon: FileText },
+    { href: "/reports", label: t.nav.reports, icon: BarChart3 },
+    { href: "/funding", label: t.nav.funding, icon: DollarSign },
+    { href: "/settings", label: t.nav.settings, icon: Settings },
   ];
 
   const landingLinks = [
-    { href: "/#features", label: "Features" },
-    { href: "/#pricing", label: "Pricing" },
-    { href: "/blog", label: "Blog" },
-    { href: "/about", label: "About" },
+    { href: "/#features", label: t.nav.features },
+    { href: "/#pricing", label: t.nav.pricing },
+    { href: "/blog", label: t.nav.blog },
+    { href: "/about", label: t.nav.about },
   ];
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
       toast({
-        title: "Error",
+        title: t.common.error,
         description: "Failed to log out. Please try again.",
         variant: "destructive",
       });
     } else {
       toast({
-        title: "Success",
+        title: t.common.success,
         description: "You have been logged out successfully.",
       });
       navigate("/");
@@ -138,73 +140,73 @@ export function Header() {
                         : "text-muted-foreground hover:text-primary"
                     }`}
                   >
-                    Admin
-                  </Link>
-                )}
-              </>
-            )}
-          </nav>
+                     Admin
+                   </Link>
+                 )}
+               </>
+             )}
+           </nav>
 
-          {/* Desktop User Menu / Auth Buttons */}
-          <div className="hidden lg:flex items-center gap-4">
-            <LanguageToggle />
-            {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="relative h-9 w-9 rounded-full">
-                    <Avatar className="h-9 w-9">
-                      <AvatarFallback className="bg-gradient-primary text-primary-foreground">
-                        {user.email?.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end">
-                  <DropdownMenuLabel>
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">Account</p>
-                      <p className="text-xs leading-none text-muted-foreground">
-                        {user.email}
-                      </p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate("/settings")}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
-                  </DropdownMenuItem>
-                  {isAdmin && (
-                    <DropdownMenuItem onClick={() => navigate("/admin")}>
-                      <Shield className="mr-2 h-4 w-4" />
-                      Admin Panel
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Log out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => navigate("/auth")}
-                >
-                  Sign In
-                </Button>
-                <Button 
-                  variant="gradient" 
-                  size="sm"
-                  onClick={() => navigate("/auth")}
-                >
-                  Start Free Trial
-                </Button>
-              </>
-            )}
-          </div>
+           {/* Desktop User Menu / Auth Buttons */}
+           <div className="hidden lg:flex items-center gap-4">
+             <LanguageToggle />
+             {user ? (
+               <DropdownMenu>
+                 <DropdownMenuTrigger asChild>
+                   <Button variant="ghost" size="sm" className="relative h-9 w-9 rounded-full">
+                     <Avatar className="h-9 w-9">
+                       <AvatarFallback className="bg-gradient-primary text-primary-foreground">
+                         {user.email?.charAt(0).toUpperCase()}
+                       </AvatarFallback>
+                     </Avatar>
+                   </Button>
+                 </DropdownMenuTrigger>
+                 <DropdownMenuContent className="w-56" align="end">
+                   <DropdownMenuLabel>
+                     <div className="flex flex-col space-y-1">
+                       <p className="text-sm font-medium leading-none">Account</p>
+                       <p className="text-xs leading-none text-muted-foreground">
+                         {user.email}
+                       </p>
+                     </div>
+                   </DropdownMenuLabel>
+                   <DropdownMenuSeparator />
+                   <DropdownMenuItem onClick={() => navigate("/settings")}>
+                     <Settings className="mr-2 h-4 w-4" />
+                     Settings
+                   </DropdownMenuItem>
+                   {isAdmin && (
+                     <DropdownMenuItem onClick={() => navigate("/admin")}>
+                       <Shield className="mr-2 h-4 w-4" />
+                       Admin Panel
+                     </DropdownMenuItem>
+                   )}
+                   <DropdownMenuSeparator />
+                   <DropdownMenuItem onClick={handleLogout}>
+                     <LogOut className="mr-2 h-4 w-4" />
+                     Log out
+                   </DropdownMenuItem>
+                 </DropdownMenuContent>
+               </DropdownMenu>
+             ) : (
+               <>
+                 <Button 
+                   variant="ghost" 
+                   size="sm"
+                   onClick={() => navigate("/auth")}
+                 >
+                   Sign In
+                 </Button>
+                 <Button 
+                   variant="gradient" 
+                   size="sm"
+                   onClick={() => navigate("/auth")}
+                 >
+                   Start Free Trial
+                 </Button>
+               </>
+             )}
+           </div>
 
           {/* Mobile Menu Trigger */}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -271,20 +273,23 @@ export function Header() {
                           }`}
                         >
                           <Shield className="h-4 w-4" />
-                          <span className="font-medium">Admin Panel</span>
+                          <span className="font-medium">{t.nav.admin}</span>
                         </Link>
                       )}
                     </div>
 
-                    {/* Logout Button */}
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start"
-                      onClick={handleLogout}
-                    >
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Log out
-                    </Button>
+                    {/* Language Toggle & Logout */}
+                    <div className="flex items-center gap-2">
+                      <LanguageToggle />
+                      <Button
+                        variant="outline"
+                        className="flex-1 justify-start"
+                        onClick={handleLogout}
+                      >
+                        <LogOut className="mr-2 h-4 w-4" />
+                        {t.common.signOut}
+                      </Button>
+                    </div>
                   </>
                 ) : (
                   <>
@@ -304,6 +309,11 @@ export function Header() {
                       </div>
                     )}
                     
+                    {/* Language Toggle */}
+                    <div className="flex justify-center pb-3 border-b">
+                      <LanguageToggle />
+                    </div>
+
                     {/* Auth Buttons */}
                     <div className="space-y-3">
                       <Button
@@ -314,7 +324,7 @@ export function Header() {
                           setMobileMenuOpen(false);
                         }}
                       >
-                        Sign In
+                        {t.common.signIn}
                       </Button>
                       <Button
                         variant="gradient"
@@ -324,7 +334,7 @@ export function Header() {
                           setMobileMenuOpen(false);
                         }}
                       >
-                        Start Free Trial
+                        {t.hero.cta}
                       </Button>
                     </div>
                   </>

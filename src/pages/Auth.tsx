@@ -13,9 +13,11 @@ import { Session, User } from "@supabase/supabase-js";
 import { validatePassword } from "@/utils/passwordValidation";
 import { Progress } from "@/components/ui/progress";
 import { checkRateLimit, logLoginAttempt, logAuditEvent } from "@/utils/auditLogger";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function Auth() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -182,7 +184,7 @@ export default function Auth() {
 
         <Card className="border-border/50 shadow-xl">
           <CardHeader>
-            <CardTitle className="text-2xl text-center">Welcome Back</CardTitle>
+            <CardTitle className="text-2xl text-center">{t.auth.welcomeBack}</CardTitle>
             <CardDescription className="text-center">
               Manage your business finances with AI-powered insights
             </CardDescription>
@@ -190,14 +192,14 @@ export default function Auth() {
           <CardContent>
             <Tabs defaultValue="signin" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                <TabsTrigger value="signin">{t.common.signIn}</TabsTrigger>
+                <TabsTrigger value="signup">{t.common.signUp}</TabsTrigger>
               </TabsList>
               
               <TabsContent value="signin">
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signin-email">Email</Label>
+                    <Label htmlFor="signin-email">{t.common.email}</Label>
                     <Input
                       id="signin-email"
                       type="email"
@@ -209,7 +211,7 @@ export default function Auth() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signin-password">Password</Label>
+                    <Label htmlFor="signin-password">{t.common.password}</Label>
                     <Input
                       id="signin-password"
                       type="password"
@@ -226,7 +228,7 @@ export default function Auth() {
                     variant="gradient"
                     disabled={loading}
                   >
-                    {loading ? "Signing in..." : "Sign In"}
+                    {loading ? t.common.loading : t.common.signIn}
                   </Button>
                 </form>
 
@@ -237,7 +239,7 @@ export default function Auth() {
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
                       <span className="bg-background px-2 text-muted-foreground">
-                        Or continue with
+                        {t.auth.orContinueWith}
                       </span>
                     </div>
                   </div>
@@ -268,7 +270,7 @@ export default function Auth() {
                       />
                       <path d="M1 1h22v22H1z" fill="none" />
                     </svg>
-                    Continue with Google
+                    {t.auth.signInGoogle}
                   </Button>
                 </div>
               </TabsContent>
@@ -276,7 +278,7 @@ export default function Auth() {
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
+                    <Label htmlFor="signup-email">{t.common.email}</Label>
                     <Input
                       id="signup-email"
                       type="email"
@@ -288,7 +290,7 @@ export default function Auth() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
+                    <Label htmlFor="signup-password">{t.common.password}</Label>
                     <div className="relative">
                       <Input
                         id="signup-password"
@@ -376,7 +378,7 @@ export default function Auth() {
                     variant="gradient"
                     disabled={loading}
                   >
-                    {loading ? "Creating account..." : "Create Account"}
+                    {loading ? t.common.loading : t.auth.createAccount}
                   </Button>
                 </form>
 
@@ -387,7 +389,7 @@ export default function Auth() {
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
                       <span className="bg-background px-2 text-muted-foreground">
-                        Or continue with
+                        {t.auth.orContinueWith}
                       </span>
                     </div>
                   </div>
@@ -418,7 +420,7 @@ export default function Auth() {
                       />
                       <path d="M1 1h22v22H1z" fill="none" />
                     </svg>
-                    Continue with Google
+                    {t.auth.signInGoogle}
                   </Button>
                 </div>
               </TabsContent>
@@ -440,7 +442,7 @@ export default function Auth() {
             )}
           </CardContent>
           <CardFooter className="flex flex-col space-y-2 text-sm text-muted-foreground">
-            <p>By signing up, you agree to our Terms of Service and Privacy Policy</p>
+            <p>{t.auth.termsAgree} {t.auth.termsOfService} and {t.auth.privacyPolicy}</p>
           </CardFooter>
         </Card>
       </div>
