@@ -41,9 +41,11 @@ export function useAuth(requireAuth: boolean = true) {
 
     const initializeAuth = async () => {
       try {
-        // Check if we're coming from a Stripe redirect (trial parameter in URL)
+        // Check if we're coming from a redirect (trial parameter or on dashboard route)
         const urlParams = new URLSearchParams(window.location.search);
         const hasTrialParam = urlParams.has('trial');
+        const isDashboardRoute = window.location.pathname === '/dashboard';
+        const isAuthRedirect = hasTrialParam || isDashboardRoute;
         
         // Get the current session from localStorage/cookies
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -64,12 +66,12 @@ export function useAuth(requireAuth: boolean = true) {
             checkSubscription(session);
           }
           
-          // Don't redirect if we're waiting for session after Stripe redirect
+          // Don't redirect if we're waiting for session after an auth redirect
           // Give it a moment for the session to be restored
-          if (requireAuth && !session && !hasTrialParam) {
+          if (requireAuth && !session && !isAuthRedirect) {
             navigate("/auth");
-          } else if (requireAuth && !session && hasTrialParam) {
-            // If we have a trial param but no session after a delay, then redirect
+          } else if (requireAuth && !session && isAuthRedirect) {
+            // If we have an auth redirect indicator but no session after a delay, then redirect
             setTimeout(() => {
               if (mounted && !session) {
                 navigate("/auth");
@@ -83,8 +85,10 @@ export function useAuth(requireAuth: boolean = true) {
           if (requireAuth) {
             const urlParams = new URLSearchParams(window.location.search);
             const hasTrialParam = urlParams.has('trial');
-            // Don't redirect immediately if we have a trial parameter
-            if (!hasTrialParam) {
+            const isDashboardRoute = window.location.pathname === '/dashboard';
+            const isAuthRedirect = hasTrialParam || isDashboardRoute;
+            // Don't redirect immediately if we have an auth redirect indicator
+            if (!isAuthRedirect) {
               navigate("/auth");
             }
           }
