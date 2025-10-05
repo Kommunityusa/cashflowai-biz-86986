@@ -70,6 +70,21 @@ export default function Dashboard() {
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
 
   useEffect(() => {
+    // Check for trial success parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const trialStatus = urlParams.get('trial');
+    
+    if (trialStatus === 'success' && user) {
+      toast({
+        title: "Trial Started!",
+        description: "Your trial subscription is now active. Explore all premium features!",
+      });
+      // Clean up URL
+      window.history.replaceState({}, '', '/dashboard');
+    }
+  }, [user, toast]);
+
+  useEffect(() => {
     // Only fetch data when we have a user and auth is not loading
     if (!authLoading && user) {
       fetchDashboardData();
@@ -78,7 +93,12 @@ export default function Dashboard() {
         details: { timestamp: new Date().toISOString() }
       });
     } else if (!authLoading && !user) {
-      navigate("/auth");
+      // Don't redirect if we're waiting for trial redirect
+      const urlParams = new URLSearchParams(window.location.search);
+      const trialStatus = urlParams.get('trial');
+      if (trialStatus !== 'success') {
+        navigate("/auth");
+      }
     }
   }, [user, authLoading, navigate]);
 

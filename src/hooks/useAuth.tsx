@@ -41,6 +41,10 @@ export function useAuth(requireAuth: boolean = true) {
 
     const initializeAuth = async () => {
       try {
+        // Check if we're coming from a Stripe redirect (trial parameter in URL)
+        const urlParams = new URLSearchParams(window.location.search);
+        const hasTrialParam = urlParams.has('trial');
+        
         // Get the current session from localStorage/cookies
         const { data: { session }, error } = await supabase.auth.getSession();
         
@@ -60,16 +64,29 @@ export function useAuth(requireAuth: boolean = true) {
             checkSubscription(session);
           }
           
-          // Only redirect to auth if required and no session
-          if (requireAuth && !session) {
+          // Don't redirect if we're waiting for session after Stripe redirect
+          // Give it a moment for the session to be restored
+          if (requireAuth && !session && !hasTrialParam) {
             navigate("/auth");
+          } else if (requireAuth && !session && hasTrialParam) {
+            // If we have a trial param but no session after a delay, then redirect
+            setTimeout(() => {
+              if (mounted && !session) {
+                navigate("/auth");
+              }
+            }, 2000);
           }
         }
       } catch (error) {
         if (mounted) {
           setLoading(false);
           if (requireAuth) {
-            navigate("/auth");
+            const urlParams = new URLSearchParams(window.location.search);
+            const hasTrialParam = urlParams.has('trial');
+            // Don't redirect immediately if we have a trial parameter
+            if (!hasTrialParam) {
+              navigate("/auth");
+            }
           }
         }
       }
