@@ -58,11 +58,11 @@ export function Hero() {
             <div className="pt-4 space-y-3">
               <div className="flex items-center text-muted-foreground">
                 <CheckCircle className="h-5 w-5 text-success mr-3" />
-                No credit card required
+                Secure bank-level encryption
               </div>
               <div className="flex items-center text-muted-foreground">
                 <CheckCircle className="h-5 w-5 text-success mr-3" />
-                14-day free trial
+                AI-powered insights
               </div>
               <div className="flex items-center text-muted-foreground">
                 <CheckCircle className="h-5 w-5 text-success mr-3" />
