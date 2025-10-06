@@ -38,6 +38,7 @@ export function useAuth(requireAuth: boolean = true) {
 
   useEffect(() => {
     let mounted = true;
+    let sessionCheckTimeout: NodeJS.Timeout | null = null;
 
     const initializeAuth = async () => {
       try {
@@ -47,39 +48,53 @@ export function useAuth(requireAuth: boolean = true) {
         const isDashboardRoute = window.location.pathname === '/dashboard';
         const isAuthRedirect = hasTrialParam || isDashboardRoute;
         
+        // For Stripe redirects, wait a bit longer for session to be established
+        if (isAuthRedirect && hasTrialParam) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
         // Get the current session from localStorage/cookies
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          // Silent error - session might not exist yet
+          console.log("Session check error:", error);
         }
         
         if (mounted) {
           setSession(session);
           setUser(session?.user ?? null);
           
-          // Only set loading to false after we've checked the session
-          setLoading(false);
-          
           // Check subscription for existing session  
           if (session) {
+            setLoading(false);
             checkSubscription(session);
-          }
-          
-          // Don't redirect if we're waiting for session after an auth redirect
-          // Give it a moment for the session to be restored
-          if (requireAuth && !session && !isAuthRedirect) {
-            navigate("/auth");
-          } else if (requireAuth && !session && isAuthRedirect) {
-            // If we have an auth redirect indicator but no session after a delay, then redirect
-            setTimeout(() => {
-              if (mounted && !session) {
+          } else if (requireAuth && isAuthRedirect) {
+            // If no session after redirect, wait longer before giving up
+            sessionCheckTimeout = setTimeout(async () => {
+              if (!mounted) return;
+              
+              // Try one more time to get the session
+              const { data: { session: retrySession } } = await supabase.auth.getSession();
+              
+              if (retrySession) {
+                setSession(retrySession);
+                setUser(retrySession.user);
+                checkSubscription(retrySession);
+                setLoading(false);
+              } else {
+                setLoading(false);
                 navigate("/auth");
               }
-            }, 2000);
+            }, 3000);
+          } else {
+            setLoading(false);
+            if (requireAuth && !session) {
+              navigate("/auth");
+            }
           }
         }
       } catch (error) {
+        console.error("Auth initialization error:", error);
         if (mounted) {
           setLoading(false);
           if (requireAuth) {
@@ -126,6 +141,9 @@ export function useAuth(requireAuth: boolean = true) {
 
     return () => {
       mounted = false;
+      if (sessionCheckTimeout) {
+        clearTimeout(sessionCheckTimeout);
+      }
       subscription.unsubscribe();
     };
   }, [navigate, requireAuth]);
