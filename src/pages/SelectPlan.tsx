@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, Star } from 'lucide-react';
+import { Check, Star, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -132,6 +132,17 @@ const SelectPlan = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <div className="absolute top-4 left-4 z-10">
+        <Button
+          variant="ghost"
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {t.common.back || 'Back'}
+        </Button>
+      </div>
+      
       <div className="absolute top-4 right-4 z-10">
         <LanguageToggle />
       </div>
