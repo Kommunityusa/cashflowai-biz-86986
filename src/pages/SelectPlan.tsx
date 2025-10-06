@@ -85,6 +85,12 @@ const SelectPlan = () => {
     }
   ];
 
+  const handleGoBack = async () => {
+    // Sign out the user so they can return to the home page
+    await supabase.auth.signOut();
+    navigate('/');
+  };
+
   const handleSelectPlan = async (planId: string) => {
     setLoading(true);
     setSelectedPlan(planId);
@@ -135,7 +141,7 @@ const SelectPlan = () => {
       <div className="absolute top-4 left-4 z-10">
         <Button
           variant="ghost"
-          onClick={() => navigate('/')}
+          onClick={handleGoBack}
           className="flex items-center gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
