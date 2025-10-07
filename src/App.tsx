@@ -55,15 +55,30 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
         const hasAdminRole = roles?.some(r => r.role === 'admin');
         setIsAdmin(hasAdminRole || false);
         
-        // Check if user has selected a plan or is admin
+        // Check if user has selected a plan
         const { data: profile } = await supabase
           .from('profiles')
           .select('subscription_plan')
           .eq('user_id', session.user.id)
           .maybeSingle();
         
-        // Admins bypass plan requirement
-        setHasPlan(hasAdminRole || (profile?.subscription_plan ? true : false));
+        const hasProfilePlan = profile?.subscription_plan ? true : false;
+        
+        // Check for active subscription/trial via Stripe
+        let hasActiveSubscription = false;
+        try {
+          const { data: subData } = await supabase.functions.invoke('check-subscription', {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          });
+          hasActiveSubscription = subData?.subscribed || false;
+        } catch (error) {
+          // Silent fail - subscription check is optional
+        }
+        
+        // Allow access if: admin OR has profile plan OR has active subscription/trial
+        setHasPlan(hasAdminRole || hasProfilePlan || hasActiveSubscription);
       } else {
         setAuthenticated(false);
       }
@@ -92,8 +107,22 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
           .eq('user_id', session.user.id)
           .maybeSingle();
         
-        // Admins bypass plan requirement
-        setHasPlan(hasAdminRole || (profile?.subscription_plan ? true : false));
+        const hasProfilePlan = profile?.subscription_plan ? true : false;
+        
+        // Check for active subscription/trial
+        let hasActiveSubscription = false;
+        try {
+          const { data: subData } = await supabase.functions.invoke('check-subscription', {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          });
+          hasActiveSubscription = subData?.subscribed || false;
+        } catch (error) {
+          // Silent fail
+        }
+        
+        setHasPlan(hasAdminRole || hasProfilePlan || hasActiveSubscription);
       }
     });
 
