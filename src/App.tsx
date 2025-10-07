@@ -37,6 +37,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
   const [hasPlan, setHasPlan] = useState<boolean | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const checkAuthAndPlan = async () => {
@@ -45,14 +46,24 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       if (session) {
         setAuthenticated(true);
         
-        // Check if user has selected a plan
+        // Check if user is admin
+        const { data: roles } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id);
+        
+        const hasAdminRole = roles?.some(r => r.role === 'admin');
+        setIsAdmin(hasAdminRole || false);
+        
+        // Check if user has selected a plan or is admin
         const { data: profile } = await supabase
           .from('profiles')
           .select('subscription_plan')
           .eq('user_id', session.user.id)
           .maybeSingle();
         
-        setHasPlan(profile?.subscription_plan ? true : false);
+        // Admins bypass plan requirement
+        setHasPlan(hasAdminRole || (profile?.subscription_plan ? true : false));
       } else {
         setAuthenticated(false);
       }
@@ -66,13 +77,23 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       setAuthenticated(!!session);
       
       if (session) {
+        // Check if user is admin
+        const { data: roles } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id);
+        
+        const hasAdminRole = roles?.some(r => r.role === 'admin');
+        setIsAdmin(hasAdminRole || false);
+        
         const { data: profile } = await supabase
           .from('profiles')
           .select('subscription_plan')
           .eq('user_id', session.user.id)
           .maybeSingle();
         
-        setHasPlan(profile?.subscription_plan ? true : false);
+        // Admins bypass plan requirement
+        setHasPlan(hasAdminRole || (profile?.subscription_plan ? true : false));
       }
     });
 
