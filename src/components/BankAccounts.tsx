@@ -202,94 +202,83 @@ export function BankAccounts() {
     }
   };
 
+  const [isSyncing, setIsSyncing] = useState(false);
+
   const syncTransactions = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const { data, error } = await supabase.functions.invoke("plaid", {
-        body: { action: "sync_transactions" },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (!error && data) {
-        toast({
-          title: "Success",
-          description: `Synced ${data.transactions_synced} new transactions`,
-        });
-        fetchAccounts();
-      }
-    } catch (error) {
-      console.error("Error syncing:", error);
-    }
-  };
-
-  const [isBackfilling, setIsBackfilling] = useState(false);
-
-  const backfillHistoricalData = async () => {
-    setIsBackfilling(true);
+    setIsSyncing(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        console.error('Backfill: No session found');
         toast({
           title: "Error",
-          description: "Please sign in to import historical data",
+          description: "Please sign in to sync transactions",
           variant: "destructive",
         });
-        setIsBackfilling(false);
+        setIsSyncing(false);
         return;
       }
 
-      console.log('Backfill: Starting import for user', user?.id);
+      // Check if there are any Plaid-connected accounts
+      const hasPlaidAccounts = accounts.some(a => a.plaid_account_id);
+      if (!hasPlaidAccounts) {
+        toast({
+          title: "No Connected Accounts",
+          description: "Please connect a bank account first to sync transactions.",
+          variant: "destructive",
+        });
+        setIsSyncing(false);
+        return;
+      }
+
+      console.log('[Sync] Starting 12-month historical import...');
       
       toast({
-        title: "Starting Import",
-        description: "Importing 12 months of historical transactions. This may take a few minutes...",
+        title: "Syncing Transactions",
+        description: "Importing transactions from the last 12 months. This may take a few minutes...",
       });
 
-      console.log('Backfill: Calling edge function...');
-      const { data, error } = await supabase.functions.invoke("plaid-backfill", {
+      // First, do the 12-month backfill
+      console.log('[Sync] Calling plaid-backfill edge function...');
+      const { data: backfillData, error: backfillError } = await supabase.functions.invoke("plaid-backfill", {
         body: {},
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
       });
 
-      if (error) {
-        console.error('Backfill: Edge function error:', error);
-        throw error;
+      if (backfillError) {
+        console.error('[Sync] Backfill error:', backfillError);
+        throw backfillError;
       }
 
-      console.log('Backfill: Received response:', data);
+      console.log('[Sync] Backfill response:', backfillData);
 
-      if (data?.summary) {
+      if (backfillData?.summary) {
         toast({
-          title: "Import Complete!",
-          description: `Successfully imported ${data.summary.total_new_transactions} new transactions from ${data.summary.successful} account(s).`,
+          title: "Sync Complete!",
+          description: `Successfully synced ${backfillData.summary.total_new_transactions} transactions from ${backfillData.summary.successful} account(s).`,
         });
         await fetchAccounts();
-      } else if (data?.error) {
-        console.error('Backfill: Data error:', data.error);
-        throw new Error(data.error);
+      } else if (backfillData?.error) {
+        console.error('[Sync] Backfill data error:', backfillData.error);
+        throw new Error(backfillData.error);
       } else {
-        console.log('Backfill: Unexpected response format');
+        console.log('[Sync] Unexpected response format');
         toast({
-          title: "Import Status Unknown",
-          description: "The import may have completed but the response was unexpected. Please check your transactions.",
+          title: "Sync Status Unknown",
+          description: "The sync may have completed but the response was unexpected. Please check your transactions.",
         });
+        await fetchAccounts();
       }
     } catch (error) {
-      console.error("Backfill: Full error:", error);
+      console.error("[Sync] Full error:", error);
       toast({
-        title: "Import Failed",
-        description: error instanceof Error ? error.message : "Failed to import historical data. Please try again.",
+        title: "Sync Failed",
+        description: error instanceof Error ? error.message : "Failed to sync transactions. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsBackfilling(false);
+      setIsSyncing(false);
     }
   };
 
@@ -440,17 +429,13 @@ export function BankAccounts() {
             </div>
             
             <div className="flex flex-col sm:flex-row gap-2 mb-6">
-              <Button variant="outline" onClick={syncTransactions}>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                {t.bankAccounts.syncAll}
-              </Button>
               <Button 
                 variant="outline" 
-                onClick={backfillHistoricalData}
-                disabled={isBackfilling || accounts.filter(a => a.plaid_account_id).length === 0}
+                onClick={syncTransactions}
+                disabled={isSyncing || accounts.filter(a => a.plaid_account_id).length === 0}
               >
-                <RefreshCw className={`mr-2 h-4 w-4 ${isBackfilling ? 'animate-spin' : ''}`} />
-                {isBackfilling ? t.bankAccounts.importing : t.bankAccounts.import12Months}
+                <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                {isSyncing ? t.bankAccounts.importing : t.bankAccounts.syncAll}
               </Button>
             </div>
             
