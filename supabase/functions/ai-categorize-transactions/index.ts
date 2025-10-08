@@ -54,7 +54,7 @@ serve(async (req) => {
     ).join('\n');
 
     // Call Lovable AI to categorize transactions
-    console.log('[AI-CATEGORIZE] Calling Lovable AI to categorize transactions...');
+    console.log('[AI-CATEGORIZE] Calling Lovable AI Gateway...');
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -120,7 +120,7 @@ ${transactionText}`
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Lovable AI error response:', errorText);
+      console.error('[AI-CATEGORIZE] Lovable AI error:', errorText);
       
       if (response.status === 429) {
         throw new Error('Rate limit exceeded. Please try again in a moment.');
@@ -133,7 +133,7 @@ ${transactionText}`
     }
 
     const aiResponse = await response.json();
-    console.log('Lovable AI raw response:', aiResponse.choices[0].message.content);
+    console.log('[AI-CATEGORIZE] Lovable AI response received');
     
     // Parse the response - it should be pure JSON
     let categorizations;
@@ -142,8 +142,7 @@ ${transactionText}`
       const parsed = JSON.parse(content);
       categorizations = parsed.transactions;
     } catch (parseError) {
-      console.error('Failed to parse JSON:', parseError);
-      console.error('Content that failed:', aiResponse.choices[0].message.content);
+      console.error('[AI-CATEGORIZE] Failed to parse JSON:', parseError);
       
       // Try to extract JSON from the response if it contains markdown
       try {
@@ -195,7 +194,7 @@ ${transactionText}`
         categoryId = existingCategory.id;
       } else {
         // Create new category if it doesn't exist
-        console.log(`Creating new category: ${categorization.category} (${categorization.type})`);
+        console.log(`[AI-CATEGORIZE] Creating new category: ${categorization.category} (${categorization.type})`);
         
         // Determine color based on type and category name
         let color = categorization.type === 'income' ? '#10B981' : '#EF4444';
@@ -241,7 +240,7 @@ ${transactionText}`
           .single();
         
         if (createError) {
-          console.error('Error creating category:', createError);
+          console.error('[AI-CATEGORIZE] Error creating category:', createError);
           results.push({
             transaction_id: transaction.id,
             success: false,
@@ -262,9 +261,6 @@ ${transactionText}`
           category_id: categoryId,
           type: categorization.type,
           tax_deductible: categorization.tax_deductible || false,
-          ai_processed_at: new Date().toISOString(),
-          ai_confidence_score: categorization.confidence || 0.8,
-          ai_suggested_category_id: categoryId,
           needs_review: false,
         })
         .eq('id', transaction.id)
@@ -292,7 +288,7 @@ ${transactionText}`
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error in ai-categorize-transactions:', error);
+    console.error('[AI-CATEGORIZE] Error:', error);
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Unknown error',
