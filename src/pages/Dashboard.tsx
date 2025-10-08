@@ -4,11 +4,9 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
-import { AIInsights } from "@/components/AIInsights";
 import { BankAccounts } from "@/components/BankAccounts";
 import { SecurityMonitor } from "@/components/SecurityMonitor";
 
-import { FundingInsights } from "@/components/FundingInsights";
 import { RecurringTransactionDetector } from "@/components/RecurringTransactionDetector";
 import { TaxPreparation } from "@/components/TaxPreparation";
 import { TrialBanner } from "@/components/TrialBanner";
@@ -578,9 +576,6 @@ export default function Dashboard() {
           </Card>
             </div>
 
-            {/* AI Insights */}
-            <AIInsights />
-
             {/* Charts Section - Only show if there's data */}
             {stats.transactionCount > 0 && (
               <Tabs defaultValue="overview" className="space-y-4 mb-8">
@@ -792,17 +787,12 @@ export default function Dashboard() {
         </Card>
         
 
-        {/* New Financial Analysis Section */}
-        <Tabs defaultValue="funding" className="mt-8">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="funding">Funding Insights</TabsTrigger>
+        {/* Financial Analysis Section */}
+        <Tabs defaultValue="recurring" className="mt-8">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="recurring">Recurring Transactions</TabsTrigger>
             <TabsTrigger value="tax">Tax Preparation</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="funding" className="mt-6">
-            <FundingInsights />
-          </TabsContent>
 
           <TabsContent value="recurring" className="mt-6">
             <RecurringTransactionDetector />
