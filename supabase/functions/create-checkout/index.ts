@@ -13,88 +13,42 @@ serve(async (req) => {
   }
 
   try {
-    console.log("[CREATE-CHECKOUT] Function started");
-
-    // Parse request body for email
-    let email: string | undefined;
-    try {
-      const body = await req.json();
-      email = body?.email;
-      console.log("[CREATE-CHECKOUT] Request email:", email);
-    } catch (e) {
-      console.log("[CREATE-CHECKOUT] Failed to parse body:", e);
-    }
-
+    const { email } = await req.json();
+    
     if (!email) {
-      console.log("[CREATE-CHECKOUT] No email provided");
       return new Response(
         JSON.stringify({ error: "Email is required" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
-        }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Initialize Stripe
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) {
-      console.error("[CREATE-CHECKOUT] STRIPE_SECRET_KEY not configured");
-      return new Response(
-        JSON.stringify({ error: "Payment system not configured" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 500,
-        }
-      );
-    }
-
-    const stripe = new Stripe(stripeKey, {
+    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Check if a Stripe customer exists
-    let customerId: string | undefined;
+    // Check for existing customer
     const customers = await stripe.customers.list({ email, limit: 1 });
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
-      console.log("[CREATE-CHECKOUT] Found existing customer:", customerId);
-    }
+    const customerId = customers.data.length > 0 ? customers.data[0].id : undefined;
 
     // Create checkout session
-    const origin = req.headers.get("origin") || "http://localhost:5173";
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : email,
-      line_items: [
-        {
-          price: "price_1SFoOqLKh5GKHicapLodcllu",
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: "price_1SFoOqLKh5GKHicapLodcllu", quantity: 1 }],
       mode: "subscription",
-      success_url: `${origin}/dashboard?checkout=success`,
-      cancel_url: `${origin}/#pricing`,
+      success_url: `${req.headers.get("origin")}/dashboard?checkout=success`,
+      cancel_url: `${req.headers.get("origin")}/#pricing`,
     });
-
-    console.log("[CREATE-CHECKOUT] Checkout session created:", session.id);
 
     return new Response(
       JSON.stringify({ url: session.url }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("[CREATE-CHECKOUT] Error:", error);
-    const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+    console.error("Checkout error:", error);
     return new Response(
-      JSON.stringify({ error: errorMessage }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
-      }
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

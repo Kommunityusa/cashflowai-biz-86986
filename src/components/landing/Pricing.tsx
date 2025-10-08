@@ -30,70 +30,48 @@ export function Pricing() {
 
   const handleUpgrade = async (planName: string) => {
     setSelectedPlan(planName);
-    // Check if user is logged in
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
-      // Show modal for email collection
       setShowTrialModal(true);
     } else {
-      // Proceed with checkout for authenticated users
-      await processCheckout(undefined, planName);
+      // Get user email from session
+      const email = session.user?.email;
+      if (!email) {
+        toast({
+          title: "Error",
+          description: "Unable to retrieve your email. Please sign in again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      await processCheckout(email, planName);
     }
   };
 
   const processCheckout = async (email?: string, planName?: string) => {
+    setIsLoading(true);
+    setShowTrialModal(false);
+
     try {
-      setIsLoading(true);
-      setShowTrialModal(false);
-      
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      console.log('[Pricing] Starting checkout process', { hasSession: !!session, email, planName });
-
-      // Prepare request body
-      const body: any = {};
-      if (email) {
-        body.email = email;
-      }
-
-      console.log('[Pricing] Invoking create-checkout function', { body });
-      
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body,
+        body: { email },
       });
 
-      console.log('[Pricing] Function response', { data, error });
+      if (error) throw error;
+      if (!data?.url) throw new Error("No checkout URL received");
 
-      if (error) {
-        console.error('[Pricing] Function error:', error);
-        throw error;
-      }
+      window.open(data.url, '_blank');
       
-      if (data?.url) {
-        console.log('[Pricing] Opening checkout URL');
-        window.open(data.url, '_blank');
-        
-        if (!session) {
-          toast({
-            title: "Complete Your Checkout",
-            description: "After payment, you can create an account to access your subscription",
-          });
-        } else {
-          toast({
-            title: "Redirecting to Checkout",
-            description: "Complete your payment in the new tab",
-          });
-        }
-      } else {
-        console.error('[Pricing] No URL in response:', data);
-        throw new Error("No checkout URL received");
-      }
-    } catch (error: any) {
-      console.error("[Pricing] Checkout error:", error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to start checkout process. Please try again.",
+        title: "Redirecting to Checkout",
+        description: "Complete your payment in the new tab",
+      });
+    } catch (error: any) {
+      console.error("Checkout error:", error);
+      toast({
+        title: "Checkout Failed",
+        description: error.message || "Failed to start checkout. Please try again.",
         variant: "destructive",
       });
     } finally {
