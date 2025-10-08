@@ -26,7 +26,7 @@ export function useAuth(requireAuth: boolean = true) {
         setTimeout(() => reject(new Error('Subscription check timeout')), 5000)
       );
       
-      const invokePromise = supabase.functions.invoke("check-subscription", {
+      const invokePromise = supabase.functions.invoke("check-paypal-subscription", {
         headers: {
           Authorization: `Bearer ${userSession.access_token}`,
         },
@@ -35,7 +35,7 @@ export function useAuth(requireAuth: boolean = true) {
       const { data, error } = await Promise.race([invokePromise, timeoutPromise]) as any;
 
       if (!error && data) {
-        setSubscriptionPlan(data.plan || "free");
+        setSubscriptionPlan(data.subscribed && data.subscription_plan === 'pro' ? "pro" : "free");
       } else if (error) {
         console.log('Subscription check error (non-critical):', error);
         setSubscriptionPlan("free");
