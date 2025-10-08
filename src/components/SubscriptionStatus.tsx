@@ -168,7 +168,7 @@ export function SubscriptionStatus() {
                 {isPro ? "Cash Flow AI Pro" : "Free Plan"}
               </h3>
               <p className="text-sm text-muted-foreground">
-                {isPro ? "$25 per month" : "No charge"}
+                {isPro ? "$10 per month" : "No charge"}
               </p>
             </div>
           </div>
