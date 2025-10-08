@@ -19,6 +19,8 @@ export type Database = {
           action: string
           created_at: string | null
           details: Json | null
+          entity_id: string | null
+          entity_type: string | null
           id: string
           ip_address: string | null
           user_agent: string | null
@@ -28,6 +30,8 @@ export type Database = {
           action: string
           created_at?: string | null
           details?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
           id?: string
           ip_address?: string | null
           user_agent?: string | null
@@ -37,6 +41,8 @@ export type Database = {
           action?: string
           created_at?: string | null
           details?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
           id?: string
           ip_address?: string | null
           user_agent?: string | null
