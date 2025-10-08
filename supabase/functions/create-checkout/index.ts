@@ -27,8 +27,9 @@ serve(async (req) => {
     try {
       const body = await req.json();
       requestEmail = body?.email;
-    } catch {
-      // No body or invalid JSON, that's okay
+      console.log("[CREATE-CHECKOUT] Request body parsed", { email: requestEmail });
+    } catch (e) {
+      console.log("[CREATE-CHECKOUT] No body or invalid JSON");
     }
 
     // Try to retrieve authenticated user (optional for guest checkout)
@@ -44,7 +45,7 @@ serve(async (req) => {
       console.log("[CREATE-CHECKOUT] Guest checkout (no auth)");
     }
 
-    // Use email from request body or authenticated user
+    // Use email from authenticated user first, then request body
     const email = userEmail || requestEmail;
     console.log("[CREATE-CHECKOUT] Using email:", email);
 

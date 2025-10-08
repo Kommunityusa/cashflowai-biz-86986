@@ -51,22 +51,16 @@ export function Pricing() {
       
       console.log('[Pricing] Starting checkout process', { hasSession: !!session, email, planName });
 
-      const headers: any = {};
+      // Prepare request body
       const body: any = {};
-      
-      if (session) {
-        headers.Authorization = `Bearer ${session.access_token}`;
-      }
-      
       if (email) {
         body.email = email;
       }
 
-      console.log('[Pricing] Invoking create-checkout function', { hasBody: Object.keys(body).length > 0 });
+      console.log('[Pricing] Invoking create-checkout function', { body });
       
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: Object.keys(body).length > 0 ? body : undefined,
-        headers,
+        body,
       });
 
       console.log('[Pricing] Function response', { data, error });
