@@ -36,7 +36,7 @@ export function SubscriptionStatus() {
       }
 
       // Try edge function first
-      const { data, error } = await supabase.functions.invoke("check-subscription");
+      const { data, error } = await supabase.functions.invoke("check-paypal-subscription");
 
       if (!error && data) {
         setSubscription(data);
@@ -78,9 +78,9 @@ export function SubscriptionStatus() {
         return;
       }
 
-      console.log('[SubscriptionStatus] Invoking create-checkout');
+      console.log('[SubscriptionStatus] Invoking create-paypal-checkout');
 
-      const { data, error } = await supabase.functions.invoke("create-checkout");
+      const { data, error } = await supabase.functions.invoke("create-paypal-checkout");
 
       console.log('[SubscriptionStatus] Response:', { data, error });
 
@@ -125,18 +125,22 @@ export function SubscriptionStatus() {
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke("customer-portal");
+      const { data, error } = await supabase.functions.invoke("cancel-paypal-subscription");
 
       if (error) throw error;
       
-      if (data?.url) {
-        window.open(data.url, "_blank");
-      }
+      toast({
+        title: "Success",
+        description: "Your subscription has been cancelled.",
+      });
+      
+      // Refresh subscription status
+      checkSubscription();
     } catch (error) {
-      console.error("Portal error:", error);
+      console.error("Cancellation error:", error);
       toast({
         title: "Error",
-        description: "Failed to open subscription management. Please try again.",
+        description: "Failed to cancel subscription. Please try again.",
         variant: "destructive",
       });
     } finally {

@@ -35,7 +35,7 @@ export default function Checkout() {
         throw new Error("You must be logged in to subscribe");
       }
 
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
+      const { data, error } = await supabase.functions.invoke("create-paypal-checkout", {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
@@ -52,8 +52,8 @@ export default function Checkout() {
         throw new Error("No checkout URL received");
       }
 
-      console.log("[CHECKOUT] Redirecting to Stripe:", data.url);
-      window.location.href = data.url;
+      console.log("[CHECKOUT] Redirecting to PayPal:", data.url);
+      window.open(data.url, "_blank");
     } catch (error: any) {
       console.error("[CHECKOUT] Checkout error:", error);
       toast({
@@ -120,7 +120,7 @@ export default function Checkout() {
           </Button>
 
           <p className="text-center text-sm text-muted-foreground mt-4">
-            Secure payment powered by Stripe
+            Secure payment powered by PayPal
           </p>
         </div>
       </div>
