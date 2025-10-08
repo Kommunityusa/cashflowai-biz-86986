@@ -41,24 +41,18 @@ interface AuditLogData {
 
 export async function logAuditEvent(data: AuditLogData) {
   try {
-    const response = await fetch(
-      `https://nbrcdphgadabjndynyvy.supabase.co/functions/v1/audit`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-        },
-        body: JSON.stringify({
-          action: 'log_audit',
-          data,
-        }),
-      }
-    );
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
 
-    if (!response.ok) {
-      console.error('Failed to log audit event');
-    }
+    await supabase.functions.invoke('audit', {
+      body: {
+        action: 'log_audit',
+        data,
+      },
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    });
   } catch (error) {
     console.error('Error logging audit event:', error);
   }
@@ -66,25 +60,18 @@ export async function logAuditEvent(data: AuditLogData) {
 
 export async function checkRateLimit(email: string): Promise<{ limited: boolean; message?: string }> {
   try {
-    const response = await fetch(
-      `https://nbrcdphgadabjndynyvy.supabase.co/functions/v1/audit`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'check_rate_limit',
-          data: { email },
-        }),
-      }
-    );
+    const { data, error } = await supabase.functions.invoke('audit', {
+      body: {
+        action: 'check_rate_limit',
+        data: { email },
+      },
+    });
 
-    if (!response.ok) {
+    if (error) {
       return { limited: false };
     }
 
-    return await response.json();
+    return data || { limited: false };
   } catch (error) {
     console.error('Error checking rate limit:', error);
     return { limited: false };
@@ -93,19 +80,12 @@ export async function checkRateLimit(email: string): Promise<{ limited: boolean;
 
 export async function logLoginAttempt(email: string, success: boolean, errorMessage?: string) {
   try {
-    await fetch(
-      `https://nbrcdphgadabjndynyvy.supabase.co/functions/v1/audit`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'log_login_attempt',
-          data: { email, success, errorMessage },
-        }),
-      }
-    );
+    await supabase.functions.invoke('audit', {
+      body: {
+        action: 'log_login_attempt',
+        data: { email, success, errorMessage },
+      },
+    });
   } catch (error) {
     console.error('Error logging login attempt:', error);
   }
