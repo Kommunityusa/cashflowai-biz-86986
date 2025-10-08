@@ -3,5 +3,8 @@ project_id = "awszwetvzugirgacpcem"
 [functions.create-stripe-checkout]
 verify_jwt = true
 
+[functions.fix-transaction-types]
+verify_jwt = true
+
 [functions.stripe-webhook]
 verify_jwt = false
