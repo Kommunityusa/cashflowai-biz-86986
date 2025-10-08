@@ -257,34 +257,68 @@ export function BankAccounts() {
       });
 
       console.log('[Sync] About to call plaid-backfill');
-      const { data: backfillData, error: backfillError } = await supabase.functions.invoke("plaid-backfill", {
-        body: {},
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
+      
+      // Retry logic for edge function calls
+      let retries = 3;
+      let lastError = null;
+      
+      for (let i = 0; i < retries; i++) {
+        try {
+          console.log(`[Sync] Attempt ${i + 1}/${retries} - calling plaid-backfill`);
+          
+          const { data: backfillData, error: backfillError } = await supabase.functions.invoke("plaid-backfill", {
+            body: {},
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          });
 
-      console.log('[Sync] Backfill response:', { backfillData, backfillError });
+          console.log('[Sync] Backfill response:', { backfillData, backfillError });
 
-      if (backfillError) {
-        console.error('[Sync] Backfill error:', backfillError);
-        throw backfillError;
+          if (backfillError) {
+            console.error('[Sync] Backfill error:', backfillError);
+            lastError = backfillError;
+            
+            // If it's a network error, wait and retry
+            if (backfillError.message?.includes('Failed to fetch') && i < retries - 1) {
+              console.log(`[Sync] Network error, waiting 2s before retry...`);
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              continue;
+            }
+            throw backfillError;
+          }
+
+          if (backfillData?.summary) {
+            toast({
+              title: "Sync Complete!",
+              description: `Successfully synced ${backfillData.summary.total_new_transactions} transactions from ${backfillData.summary.successful} account(s).`,
+            });
+            await fetchAccounts();
+            return; // Success - exit the retry loop
+          } else if (backfillData?.error) {
+            throw new Error(backfillData.error);
+          } else {
+            toast({
+              title: "Sync Status Unknown",
+              description: "The sync may have completed but the response was unexpected. Please check your transactions.",
+            });
+            await fetchAccounts();
+            return;
+          }
+        } catch (error) {
+          lastError = error;
+          if (i === retries - 1) {
+            // Last retry failed, throw the error
+            throw error;
+          }
+          console.log(`[Sync] Attempt ${i + 1} failed, retrying...`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
       }
-
-      if (backfillData?.summary) {
-        toast({
-          title: "Sync Complete!",
-          description: `Successfully synced ${backfillData.summary.total_new_transactions} transactions from ${backfillData.summary.successful} account(s).`,
-        });
-        await fetchAccounts();
-      } else if (backfillData?.error) {
-        throw new Error(backfillData.error);
-      } else {
-        toast({
-          title: "Sync Status Unknown",
-          description: "The sync may have completed but the response was unexpected. Please check your transactions.",
-        });
-        await fetchAccounts();
+      
+      // If we get here, all retries failed
+      if (lastError) {
+        throw lastError;
       }
     } catch (error) {
       console.error("[Sync] Error:", error);
