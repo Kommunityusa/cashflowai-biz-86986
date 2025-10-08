@@ -366,6 +366,7 @@ serve(async (req) => {
             plaid_item_id: itemId,
             plaid_account_id: account.account_id,
             account_name: account.name,
+            institution_name: metadata?.institution?.name || 'Unknown Bank',
             bank_name: metadata?.institution?.name || 'Unknown Bank',
             account_type: account.subtype || account.type,
             account_number_last4: account.mask,
