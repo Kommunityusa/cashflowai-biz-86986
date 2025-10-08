@@ -3,14 +3,10 @@ import { Check, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
 
 export function Pricing() {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubscribe = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -20,23 +16,8 @@ export function Pricing() {
       return;
     }
 
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("create-checkout");
-
-      if (error) throw error;
-      if (!data?.url) throw new Error("No checkout URL received");
-
-      window.location.href = data.url;
-    } catch (error: any) {
-      console.error("Checkout error:", error);
-      toast({
-        title: "Checkout Failed",
-        description: error.message || "Failed to start checkout",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-    }
+    // Redirect to checkout page
+    navigate("/checkout");
   };
 
   const plans = [
@@ -122,9 +103,8 @@ export function Pricing() {
                 size="lg" 
                 className="w-full"
                 onClick={plan.onClick}
-                disabled={isLoading}
               >
-                {isLoading ? "Processing..." : plan.cta}
+                {plan.cta}
               </Button>
             </div>
           ))}

@@ -8,8 +8,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AIChatBubble } from "@/components/AIChatBubble";
 import { LanguageProvider } from "@/contexts/LanguageContext";
-import { useToast } from "@/hooks/use-toast";
-import { Check } from "lucide-react";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -29,6 +27,7 @@ import DoubleEntryBookkeeping from "./pages/blog/DoubleEntryBookkeeping";
 import TaxSeasonChecklist from "./pages/blog/TaxSeasonChecklist";
 import Demo from "./pages/Demo";
 import Investors from "./pages/Investors";
+import Checkout from "./pages/Checkout";
 
 const queryClient = new QueryClient();
 
@@ -37,8 +36,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
   const [hasSubscription, setHasSubscription] = useState(false);
-  const [isSubscribing, setIsSubscribing] = useState(false);
-  const { toast } = useToast();
 
   useEffect(() => {
     let mounted = true;
@@ -100,101 +97,21 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/auth" replace />;
   }
 
-  const handleSubscribe = async () => {
-    setIsSubscribing(true);
-    try {
-      console.log("[CHECKOUT] Starting checkout process...");
-      
-      // Get the current session to ensure we have auth
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log("[CHECKOUT] Session:", session ? "exists" : "missing");
-      
-      if (!session) {
-        throw new Error("You must be logged in to subscribe");
-      }
-
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
-      console.log("[CHECKOUT] Response:", { data, error });
-
-      if (error) {
-        console.error("[CHECKOUT] Error:", error);
-        throw error;
-      }
-      
-      if (!data?.url) {
-        throw new Error("No checkout URL received");
-      }
-
-      console.log("[CHECKOUT] Redirecting to:", data.url);
-      window.location.href = data.url;
-    } catch (error: any) {
-      console.error("[CHECKOUT] Checkout error:", error);
-      toast({
-        title: "Checkout Failed",
-        description: error.message || "Failed to start checkout",
-        variant: "destructive",
-      });
-      setIsSubscribing(false);
-    }
-  };
-
-  const features = [
-    "Unlimited bank connections",
-    "Advanced AI categorization",
-    "Real-time reports & analytics",
-    "Unlimited transactions",
-    "Email support",
-    "Tax preparation reports",
-    "Custom categories",
-    "Bank statement uploads",
-    "AI-powered insights",
-  ];
-
   if (!hasSubscription) {
     return (
       <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
-        <div className="max-w-2xl w-full">
-          <div className="bg-card rounded-2xl p-8 border border-primary shadow-glow">
-            <div className="text-center mb-8">
-              <div className="inline-block bg-gradient-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-medium mb-4">
-                Most Popular
-              </div>
-              <h2 className="text-3xl font-bold text-foreground mb-2">Cash Flow AI Pro</h2>
-              <div className="flex items-baseline justify-center mb-2">
-                <span className="text-5xl font-bold text-foreground">$10</span>
-                <span className="text-muted-foreground ml-2">/month</span>
-              </div>
-              <p className="text-muted-foreground">Complete bookkeeping solution for small businesses</p>
-            </div>
-
-            <ul className="space-y-4 mb-8">
-              {features.map((feature, index) => (
-                <li key={index} className="flex items-start">
-                  <Check className="h-5 w-5 text-success mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-foreground">{feature}</span>
-                </li>
-              ))}
-            </ul>
-
-            <Button 
-              variant="gradient"
-              size="lg"
-              className="w-full"
-              onClick={handleSubscribe}
-              disabled={isSubscribing}
-            >
-              {isSubscribing ? "Processing..." : "Subscribe Now"}
-            </Button>
-
-            <p className="text-center text-sm text-muted-foreground mt-4">
-              Secure payment powered by Stripe
-            </p>
-          </div>
+        <div className="max-w-md w-full text-center space-y-6">
+          <h2 className="text-2xl font-bold">Subscription Required</h2>
+          <p className="text-muted-foreground">
+            Subscribe to Cash Flow AI Pro to access the dashboard and all features.
+          </p>
+          <Button 
+            onClick={() => window.location.href = "/checkout"}
+            variant="gradient"
+            size="lg"
+          >
+            Subscribe Now
+          </Button>
         </div>
       </div>
     );
@@ -253,6 +170,7 @@ const App = () => (
             <Route path="/blog/tax-season-bookkeeping-checklist" element={<TaxSeasonChecklist />} />
             <Route path="/demo" element={<Demo />} />
             <Route path="/investors" element={<Investors />} />
+            <Route path="/checkout" element={<Checkout />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
