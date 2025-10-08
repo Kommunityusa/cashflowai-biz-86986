@@ -453,7 +453,11 @@ export function BankAccounts() {
             <div className="flex flex-col sm:flex-row gap-2 mb-6">
               <Button 
                 variant="outline" 
-                onClick={syncTransactions}
+                onClick={() => {
+                  console.log('[BUTTON CLICK TEST] Sync button clicked!');
+                  alert('Button clicked!');
+                  syncTransactions();
+                }}
                 disabled={isSyncing || accounts.filter(a => a.plaid_account_id).length === 0}
               >
                 <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
