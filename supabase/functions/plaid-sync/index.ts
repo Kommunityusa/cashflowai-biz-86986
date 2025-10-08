@@ -12,8 +12,11 @@ const plaidSecret = Deno.env.get('PLAID_SECRET');
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-// Using Production environment
-const PLAID_ENV = 'https://production.plaid.com';
+// Get Plaid environment from env variable - defaults to production
+const plaidEnv = Deno.env.get('PLAID_ENV') || 'production';
+const PLAID_ENV = plaidEnv === 'sandbox' ? 'https://sandbox.plaid.com' : 
+                  plaidEnv === 'development' ? 'https://development.plaid.com' : 
+                  'https://production.plaid.com';
 
 serve(async (req) => {
   // Handle CORS preflight requests
