@@ -238,6 +238,7 @@ export function BankAccounts() {
           description: "Please sign in to import historical data",
           variant: "destructive",
         });
+        setIsBackfilling(false);
         return;
       }
 
@@ -247,27 +248,31 @@ export function BankAccounts() {
       });
 
       const { data, error } = await supabase.functions.invoke("plaid-backfill", {
+        body: {},
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
       });
 
       if (error) {
+        console.error('Backfill error:', error);
         throw error;
       }
 
       if (data?.summary) {
         toast({
           title: "Import Complete!",
-          description: `Successfully imported ${data.summary.total_new_transactions} new transactions from ${data.summary.successful} accounts.`,
+          description: `Successfully imported ${data.summary.total_new_transactions} new transactions from ${data.summary.successful} account(s).`,
         });
         fetchAccounts();
+      } else if (data?.error) {
+        throw new Error(data.error);
       }
     } catch (error) {
       console.error("Error backfilling:", error);
       toast({
         title: "Import Failed",
-        description: "Failed to import historical data. Please try again or contact support.",
+        description: error instanceof Error ? error.message : "Failed to import historical data. Please try again.",
         variant: "destructive",
       });
     } finally {

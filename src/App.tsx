@@ -64,17 +64,24 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
         
         const hasProfilePlan = profile?.subscription_plan ? true : false;
         
-        // Check for active subscription/trial via Stripe
+        // Check for active subscription/trial via Stripe with timeout
         let hasActiveSubscription = false;
         try {
-          const { data: subData } = await supabase.functions.invoke('check-subscription', {
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Subscription check timeout')), 3000)
+          );
+          
+          const checkPromise = supabase.functions.invoke('check-subscription', {
             headers: {
               Authorization: `Bearer ${session.access_token}`,
             },
           });
+          
+          const { data: subData } = await Promise.race([checkPromise, timeoutPromise]) as any;
           hasActiveSubscription = subData?.subscribed || false;
         } catch (error) {
-          // Silent fail - subscription check is optional
+          console.log('Subscription check skipped:', error);
+          // Silent fail - subscription check is optional, don't block dashboard
         }
         
         // Allow access if: admin OR has profile plan OR has active subscription/trial
@@ -109,16 +116,23 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
         
         const hasProfilePlan = profile?.subscription_plan ? true : false;
         
-        // Check for active subscription/trial
+        // Check for active subscription/trial with timeout
         let hasActiveSubscription = false;
         try {
-          const { data: subData } = await supabase.functions.invoke('check-subscription', {
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Subscription check timeout')), 3000)
+          );
+          
+          const checkPromise = supabase.functions.invoke('check-subscription', {
             headers: {
               Authorization: `Bearer ${session.access_token}`,
             },
           });
+          
+          const { data: subData } = await Promise.race([checkPromise, timeoutPromise]) as any;
           hasActiveSubscription = subData?.subscribed || false;
         } catch (error) {
+          console.log('Subscription check skipped:', error);
           // Silent fail
         }
         

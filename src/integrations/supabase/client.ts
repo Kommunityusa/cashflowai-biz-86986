@@ -17,5 +17,10 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     flowType: 'pkce',
     storageKey: 'cashflow-ai-auth',
     debug: false
+  },
+  global: {
+    headers: {
+      'x-application-name': 'cashflow-ai'
+    }
   }
 });

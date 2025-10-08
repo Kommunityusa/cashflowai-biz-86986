@@ -19,16 +19,33 @@ serve(async (req) => {
   }
 
   try {
-    console.log('[PLAID-BACKFILL] Starting historical data backfill for all accounts');
+    console.log('[PLAID-BACKFILL] Starting historical data backfill');
+    
+    // Get authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header');
+    }
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false },
     });
 
-    // Get all active bank accounts with Plaid connections
+    // Authenticate user
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    
+    if (userError || !user) {
+      throw new Error('Invalid user authentication');
+    }
+
+    console.log(`[PLAID-BACKFILL] User ${user.id} starting backfill`);
+
+    // Get active bank accounts for THIS USER with Plaid connections
     const { data: accounts, error: accountsError } = await supabase
       .from('bank_accounts')
       .select('*')
+      .eq('user_id', user.id)
       .eq('is_active', true)
       .not('plaid_access_token', 'is', null);
 
@@ -155,15 +172,16 @@ serve(async (req) => {
       successful: totalSynced,
       errors: totalErrors,
       total_new_transactions: totalTransactions,
+      user_id: user.id,
     };
 
     console.log('[PLAID-BACKFILL] Backfill complete:', summary);
 
     // Log to audit
     await supabase.from('audit_logs').insert({
-      user_id: '00000000-0000-0000-0000-000000000000',
+      user_id: user.id,
       action: 'plaid_historical_backfill',
-      entity_type: 'system',
+      entity_type: 'bank_accounts',
       details: { summary, results }
     });
 
