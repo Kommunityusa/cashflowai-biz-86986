@@ -118,8 +118,58 @@ serve(async (req) => {
   }
 });
 
-async function verifyWebhook(body: string, signature: string) {
-  // For simplicity, we're skipping signature verification in this example
-  // In production, you should verify the webhook signature
+async function verifyWebhook(body: string, signature: string): Promise<any> {
+  if (!STRIPE_WEBHOOK_SECRET) {
+    console.error('[STRIPE-WEBHOOK] STRIPE_WEBHOOK_SECRET not configured');
+    throw new Error('Webhook secret not configured');
+  }
+
+  // Verify the webhook signature using Stripe's method
+  const encoder = new TextEncoder();
+  const payloadData = encoder.encode(body);
+  
+  // Parse the signature header
+  const signatureParts = signature.split(',');
+  const timestamp = signatureParts.find(part => part.startsWith('t='))?.split('=')[1];
+  const signatures = signatureParts.filter(part => part.startsWith('v1=')).map(part => part.split('=')[1]);
+  
+  if (!timestamp || signatures.length === 0) {
+    throw new Error('Invalid signature format');
+  }
+  
+  // Create the signed payload
+  const signedPayload = `${timestamp}.${body}`;
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(STRIPE_WEBHOOK_SECRET),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  
+  const expectedSignature = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    encoder.encode(signedPayload)
+  );
+  
+  const expectedHex = Array.from(new Uint8Array(expectedSignature))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+  
+  // Verify at least one signature matches
+  const signatureValid = signatures.some(sig => sig === expectedHex);
+  
+  if (!signatureValid) {
+    throw new Error('Invalid signature');
+  }
+  
+  // Check timestamp to prevent replay attacks (5 minute tolerance)
+  const eventTime = parseInt(timestamp) * 1000;
+  const now = Date.now();
+  if (now - eventTime > 5 * 60 * 1000) {
+    throw new Error('Timestamp too old');
+  }
+  
   return JSON.parse(body);
 }
