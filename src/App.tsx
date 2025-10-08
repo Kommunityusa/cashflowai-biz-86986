@@ -105,7 +105,13 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
             Subscribe to Cash Flow AI Pro to access the dashboard and all features.
           </p>
           <Button 
-            onClick={() => window.location.href = "/#pricing"}
+            onClick={() => {
+              window.location.href = "/";
+              setTimeout(() => {
+                const pricingSection = document.getElementById("pricing");
+                pricingSection?.scrollIntoView({ behavior: "smooth" });
+              }, 100);
+            }}
             variant="gradient"
             size="lg"
           >
