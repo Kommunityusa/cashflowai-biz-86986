@@ -237,28 +237,13 @@ interface Translations {
   
   // Features
     features: {
-      oneBank: string;
-      threeBanks: string;
       unlimitedBanks: string;
-      basicAI: string;
       advancedAI: string;
-      aiCustomRules: string;
-      monthlyReports: string;
-      weeklyReports: string;
       realtimeReports: string;
-      transactions250: string;
-      transactions1000: string;
       unlimitedTransactions: string;
       emailSupport: string;
-      prioritySupport: string;
-      basicExpense: string;
       taxReports: string;
-      advancedTax: string;
       customCategories: string;
-      customCategoriesRules: string;
-      budgetTracking: string;
-      recurringTracking: string;
-      multiUserAccess: string;
     };
   
   // Bank Accounts & Plaid
@@ -561,28 +546,13 @@ const translations: Record<Language, Translations> = {
       cdfiNetwork: "PA CDFI Network"
     },
     features: {
-      oneBank: "1 bank account connection",
-      threeBanks: "3 bank account connections",
       unlimitedBanks: "Unlimited bank connections",
-      basicAI: "Basic AI categorization",
       advancedAI: "Advanced AI categorization",
-      aiCustomRules: "Advanced AI with custom rules",
-      monthlyReports: "Monthly reports",
-      weeklyReports: "Weekly & monthly reports",
       realtimeReports: "Real-time reports & analytics",
-      transactions250: "Up to 250 transactions/month",
-      transactions1000: "Up to 1,000 transactions/month",
       unlimitedTransactions: "Unlimited transactions",
       emailSupport: "Email support",
-      prioritySupport: "Priority email support",
-      basicExpense: "Basic expense tracking",
       taxReports: "Tax preparation reports",
-      advancedTax: "Advanced tax reports",
       customCategories: "Custom categories",
-      customCategoriesRules: "Custom categories & rules",
-      budgetTracking: "Budget tracking",
-      recurringTracking: "Recurring transaction detection",
-      multiUserAccess: "Multi-user access",
     },
     bankAccounts: {
       title: "Bank Accounts",
@@ -877,28 +847,13 @@ const translations: Record<Language, Translations> = {
       cdfiNetwork: "Red CDFI de PA"
     },
     features: {
-      oneBank: "1 conexión de cuenta bancaria",
-      threeBanks: "3 conexiones de cuentas bancarias",
       unlimitedBanks: "Conexiones bancarias ilimitadas",
-      basicAI: "Categorización básica con IA",
       advancedAI: "Categorización avanzada con IA",
-      aiCustomRules: "IA avanzada con reglas personalizadas",
-      monthlyReports: "Informes mensuales",
-      weeklyReports: "Informes semanales y mensuales",
       realtimeReports: "Informes y análisis en tiempo real",
-      transactions250: "Hasta 250 transacciones/mes",
-      transactions1000: "Hasta 1,000 transacciones/mes",
       unlimitedTransactions: "Transacciones ilimitadas",
       emailSupport: "Soporte por correo electrónico",
-      prioritySupport: "Soporte prioritario por correo",
-      basicExpense: "Seguimiento básico de gastos",
       taxReports: "Informes de preparación de impuestos",
-      advancedTax: "Informes fiscales avanzados",
       customCategories: "Categorías personalizadas",
-      customCategoriesRules: "Categorías y reglas personalizadas",
-      budgetTracking: "Seguimiento de presupuestos",
-      recurringTracking: "Detección de transacciones recurrentes",
-      multiUserAccess: "Acceso multiusuario",
     },
     bankAccounts: {
       title: "Cuentas bancarias",

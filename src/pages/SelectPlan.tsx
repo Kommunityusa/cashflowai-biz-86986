@@ -33,54 +33,22 @@ const SelectPlan = () => {
 
   const plans = [
     {
-      id: 'starter',
-      name: t.plans.starter,
-      price: '$10',
-      features: [
-        t.features.oneBank,
-        t.features.basicAI,
-        t.features.monthlyReports,
-        t.features.transactions250,
-        t.features.emailSupport,
-        t.features.basicExpense
-      ],
-      popular: false,
-      trialDays: 7
-    },
-    {
       id: 'professional',
       name: t.plans.professional,
-      price: '$15',
+      price: '$10',
       features: [
-        t.features.threeBanks,
+        t.features.unlimitedBanks,
         t.features.advancedAI,
-        t.features.weeklyReports,
-        t.features.transactions1000,
-        t.features.prioritySupport,
+        t.features.realtimeReports,
+        t.features.unlimitedTransactions,
+        t.features.emailSupport,
         t.features.taxReports,
         t.features.customCategories,
-        t.features.budgetTracking
+        "Bank statement uploads",
+        "AI-powered insights"
       ],
       popular: true,
       trialDays: 14
-    },
-    {
-      id: 'business',
-      name: t.plans.business,
-      price: '$25',
-      features: [
-        t.features.unlimitedBanks,
-        t.features.aiCustomRules,
-        t.features.realtimeReports,
-        t.features.unlimitedTransactions,
-        t.features.prioritySupport,
-        t.features.advancedTax,
-        t.features.customCategoriesRules,
-        t.features.recurringTracking,
-        t.features.multiUserAccess
-      ],
-      popular: false,
-      trialDays: 30
     }
   ];
 
@@ -166,13 +134,11 @@ const SelectPlan = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="flex justify-center max-w-xl mx-auto">
             {plans.map((plan) => (
               <Card 
                 key={plan.id}
-                className={`relative p-6 hover:shadow-lg transition-all ${
-                  plan.popular ? 'border-primary shadow-lg scale-105' : ''
-                }`}
+                className="relative p-6 border-primary shadow-lg w-full"
               >
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">

@@ -110,65 +110,25 @@ export function Pricing() {
 
   const plans = [
     {
-      name: t.plans.starter,
+      name: t.plans.professional,
       price: "$10",
       period: t.plans.perMonth,
-      description: t.features.basicExpense,
-      features: [
-        { text: t.features.oneBank, included: true },
-        { text: t.features.basicAI, included: true },
-        { text: t.features.monthlyReports, included: true },
-        { text: t.features.transactions250, included: true },
-        { text: t.features.emailSupport, included: true },
-        { text: t.features.basicExpense, included: true },
-        { text: t.features.taxReports, included: false },
-        { text: t.features.prioritySupport, included: false },
-        { text: t.features.customCategories, included: false },
-      ],
-      cta: `${t.common.start} 7-Day Trial`,
-      variant: "outline" as const,
-      onClick: () => handleUpgrade("starter"),
-    },
-    {
-      name: t.plans.professional,
-      price: "$15",
-      period: t.plans.perMonth,
-      description: t.features.advancedAI,
+      description: "Complete bookkeeping solution for small businesses",
       popular: true,
       features: [
-        { text: t.features.threeBanks, included: true },
+        { text: t.features.unlimitedBanks, included: true },
         { text: t.features.advancedAI, included: true },
-        { text: t.features.weeklyReports, included: true },
-        { text: t.features.transactions1000, included: true },
-        { text: t.features.prioritySupport, included: true },
+        { text: t.features.realtimeReports, included: true },
+        { text: t.features.unlimitedTransactions, included: true },
+        { text: t.features.emailSupport, included: true },
         { text: t.features.taxReports, included: true },
         { text: t.features.customCategories, included: true },
-        { text: t.features.budgetTracking, included: true },
-        { text: t.features.unlimitedTransactions, included: false },
+        { text: "Bank statement uploads", included: true },
+        { text: "AI-powered insights", included: true },
       ],
       cta: `${t.common.start} 14-Day Trial`,
       variant: "gradient" as const,
       onClick: () => handleUpgrade("professional"),
-    },
-    {
-      name: t.plans.business,
-      price: "$25",
-      period: t.plans.perMonth,
-      description: t.features.aiCustomRules,
-      features: [
-        { text: t.features.unlimitedBanks, included: true },
-        { text: t.features.aiCustomRules, included: true },
-        { text: t.features.realtimeReports, included: true },
-        { text: t.features.unlimitedTransactions, included: true },
-        { text: t.features.prioritySupport, included: true },
-        { text: t.features.advancedTax, included: true },
-        { text: t.features.customCategoriesRules, included: true },
-        { text: t.features.recurringTracking, included: true },
-        { text: t.features.multiUserAccess, included: true },
-      ],
-      cta: `${t.common.start} 30-Day Trial`,
-      variant: "default" as const,
-      onClick: () => handleUpgrade("business"),
     },
   ];
 
@@ -188,15 +148,11 @@ export function Pricing() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="flex justify-center max-w-2xl mx-auto">
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`relative bg-card rounded-2xl p-8 border ${
-                plan.popular 
-                  ? "border-primary shadow-glow" 
-                  : "border-border"
-              }`}
+              className="relative bg-card rounded-2xl p-8 border border-primary shadow-glow w-full"
             >
               {plan.popular && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">

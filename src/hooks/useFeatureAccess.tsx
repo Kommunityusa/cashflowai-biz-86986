@@ -10,23 +10,23 @@ interface FeatureLimit {
 
 const FEATURE_LIMITS: Record<string, FeatureLimit> = {
   bankAccounts: {
-    starter: 1,
-    professional: 3,
+    starter: Infinity,
+    professional: Infinity,
     business: Infinity
   },
   transactionsPerMonth: {
-    starter: 250,
-    professional: 1000,
+    starter: Infinity,
+    professional: Infinity,
     business: Infinity
   },
   aiCategorization: {
-    starter: true, // basic
-    professional: true, // advanced
-    business: true // advanced with custom rules
+    starter: true,
+    professional: true,
+    business: true
   },
   reports: {
-    starter: 'monthly',
-    professional: 'weekly',
+    starter: 'realtime',
+    professional: 'realtime',
     business: 'realtime'
   },
   emailSupport: {
@@ -35,39 +35,39 @@ const FEATURE_LIMITS: Record<string, FeatureLimit> = {
     business: true
   },
   prioritySupport: {
-    starter: false,
+    starter: true,
     professional: true,
     business: true
   },
   phoneSupport: {
     starter: false,
     professional: false,
-    business: true
+    business: false
   },
   taxReports: {
-    starter: false,
+    starter: true,
     professional: true,
     business: true
   },
   customCategories: {
-    starter: false,
+    starter: true,
     professional: true,
     business: true
   },
   vendorManagement: {
     starter: false,
-    professional: 'basic',
-    business: 'full'
+    professional: false,
+    business: false
   },
   invoiceGeneration: {
     starter: false,
     professional: false,
-    business: true
+    business: false
   },
   apiAccess: {
     starter: false,
     professional: false,
-    business: true
+    business: false
   }
 };
 
