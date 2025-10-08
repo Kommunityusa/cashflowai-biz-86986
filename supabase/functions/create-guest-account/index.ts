@@ -64,7 +64,10 @@ serve(async (req) => {
     // Create profile entry
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
-      .insert({ user_id: authData.user.id });
+      .insert({ 
+        user_id: authData.user.id,
+        subscription_plan: "professional" // Set pro plan since they came from successful payment
+      });
 
     if (profileError) {
       console.error("Profile creation error:", profileError);

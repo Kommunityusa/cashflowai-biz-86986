@@ -77,6 +77,7 @@ export function GuestAccountCreation({ email }: { email?: string }) {
         });
         navigate("/auth");
       } else {
+        // After sign in, the ProtectedRoute will check subscription and redirect if needed
         navigate("/dashboard");
       }
     } catch (error: any) {
