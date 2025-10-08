@@ -7,7 +7,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { BankAccounts } from "@/components/BankAccounts";
 
 import { TaxPreparation } from "@/components/TaxPreparation";
-import { TrialBanner } from "@/components/TrialBanner";
 import { NewsletterBanner } from "@/components/NewsletterBanner";
 import { useState, useEffect } from "react";
 
@@ -321,8 +320,6 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
-        {/* Trial Banner */}
-        <TrialBanner />
         
         {/* Welcome Section */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
