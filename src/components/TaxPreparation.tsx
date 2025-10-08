@@ -183,22 +183,22 @@ export function TaxPreparation() {
       // Generate CSV
       let csv = "Tax Report " + year + "\n\n";
       csv += "Summary\n";
-      csv += `Total Income,${taxSummary.totalIncome.toFixed(2)}\n`;
-      csv += `Total Expenses,${taxSummary.totalExpenses.toFixed(2)}\n`;
-      csv += `Total Deductible,${taxSummary.totalDeductible.toFixed(2)}\n`;
-      csv += `Net Taxable Income,${taxSummary.netTaxableIncome.toFixed(2)}\n`;
-      csv += `Estimated Tax Savings,${taxSummary.estimatedTaxSavings.toFixed(2)}\n\n`;
+      csv += `Total Income,${Math.round(taxSummary.totalIncome)}\n`;
+      csv += `Total Expenses,${Math.round(taxSummary.totalExpenses)}\n`;
+      csv += `Total Deductible,${Math.round(taxSummary.totalDeductible)}\n`;
+      csv += `Net Taxable Income,${Math.round(taxSummary.netTaxableIncome)}\n`;
+      csv += `Estimated Tax Savings,${Math.round(taxSummary.estimatedTaxSavings)}\n\n`;
       
       csv += "Deductible Categories\n";
       csv += "Category,Amount,Percentage\n";
       taxSummary.categorizedDeductions.forEach(cat => {
-        csv += `${cat.category},${cat.amount.toFixed(2)},${cat.percentage.toFixed(1)}%\n`;
+        csv += `${cat.category},${Math.round(cat.amount)},${cat.percentage.toFixed(1)}%\n`;
       });
       
       csv += "\nQuarterly Estimates\n";
       csv += "Quarter,Estimated Tax\n";
       taxSummary.quarterlyEstimates.forEach(q => {
-        csv += `${q.quarter},${q.amount.toFixed(2)}\n`;
+        csv += `${q.quarter},${Math.round(q.amount)}\n`;
       });
 
       const blob = new Blob([csv], { type: "text/csv" });
@@ -238,7 +238,7 @@ export function TaxPreparation() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${taxSummary?.totalIncome.toFixed(2) || 0}
+              ${Math.round(taxSummary?.totalIncome || 0).toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">{t.tax.grossRevenue}</p>
           </CardContent>
@@ -251,7 +251,7 @@ export function TaxPreparation() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${taxSummary?.totalExpenses.toFixed(2) || 0}
+              ${Math.round(taxSummary?.totalExpenses || 0).toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">{t.tax.allBusinessExpenses}</p>
           </CardContent>
@@ -264,7 +264,7 @@ export function TaxPreparation() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              ${taxSummary?.totalDeductible.toFixed(2) || 0}
+              ${Math.round(taxSummary?.totalDeductible || 0).toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">{t.tax.eligibleDeductions}</p>
           </CardContent>
@@ -277,7 +277,7 @@ export function TaxPreparation() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              ${taxSummary?.estimatedTaxSavings.toFixed(2) || 0}
+              ${Math.round(taxSummary?.estimatedTaxSavings || 0).toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">{t.tax.atTaxRate} {taxRate}%</p>
           </CardContent>
@@ -290,7 +290,7 @@ export function TaxPreparation() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${taxSummary?.netTaxableIncome.toFixed(2) || 0}
+              ${Math.round(taxSummary?.netTaxableIncome || 0).toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">{t.tax.afterDeductions}</p>
           </CardContent>
@@ -331,7 +331,7 @@ export function TaxPreparation() {
                     </Pie>
                     <Tooltip 
                       formatter={(value: number, name, props) => [
-                        `$${value.toFixed(2)} (${props.payload.percentage.toFixed(1)}%)`,
+                        `$${Math.round(value).toLocaleString()} (${props.payload.percentage.toFixed(1)}%)`,
                         props.payload.category
                       ]} 
                     />
@@ -350,7 +350,7 @@ export function TaxPreparation() {
                       </div>
                       <div className="text-right">
                         <span className="text-sm font-medium">
-                          ${cat.amount.toFixed(2)}
+                          ${Math.round(cat.amount).toLocaleString()}
                         </span>
                         <span className="text-xs text-muted-foreground ml-2">
                           ({cat.percentage.toFixed(1)}%)
@@ -375,7 +375,7 @@ export function TaxPreparation() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="quarter" />
                   <YAxis />
-                  <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+                  <Tooltip formatter={(value: number) => `$${Math.round(value).toLocaleString()}`} />
                   <Bar dataKey="amount" fill="#3B82F6" />
                 </BarChart>
               </ResponsiveContainer>
@@ -384,7 +384,7 @@ export function TaxPreparation() {
                 {taxSummary?.quarterlyEstimates.map((q, index) => (
                   <div key={index} className="text-center">
                     <p className="text-sm text-muted-foreground">{q.quarter}</p>
-                    <p className="text-lg font-semibold">${q.amount.toFixed(2)}</p>
+                    <p className="text-lg font-semibold">${Math.round(q.amount).toLocaleString()}</p>
                   </div>
                 ))}
               </div>
