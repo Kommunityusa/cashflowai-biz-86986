@@ -54,7 +54,7 @@ serve(async (req) => {
     ).join('\n');
 
     // Call Lovable AI to categorize transactions
-    console.log('Calling Lovable AI to categorize transactions...');
+    console.log('[AI-CATEGORIZE] Calling Lovable AI to categorize transactions...');
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
