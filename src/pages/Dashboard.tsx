@@ -62,7 +62,6 @@ export default function Dashboard() {
     transactionCount: 0,
     monthlyGrowth: 0,
   });
-  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
   const [categoryData, setCategoryData] = useState<any[]>([]);
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
@@ -157,9 +156,6 @@ export default function Dashboard() {
           transactionCount: transactions.length,
           monthlyGrowth: monthlyGrowth,
         });
-
-        // Set recent transactions (top 10)
-        setRecentTransactions(transactions.slice(0, 10));
 
         // Prepare chart data (last 30 days)
         const last30Days = Array.from({ length: 30 }, (_, i) => {
@@ -726,68 +722,10 @@ export default function Dashboard() {
             {/* Bank Accounts */}
             <BankAccounts />
 
-            {/* Recent Transactions */}
-            <Card className="mb-8">
-              <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>{t.ui.recentTransactions}</CardTitle>
-            <Button variant="outline" size="sm" onClick={() => navigate('/transactions')}>
-              {t.ui.viewAll}
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {recentTransactions.map((transaction) => (
-                <div
-                  key={transaction.id}
-                  className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-full ${
-                      transaction.type === 'income' 
-                        ? 'bg-green-100 dark:bg-green-900/20' 
-                        : 'bg-red-100 dark:bg-red-900/20'
-                    }`}>
-                      {transaction.type === 'income' ? (
-                        <ArrowUpIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
-                      ) : (
-                        <ArrowDownIcon className="h-4 w-4 text-red-600 dark:text-red-400" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-medium">{transaction.description}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {transaction.categories?.name || t.ui.uncategorized} • {new Date(transaction.transaction_date).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  <span className={`font-semibold ${
-                    transaction.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                  }`}>
-                    {transaction.type === 'income' ? '+' : '-'}
-                    {formatCurrency(Number(transaction.amount))}
-                  </span>
-                </div>
-              ))}
-              {recentTransactions.length === 0 && (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground mb-4">
-                    {t.transactions.noTransactions}
-                  </p>
-                  <Button onClick={() => navigate('/transactions')}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    {t.ui.addFirstTransaction}
-                  </Button>
-                </div>
-              )}
+            {/* Tax Preparation Section */}
+            <div className="mt-8">
+              <TaxPreparation />
             </div>
-          </CardContent>
-        </Card>
-        
-
-        {/* Tax Preparation Section */}
-        <div className="mt-8">
-          <TaxPreparation />
-        </div>
       </>
         )}
       </main>
