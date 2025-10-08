@@ -20,17 +20,30 @@ export function useAuth(requireAuth: boolean = true) {
 
     try {
       setSubscriptionLoading(true);
-      const { data, error } = await supabase.functions.invoke("check-subscription", {
+      
+      // Set a timeout for the function call
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Subscription check timeout')), 5000)
+      );
+      
+      const invokePromise = supabase.functions.invoke("check-subscription", {
         headers: {
           Authorization: `Bearer ${userSession.access_token}`,
         },
       });
 
+      const { data, error } = await Promise.race([invokePromise, timeoutPromise]) as any;
+
       if (!error && data) {
         setSubscriptionPlan(data.plan || "free");
+      } else if (error) {
+        console.log('Subscription check error (non-critical):', error);
+        setSubscriptionPlan("free");
       }
     } catch (error) {
       // Silent fail for subscription check - not critical
+      console.log('Subscription check failed (non-critical):', error);
+      setSubscriptionPlan("free");
     } finally {
       setSubscriptionLoading(false);
     }
