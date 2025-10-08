@@ -73,37 +73,70 @@ serve(async (req) => {
         // Fetch last 12 months of transactions
         const startDate = new Date();
         startDate.setMonth(startDate.getMonth() - 12);
+        const startDateStr = startDate.toISOString().split('T')[0];
+        const endDateStr = new Date().toISOString().split('T')[0];
         
-        const transactionsResponse = await fetch(`${PLAID_ENV}/transactions/get`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            client_id: plaidClientId,
-            secret: plaidSecret,
-            access_token: account.plaid_access_token,
-            start_date: startDate.toISOString().split('T')[0],
-            end_date: new Date().toISOString().split('T')[0],
-          }),
-        });
-
-        const transactionsData = await transactionsResponse.json();
+        let allTransactions = [];
+        let offset = 0;
+        const count = 500; // Maximum allowed by Plaid per request
+        let totalAvailable = 0;
         
-        if (transactionsData.error_code) {
-          console.error(`[PLAID-BACKFILL] Error for account ${account.id}:`, transactionsData.error_message);
-          totalErrors++;
-          results.push({
-            account_id: account.id,
-            bank_name: account.bank_name,
-            status: 'error',
-            error: transactionsData.error_message
+        // Paginate through all transactions
+        do {
+          console.log(`[PLAID-BACKFILL] Fetching transactions offset=${offset}, count=${count}`);
+          
+          const transactionsResponse = await fetch(`${PLAID_ENV}/transactions/get`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              client_id: plaidClientId,
+              secret: plaidSecret,
+              access_token: account.plaid_access_token,
+              start_date: startDateStr,
+              end_date: endDateStr,
+              options: {
+                count: count,
+                offset: offset,
+              },
+            }),
           });
+
+          const transactionsData = await transactionsResponse.json();
+          
+          if (transactionsData.error_code) {
+            console.error(`[PLAID-BACKFILL] Error for account ${account.id}:`, transactionsData.error_message);
+            totalErrors++;
+            results.push({
+              account_id: account.id,
+              bank_name: account.bank_name,
+              status: 'error',
+              error: transactionsData.error_message
+            });
+            break;
+          }
+
+          // Accumulate transactions
+          if (transactionsData.transactions) {
+            allTransactions = allTransactions.concat(transactionsData.transactions);
+          }
+          
+          totalAvailable = transactionsData.total_transactions || 0;
+          offset += count;
+          
+          console.log(`[PLAID-BACKFILL] Fetched ${transactionsData.transactions?.length || 0} transactions, total: ${allTransactions.length}/${totalAvailable}`);
+          
+          // Continue if there are more transactions to fetch
+        } while (offset < totalAvailable);
+
+        // If there was an error, skip processing
+        if (results.some(r => r.account_id === account.id && r.status === 'error')) {
           continue;
         }
 
         let newTransactions = 0;
         
-        // Process transactions
-        for (const transaction of transactionsData.transactions || []) {
+        // Process all fetched transactions
+        for (const transaction of allTransactions) {
           // Check if transaction already exists
           const { data: existing } = await supabase
             .from('transactions')
