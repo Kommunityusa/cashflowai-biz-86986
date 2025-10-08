@@ -2,7 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -53,16 +53,16 @@ serve(async (req) => {
       `${t.description || ''} | ${t.vendor_name || ''} | Amount: $${t.amount} | Type: ${t.type} | Date: ${t.transaction_date}`
     ).join('\n');
 
-    // Call OpenAI to categorize transactions
-    console.log('Calling OpenAI API to categorize transactions...');
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Call Lovable AI to categorize transactions
+    console.log('Calling Lovable AI to categorize transactions...');
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'google/gemini-2.5-flash',
         messages: [
           {
             role: 'system',
@@ -115,18 +115,25 @@ ${transactionText}`
           }
         ],
         temperature: 0.3,
-        max_tokens: 4000,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenAI API error response:', errorText);
-      throw new Error(`OpenAI API error: ${response.statusText}`);
+      console.error('Lovable AI error response:', errorText);
+      
+      if (response.status === 429) {
+        throw new Error('Rate limit exceeded. Please try again in a moment.');
+      }
+      if (response.status === 402) {
+        throw new Error('Payment required. Please add credits to your Lovable AI workspace.');
+      }
+      
+      throw new Error(`Lovable AI error: ${response.statusText}`);
     }
 
     const aiResponse = await response.json();
-    console.log('OpenAI raw response:', aiResponse.choices[0].message.content);
+    console.log('Lovable AI raw response:', aiResponse.choices[0].message.content);
     
     // Parse the response - it should be pure JSON
     let categorizations;
