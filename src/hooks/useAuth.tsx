@@ -51,74 +51,53 @@ export function useAuth(requireAuth: boolean = true) {
 
   useEffect(() => {
     let mounted = true;
-    let sessionCheckTimeout: NodeJS.Timeout | null = null;
 
     const initializeAuth = async () => {
       try {
-        // Check if we're coming from a redirect (trial parameter or on dashboard route)
+        console.log('[useAuth] Starting initialization...');
+        
+        // Check if we're coming from a Stripe redirect with trial parameter
         const urlParams = new URLSearchParams(window.location.search);
         const hasTrialParam = urlParams.has('trial');
-        const isDashboardRoute = window.location.pathname === '/dashboard';
-        const isAuthRedirect = hasTrialParam || isDashboardRoute;
         
-        // For Stripe redirects, wait a bit longer for session to be established
-        if (isAuthRedirect && hasTrialParam) {
+        // For Stripe redirects, wait a moment for session to be established
+        if (hasTrialParam) {
+          console.log('[useAuth] Detected trial parameter, waiting for session...');
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
         
-        // Get the current session from localStorage/cookies
+        // Get the current session
+        console.log('[useAuth] Fetching session...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.log("Session check error:", error);
+          console.error('[useAuth] Session fetch error:', error);
         }
         
-        if (mounted) {
-          setSession(session);
-          setUser(session?.user ?? null);
-          
-          // Check subscription for existing session  
-          if (session) {
-            setLoading(false);
-            checkSubscription(session);
-          } else if (requireAuth && isAuthRedirect) {
-            // If no session after redirect, wait longer before giving up
-            sessionCheckTimeout = setTimeout(async () => {
-              if (!mounted) return;
-              
-              // Try one more time to get the session
-              const { data: { session: retrySession } } = await supabase.auth.getSession();
-              
-              if (retrySession) {
-                setSession(retrySession);
-                setUser(retrySession.user);
-                checkSubscription(retrySession);
-                setLoading(false);
-              } else {
-                setLoading(false);
-                navigate("/auth");
-              }
-            }, 3000);
-          } else {
-            setLoading(false);
-            if (requireAuth && !session) {
-              navigate("/auth");
-            }
-          }
+        if (!mounted) return;
+        
+        console.log('[useAuth] Session status:', session ? 'Found' : 'Not found');
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+        
+        // Check subscription in background (non-blocking)
+        if (session) {
+          checkSubscription(session);
         }
+        
+        // Redirect to auth if required and no session
+        if (requireAuth && !session && !hasTrialParam) {
+          console.log('[useAuth] No session and auth required, redirecting to /auth');
+          navigate("/auth");
+        }
+        
       } catch (error) {
-        console.error("Auth initialization error:", error);
+        console.error('[useAuth] Initialization error:', error);
         if (mounted) {
           setLoading(false);
           if (requireAuth) {
-            const urlParams = new URLSearchParams(window.location.search);
-            const hasTrialParam = urlParams.has('trial');
-            const isDashboardRoute = window.location.pathname === '/dashboard';
-            const isAuthRedirect = hasTrialParam || isDashboardRoute;
-            // Don't redirect immediately if we have an auth redirect indicator
-            if (!isAuthRedirect) {
-              navigate("/auth");
-            }
+            navigate("/auth");
           }
         }
       }
@@ -128,13 +107,15 @@ export function useAuth(requireAuth: boolean = true) {
     initializeAuth();
 
     // Set up auth state listener for future changes
+    console.log('[useAuth] Setting up auth state listener');
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('[useAuth] Auth state changed:', event);
         if (mounted) {
           setSession(session);
           setUser(session?.user ?? null);
           
-          // Use setTimeout to avoid deadlock
+          // Check subscription in background (non-blocking)
           if (session) {
             setTimeout(() => {
               checkSubscription(session);
@@ -143,9 +124,10 @@ export function useAuth(requireAuth: boolean = true) {
           
           // Handle different auth events
           if (event === 'SIGNED_OUT' && requireAuth) {
+            console.log('[useAuth] User signed out, redirecting to /auth');
             navigate("/auth");
           } else if (event === 'SIGNED_IN' && !requireAuth && window.location.pathname === '/') {
-            // Redirect to dashboard after signing in
+            console.log('[useAuth] User signed in from home, redirecting to /dashboard');
             navigate("/dashboard");
           }
         }
@@ -154,9 +136,6 @@ export function useAuth(requireAuth: boolean = true) {
 
     return () => {
       mounted = false;
-      if (sessionCheckTimeout) {
-        clearTimeout(sessionCheckTimeout);
-      }
       subscription.unsubscribe();
     };
   }, [navigate, requireAuth]);
