@@ -56,8 +56,7 @@ export function Pricing() {
         headers.Authorization = `Bearer ${session.access_token}`;
       }
 
-      const { data, error } = await supabase.functions.invoke("create-trial-checkout", {
-        body: requestBody,
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
         headers,
       });
 
@@ -126,7 +125,7 @@ export function Pricing() {
         { text: "Bank statement uploads", included: true },
         { text: "AI-powered insights", included: true },
       ],
-      cta: `${t.common.start} 14-Day Trial`,
+      cta: "Subscribe Now",
       variant: "gradient" as const,
       onClick: () => handleUpgrade("professional"),
     },

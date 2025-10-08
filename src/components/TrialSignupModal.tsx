@@ -25,22 +25,22 @@ export function TrialSignupModal({ isOpen, onClose, onSubmit, isLoading, plan = 
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
 
-  // Get trial days and price based on plan (case-insensitive)
+  // Get price based on plan (case-insensitive)
   const getPlanDetails = () => {
     const planLower = plan.toLowerCase();
     switch(planLower) {
       case "starter":
-        return { days: 7, price: "$10" };
+        return { price: "$10" };
       case "professional":
-        return { days: 14, price: "$15" };
+        return { price: "$10" };
       case "business":
-        return { days: 30, price: "$25" };
+        return { price: "$25" };
       default:
-        return { days: 14, price: "$15" };
+        return { price: "$10" };
     }
   };
 
-  const { days, price } = getPlanDetails();
+  const { price } = getPlanDetails();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,9 +64,9 @@ export function TrialSignupModal({ isOpen, onClose, onSubmit, isLoading, plan = 
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-2xl">Start Your {days}-Day Free Trial</DialogTitle>
+          <DialogTitle className="text-2xl">Subscribe to {plan}</DialogTitle>
           <DialogDescription className="text-base">
-            No commitment. Cancel anytime during your trial.
+            Get instant access to all features.
           </DialogDescription>
         </DialogHeader>
         
@@ -75,8 +75,8 @@ export function TrialSignupModal({ isOpen, onClose, onSubmit, isLoading, plan = 
             <div className="flex items-start gap-3">
               <CheckCircle className="h-5 w-5 text-success mt-0.5" />
               <div className="text-sm">
-                <p className="font-semibold">Full access for {days} days</p>
-                <p className="text-muted-foreground">Try all {plan} features risk-free</p>
+                <p className="font-semibold">Instant access</p>
+                <p className="text-muted-foreground">Start using all {plan} features immediately</p>
               </div>
             </div>
             
@@ -84,14 +84,14 @@ export function TrialSignupModal({ isOpen, onClose, onSubmit, isLoading, plan = 
               <CreditCard className="h-5 w-5 text-primary mt-0.5" />
               <div className="text-sm">
                 <p className="font-semibold">Credit card required</p>
-                <p className="text-muted-foreground">Auto-bills after trial unless canceled</p>
+                <p className="text-muted-foreground">Billing starts immediately</p>
               </div>
             </div>
             
             <div className="flex items-start gap-3">
               <Calendar className="h-5 w-5 text-primary mt-0.5" />
               <div className="text-sm">
-                <p className="font-semibold">{price}/month after trial</p>
+                <p className="font-semibold">{price}/month subscription</p>
                 <p className="text-muted-foreground">Cancel anytime, no questions asked</p>
               </div>
             </div>
