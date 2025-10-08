@@ -1,39 +1,72 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Check, Loader2, CreditCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Card } from "@/components/ui/card";
 
 export default function Checkout() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoadingStripe, setIsLoadingStripe] = useState(false);
   const [isLoadingPayPal, setIsLoadingPayPal] = useState(false);
 
-  useEffect(() => {
-    // Check if user is authenticated
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        // Redirect to auth if not logged in
-        navigate("/auth");
-      }
-    };
-    
-    checkAuth();
-  }, [navigate]);
-
   const handleStripeCheckout = async () => {
+    if (!email || !password) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter your email and password",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoadingStripe(true);
     try {
-      console.log("[CHECKOUT] Starting Stripe checkout...");
+      console.log("[CHECKOUT] Starting Stripe checkout with signup...");
       
-      const { data: { session } } = await supabase.auth.getSession();
+      // Check if user already exists
+      const { data: { session: existingSession } } = await supabase.auth.getSession();
+      
+      let session = existingSession;
       
       if (!session) {
-        throw new Error("You must be logged in to subscribe");
+        // Try to sign in first
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (signInError) {
+          // If sign in fails, create new account
+          const redirectUrl = `${window.location.origin}/dashboard`;
+          
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              emailRedirectTo: redirectUrl,
+            },
+          });
+
+          if (signUpError) throw signUpError;
+          session = signUpData.session;
+          
+          toast({
+            title: "Account Created",
+            description: "Your account has been created successfully!",
+          });
+        } else {
+          session = signInData.session;
+        }
+      }
+
+      if (!session) {
+        throw new Error("Failed to create session. Please check your email for confirmation.");
       }
 
       const { data, error } = await supabase.functions.invoke("create-stripe-checkout", {
@@ -65,14 +98,57 @@ export default function Checkout() {
   };
 
   const handlePayPalCheckout = async () => {
+    if (!email || !password) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter your email and password",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoadingPayPal(true);
     try {
-      console.log("[CHECKOUT] Starting PayPal checkout...");
+      console.log("[CHECKOUT] Starting PayPal checkout with signup...");
       
-      const { data: { session } } = await supabase.auth.getSession();
+      // Check if user already exists
+      const { data: { session: existingSession } } = await supabase.auth.getSession();
+      
+      let session = existingSession;
       
       if (!session) {
-        throw new Error("You must be logged in to subscribe");
+        // Try to sign in first
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (signInError) {
+          // If sign in fails, create new account
+          const redirectUrl = `${window.location.origin}/dashboard`;
+          
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              emailRedirectTo: redirectUrl,
+            },
+          });
+
+          if (signUpError) throw signUpError;
+          session = signUpData.session;
+          
+          toast({
+            title: "Account Created",
+            description: "Your account has been created successfully!",
+          });
+        } else {
+          session = signInData.session;
+        }
+      }
+
+      if (!session) {
+        throw new Error("Failed to create session. Please check your email for confirmation.");
       }
 
       const { data, error } = await supabase.functions.invoke("create-paypal-checkout", {
@@ -140,6 +216,34 @@ export default function Checkout() {
             ))}
           </ul>
 
+          <div className="space-y-4 mb-6">
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoadingStripe || isLoadingPayPal}
+              />
+            </div>
+            <div>
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Create a password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoadingStripe || isLoadingPayPal}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Minimum 6 characters
+              </p>
+            </div>
+          </div>
+
           <div className="space-y-4">
             <div className="text-center text-sm font-medium text-muted-foreground mb-2">
               Choose your payment method
@@ -190,6 +294,10 @@ export default function Checkout() {
 
           <p className="text-center text-sm text-muted-foreground mt-6">
             Secure payment powered by Stripe and PayPal
+          </p>
+          
+          <p className="text-center text-xs text-muted-foreground mt-4">
+            Already have an account? Just enter your existing credentials to proceed.
           </p>
         </div>
       </div>

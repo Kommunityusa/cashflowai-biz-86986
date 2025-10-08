@@ -74,7 +74,6 @@ Keep responses concise and well-formatted. Use bullet points and clear sections 
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: messages,
-        temperature: 0.7,
       }),
     });
 
