@@ -30,7 +30,7 @@ const Demo = () => {
     {
       number: "01",
       title: "Create Your Account",
-      description: "Sign up in seconds with just your email. Start with a 14-day free trial - no credit card required.",
+      description: "Sign up in seconds with just your email. Get started today.",
       features: [
         "Secure authentication with Supabase",
         "Email verification for security",
@@ -248,7 +248,7 @@ const Demo = () => {
                 onClick={() => navigate("/auth")}
                 className="group"
               >
-                Start Free Trial
+                Get Started
                 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </Button>
               <Button 
@@ -261,7 +261,7 @@ const Demo = () => {
               </Button>
             </div>
             <p className="text-sm text-muted-foreground mt-4">
-              No credit card required • 14-day free trial
+              Secure bank-level encryption • Cancel anytime
             </p>
           </div>
         </div>

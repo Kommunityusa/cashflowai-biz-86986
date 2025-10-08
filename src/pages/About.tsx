@@ -184,7 +184,7 @@ export default function About() {
                 onClick={() => navigate("/auth")}
                 className="group"
               >
-                Start Free Trial
+                Get Started
                 <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Button>
               <Button 

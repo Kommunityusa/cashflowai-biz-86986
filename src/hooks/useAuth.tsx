@@ -56,13 +56,13 @@ export function useAuth(requireAuth: boolean = true) {
       try {
         console.log('[useAuth] Starting initialization...');
         
-        // Check if we're coming from a Stripe redirect with trial parameter
+        // Check if we're coming from a Stripe redirect with checkout parameter
         const urlParams = new URLSearchParams(window.location.search);
-        const hasTrialParam = urlParams.has('trial');
+        const hasCheckoutParam = urlParams.has('checkout');
         
         // For Stripe redirects, wait a moment for session to be established
-        if (hasTrialParam) {
-          console.log('[useAuth] Detected trial parameter, waiting for session...');
+        if (hasCheckoutParam) {
+          console.log('[useAuth] Detected checkout parameter, waiting for session...');
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
         
@@ -87,7 +87,7 @@ export function useAuth(requireAuth: boolean = true) {
         }
         
         // Redirect to auth if required and no session
-        if (requireAuth && !session && !hasTrialParam) {
+        if (requireAuth && !session && !hasCheckoutParam) {
           console.log('[useAuth] No session and auth required, redirecting to /auth');
           navigate("/auth");
         }

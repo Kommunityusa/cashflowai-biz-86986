@@ -128,7 +128,7 @@ export const Header = () => {
                   <Button variant="ghost">Sign In</Button>
                 </Link>
                 <Link to="/auth">
-                  <Button variant="gradient">Start Free Trial</Button>
+                  <Button variant="gradient">Get Started</Button>
                 </Link>
               </>
             ) : user ? (
@@ -202,7 +202,7 @@ export const Header = () => {
                     <Button variant="ghost" className="w-full">Sign In</Button>
                   </Link>
                   <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="gradient" className="w-full">Start Free Trial</Button>
+                    <Button variant="gradient" className="w-full">Get Started</Button>
                   </Link>
                 </>
               ) : user ? (

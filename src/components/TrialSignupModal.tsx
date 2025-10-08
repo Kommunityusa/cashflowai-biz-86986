@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, CreditCard, Calendar, Shield } from "lucide-react";
 
-interface TrialSignupModalProps {
+interface SubscriptionSignupModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (email: string) => void;
@@ -21,7 +21,7 @@ interface TrialSignupModalProps {
   plan?: string;
 }
 
-export function TrialSignupModal({ isOpen, onClose, onSubmit, isLoading, plan = "Professional" }: TrialSignupModalProps) {
+export function TrialSignupModal({ isOpen, onClose, onSubmit, isLoading, plan = "Professional" }: SubscriptionSignupModalProps) {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
 

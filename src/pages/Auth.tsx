@@ -27,18 +27,18 @@ export default function Auth() {
   const [user, setUser] = useState<User | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(validatePassword(""));
-  const [showTrialMessage, setShowTrialMessage] = useState(false);
+  const [showCheckoutMessage, setShowCheckoutMessage] = useState(false);
 
   useEffect(() => {
-    // Check for trial signup redirect
+    // Check for checkout completion redirect
     const urlParams = new URLSearchParams(window.location.search);
-    const trialStarted = urlParams.get('trial');
+    const checkoutCompleted = urlParams.get('checkout');
     const checkoutEmail = urlParams.get('checkout_email');
     
-    if (trialStarted === 'started' && checkoutEmail) {
+    if (checkoutCompleted === 'completed' && checkoutEmail) {
       setEmail(decodeURIComponent(checkoutEmail));
-      setShowTrialMessage(true);
-      setMessage("Trial payment successful! Create your account with the same email to access your dashboard.");
+      setShowCheckoutMessage(true);
+      setMessage("Payment successful! Create your account with the same email to access your dashboard.");
     }
     
     // Set up auth state listener FIRST
@@ -434,8 +434,8 @@ export default function Auth() {
             )}
             
             {message && (
-              <Alert className={`mt-4 ${showTrialMessage ? 'border-success/20 bg-success/5' : 'border-primary/20 bg-primary/5'}`}>
-                <AlertDescription className={showTrialMessage ? 'text-success font-medium' : 'text-primary'}>
+              <Alert className={`mt-4 ${showCheckoutMessage ? 'border-success/20 bg-success/5' : 'border-primary/20 bg-primary/5'}`}>
+                <AlertDescription className={showCheckoutMessage ? 'text-success font-medium' : 'text-primary'}>
                   {message}
                 </AlertDescription>
               </Alert>

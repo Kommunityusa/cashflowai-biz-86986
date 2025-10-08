@@ -379,7 +379,7 @@ export function LoanCalculator({ showAsPopup = false, onClose }: LoanCalculatorP
                     variant="gradient" 
                     onClick={() => window.location.href = '#pricing'}
                   >
-                    Start Your Free Trial
+                    Get Started
                   </Button>
                 </div>
               </>

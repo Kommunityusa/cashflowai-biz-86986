@@ -177,13 +177,13 @@ export function Header() {
                  >
                    Sign In
                  </Button>
-                 <Button 
-                   variant="gradient" 
-                   size="sm"
-                   onClick={() => navigate("/auth")}
-                 >
-                   Start Free Trial
-                 </Button>
+                  <Button 
+                    variant="gradient" 
+                    size="sm"
+                    onClick={() => navigate("/auth")}
+                  >
+                    Get Started
+                  </Button>
                </>
              )}
            </div>
@@ -300,7 +300,7 @@ export function Header() {
                           setMobileMenuOpen(false);
                         }}
                       >
-                        {t.hero.cta}
+                        Get Started
                       </Button>
                     </div>
                   </>

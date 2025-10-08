@@ -66,14 +66,14 @@ export default function Dashboard() {
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
 
   useEffect(() => {
-    // Check for trial success parameter
+    // Check for checkout success parameter
     const urlParams = new URLSearchParams(window.location.search);
-    const trialStatus = urlParams.get('trial');
+    const checkoutStatus = urlParams.get('checkout');
     
-    if (trialStatus === 'success' && user) {
+    if (checkoutStatus === 'success' && user) {
       toast({
-        title: "Trial Started!",
-        description: "Your trial subscription is now active. Explore all premium features!",
+        title: "Subscription Active!",
+        description: "Your subscription is now active. Explore all premium features!",
       });
       // Clean up URL
       window.history.replaceState({}, '', '/dashboard');
@@ -89,10 +89,10 @@ export default function Dashboard() {
         details: { timestamp: new Date().toISOString() }
       });
     } else if (!authLoading && !user) {
-      // Don't redirect if we're waiting for trial redirect
+      // Don't redirect if we're waiting for checkout redirect
       const urlParams = new URLSearchParams(window.location.search);
-      const trialStatus = urlParams.get('trial');
-      if (trialStatus !== 'success') {
+      const checkoutStatus = urlParams.get('checkout');
+      if (checkoutStatus !== 'success') {
         navigate("/auth");
       }
     }

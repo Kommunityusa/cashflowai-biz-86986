@@ -16,18 +16,18 @@ const SelectPlan = () => {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check for trial redirect from Stripe
+    // Check for checkout redirect from Stripe
     const urlParams = new URLSearchParams(window.location.search);
-    const trialStatus = urlParams.get('trial');
+    const checkoutStatus = urlParams.get('checkout');
     const checkoutEmail = urlParams.get('checkout_email');
     
-    if (trialStatus === 'pending' && checkoutEmail) {
+    if (checkoutStatus === 'pending' && checkoutEmail) {
       // User completed Stripe checkout but needs to create account
       toast({
         title: t.common.success,
-        description: 'Trial payment successful! Now create your account to access your dashboard.',
+        description: 'Payment successful! Now create your account to access your dashboard.',
       });
-      navigate(`/auth?trial=started&checkout_email=${checkoutEmail}`);
+      navigate(`/auth?checkout=completed&checkout_email=${checkoutEmail}`);
     }
   }, [navigate, toast, t]);
 
@@ -47,8 +47,7 @@ const SelectPlan = () => {
         "Bank statement uploads",
         "AI-powered insights"
       ],
-      popular: true,
-      trialDays: 14
+      popular: true
     }
   ];
 

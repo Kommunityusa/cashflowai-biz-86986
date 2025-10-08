@@ -399,9 +399,9 @@ const translations: Record<Language, Translations> = {
     hero: {
       title: "AI-Powered Financial Management for Small Businesses",
       subtitle: "Automate bookkeeping, track cash flow, and get AI insights to grow your business",
-      cta: "Start Free Trial",
-      secondaryCta: "Watch Demo",
-      ctaSecondary: "Watch Demo",
+      cta: "Get Started",
+      secondaryCta: "How It Works",
+      ctaSecondary: "How It Works",
       trustBadge: "Trusted by businesses"
     },
     auth: {
@@ -700,9 +700,9 @@ const translations: Record<Language, Translations> = {
     hero: {
       title: "Gestión financiera impulsada por IA para pequeñas empresas",
       subtitle: "Automatiza la contabilidad, rastrea el flujo de efectivo y obtén información de IA para hacer crecer tu negocio",
-      cta: "Comenzar prueba gratuita",
-      secondaryCta: "Ver demostración",
-      ctaSecondary: "Ver demostración",
+      cta: "Comenzar",
+      secondaryCta: "Cómo Funciona",
+      ctaSecondary: "Cómo Funciona",
       trustBadge: "Confiado por empresas"
     },
     auth: {
