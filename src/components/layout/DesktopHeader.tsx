@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import cashflowLogo from "@/assets/cashflow-ai-logo.png";
-import { useRole } from "@/hooks/useRole";
+
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -29,7 +29,7 @@ export const Header = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth(false); // Don't require auth in header
-  const { isAdmin } = useRole();
+  
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isLandingPage = location.pathname === "/" || 
                         location.pathname === "/about" || 
@@ -115,19 +115,6 @@ export const Header = () => {
                     {item.name}
                   </Link>
                 ))}
-                {isAdmin && (
-                  <Link
-                    to="/admin"
-                    className={`transition-colors flex items-center gap-1 ${
-                      location.pathname === '/admin'
-                        ? "text-primary font-medium"
-                        : "text-muted-foreground hover:text-primary"
-                    }`}
-                  >
-                    <Shield className="h-4 w-4" />
-                    Admin
-                  </Link>
-                )}
               </>
             ) : null}
           </div>
@@ -146,11 +133,6 @@ export const Header = () => {
               </>
             ) : user ? (
               <>
-                {isAdmin && (
-                  <Badge variant="outline" className="bg-primary/10">
-                    Admin
-                  </Badge>
-                )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm" className="gap-2">
@@ -176,15 +158,6 @@ export const Header = () => {
                       <User className="mr-2 h-4 w-4" />
                       Settings
                     </DropdownMenuItem>
-                    {isAdmin && (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => navigate('/admin')}>
-                          <Shield className="mr-2 h-4 w-4" />
-                          Admin Dashboard
-                        </DropdownMenuItem>
-                      </>
-                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleLogout} className="text-red-600">
                       <LogOut className="mr-2 h-4 w-4" />
@@ -248,28 +221,9 @@ export const Header = () => {
                       {item.name}
                     </Link>
                   ))}
-                  {isAdmin && (
-                    <Link
-                      to="/admin"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`transition-colors flex items-center gap-1 ${
-                        location.pathname === '/admin'
-                          ? "text-primary font-medium"
-                          : "text-muted-foreground hover:text-primary"
-                      }`}
-                    >
-                      <Shield className="h-4 w-4" />
-                      Admin Dashboard
-                    </Link>
-                  )}
                   <div className="pt-4 border-t space-y-2">
                     <div className="px-2 text-sm text-muted-foreground">
                       {user.email}
-                      {isAdmin && (
-                        <Badge variant="outline" className="ml-2 bg-primary/10">
-                          Admin
-                        </Badge>
-                      )}
                     </div>
                     <Button 
                       variant="destructive" 

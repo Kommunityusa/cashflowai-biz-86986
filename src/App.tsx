@@ -17,7 +17,7 @@ import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Terms from "./pages/Terms";
 import Security from "./pages/Security";
-import AdminDashboard from "./pages/AdminDashboard";
+
 import PlaidTesting from "./pages/PlaidTesting";
 import PlaidOAuthCallback from "./pages/PlaidOAuthCallback";
 import Blog from "./pages/Blog";
@@ -147,11 +147,6 @@ const App = () => (
             <Route path="/security" element={
               <ProtectedRoute>
                 <Security />
-              </ProtectedRoute>
-            } />
-            <Route path="/admin" element={
-              <ProtectedRoute>
-                <AdminDashboard />
               </ProtectedRoute>
             } />
             <Route path="/plaid-testing" element={

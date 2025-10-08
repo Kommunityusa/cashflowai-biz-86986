@@ -17,7 +17,7 @@ import {
   X
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useRole } from "@/hooks/useRole";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -34,7 +34,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 
 export function Header() {
   const { user } = useAuth(false);
-  const { isAdmin } = useRole();
+  
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -131,18 +131,6 @@ export function Header() {
                     {link.label}
                   </Link>
                 ))}
-                {isAdmin && (
-                  <Link
-                    to="/admin"
-                    className={`text-sm font-medium transition-colors ${
-                      isActive("/admin") 
-                        ? "text-primary" 
-                        : "text-muted-foreground hover:text-primary"
-                    }`}
-                  >
-                     Admin
-                   </Link>
-                 )}
                </>
              )}
            </nav>
@@ -175,12 +163,6 @@ export function Header() {
                      <Settings className="mr-2 h-4 w-4" />
                      Settings
                    </DropdownMenuItem>
-                   {isAdmin && (
-                     <DropdownMenuItem onClick={() => navigate("/admin")}>
-                       <Shield className="mr-2 h-4 w-4" />
-                       Admin Panel
-                     </DropdownMenuItem>
-                   )}
                    <DropdownMenuSeparator />
                    <DropdownMenuItem onClick={handleLogout}>
                      <LogOut className="mr-2 h-4 w-4" />
@@ -262,20 +244,6 @@ export function Header() {
                           </Link>
                         );
                       })}
-                      {isAdmin && (
-                        <Link
-                          to="/admin"
-                          onClick={() => setMobileMenuOpen(false)}
-                          className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                            isActive("/admin")
-                              ? "bg-primary/10 text-primary"
-                              : "hover:bg-muted"
-                          }`}
-                        >
-                          <Shield className="h-4 w-4" />
-                          <span className="font-medium">{t.nav.admin}</span>
-                        </Link>
-                      )}
                     </div>
 
                     {/* Language Toggle & Logout */}

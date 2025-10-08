@@ -62,7 +62,6 @@ interface Translations {
     transactions: string;
     reports: string;
     settings: string;
-    admin: string;
     funding: string;
     about: string;
     blog: string;
@@ -71,76 +70,37 @@ interface Translations {
     features: string;
   };
   
-  // Hero Section
+  // Hero
   hero: {
     title: string;
     subtitle: string;
     cta: string;
-    ctaSecondary: string;
+    secondaryCta: string;
+    trustBadge: string;
   };
   
   // Auth
   auth: {
-    welcomeBack: string;
+    signIn: string;
+    signUp: string;
+    signOut: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+    forgotPassword: string;
+    resetPassword: string;
     createAccount: string;
-    signInGoogle: string;
-    orContinueWith: string;
-    noAccount: string;
-    haveAccount: string;
-    termsAgree: string;
-    privacyPolicy: string;
-    termsOfService: string;
+    alreadyHaveAccount: string;
+    dontHaveAccount: string;
   };
   
   // Dashboard
   dashboard: {
     welcome: string;
     overview: string;
+    quickActions: string;
     recentTransactions: string;
-    cashFlow: string;
-    income: string;
-    expenses: string;
-    netIncome: string;
-    totalBalance: string;
-    accountsConnected: string;
-    transactionsImported: string;
-    insightsGenerated: string;
-    noData: string;
-    connectBank: string;
-    importTransactions: string;
-    generateReport: string;
-    monthlyTrend: string;
-    categoryBreakdown: string;
-    lastUpdated: string;
-  };
-  
-  // Settings
-  settings: {
-    title: string;
-    description: string;
-    profile: string;
-    categories: string;
-    vendors: string;
-    budgets: string;
-    security: string;
-    billing: string;
-    integrations: string;
-    preferences: string;
-    personalInfo: string;
-    businessInfo: string;
-    changePassword: string;
-    twoFactor: string;
-    notifications: string;
-    emailNotifications: string;
-    weeklyReports: string;
-    transactionAlerts: string;
-    accountManagement: string;
-    downloadData: string;
-    exportData: string;
-    bankConnections: string;
-    connectPlaid: string;
-    platformIntegrations: string;
-    adminOnly: string;
+    insights: string;
   };
   
   // Plans
@@ -396,7 +356,6 @@ const translations: Record<Language, Translations> = {
       transactions: "Transactions",
       reports: "Reports",
       settings: "Settings",
-      admin: "Admin",
       funding: "Funding",
       about: "About",
       blog: "Blog",
@@ -465,8 +424,7 @@ const translations: Record<Language, Translations> = {
       exportData: "Export All Data",
       bankConnections: "Bank Connections",
       connectPlaid: "Connect with Plaid",
-      platformIntegrations: "Platform Integrations",
-      adminOnly: "Administrator access required"
+      platformIntegrations: "Platform Integrations"
     },
     plans: {
       selectPlan: "Select a Plan",
@@ -704,7 +662,6 @@ const translations: Record<Language, Translations> = {
       transactions: "Transacciones",
       reports: "Informes",
       settings: "Configuración",
-      admin: "Administrador",
       funding: "Financiamiento",
       about: "Acerca de",
       blog: "Blog",
@@ -773,8 +730,7 @@ const translations: Record<Language, Translations> = {
       exportData: "Exportar todos los datos",
       bankConnections: "Conexiones bancarias",
       connectPlaid: "Conectar con Plaid",
-      platformIntegrations: "Integraciones de plataforma",
-      adminOnly: "Se requiere acceso de administrador"
+      platformIntegrations: "Integraciones de plataforma"
     },
     plans: {
       selectPlan: "Selecciona un plan",
