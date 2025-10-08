@@ -8,6 +8,8 @@ import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Plus, Edit, Trash2, Eye } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { EmailSequenceTester } from './EmailSequenceTester';
 
 interface BlogPost {
   id: string;
@@ -170,25 +172,36 @@ export function BlogManager() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Blog Management</h2>
-        <Button onClick={() => {
-          setEditing(null);
-          setFormData({
-            title: '',
-            slug: '',
-            excerpt: '',
-            content: '',
-            category: '',
-            author: '',
-            is_published: false,
-          });
-        }}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Post
-        </Button>
+        <h2 className="text-2xl font-bold">Admin Management</h2>
       </div>
 
-      <Card className="p-6">
+      <Tabs defaultValue="blog" className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="blog">Blog Posts</TabsTrigger>
+          <TabsTrigger value="emails">Email Sequence</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="blog" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="text-xl font-semibold">Blog Management</h3>
+            <Button onClick={() => {
+              setEditing(null);
+              setFormData({
+                title: '',
+                slug: '',
+                excerpt: '',
+                content: '',
+                category: '',
+                author: '',
+                is_published: false,
+              });
+            }}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Post
+            </Button>
+          </div>
+
+          <Card className="p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -350,7 +363,13 @@ export function BlogManager() {
             </div>
           </Card>
         ))}
-      </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="emails">
+          <EmailSequenceTester />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
