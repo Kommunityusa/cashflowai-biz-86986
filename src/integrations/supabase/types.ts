@@ -57,6 +57,7 @@ export type Database = {
           account_number_last4: string | null
           account_type: string | null
           available_balance: number | null
+          bank_name: string | null
           created_at: string | null
           currency: string | null
           current_balance: number | null
@@ -66,6 +67,7 @@ export type Database = {
           is_active: boolean | null
           last_synced_at: string | null
           notes: string | null
+          plaid_access_token: string | null
           plaid_account_id: string | null
           plaid_item_id: string | null
           updated_at: string | null
@@ -77,6 +79,7 @@ export type Database = {
           account_number_last4?: string | null
           account_type?: string | null
           available_balance?: number | null
+          bank_name?: string | null
           created_at?: string | null
           currency?: string | null
           current_balance?: number | null
@@ -86,6 +89,7 @@ export type Database = {
           is_active?: boolean | null
           last_synced_at?: string | null
           notes?: string | null
+          plaid_access_token?: string | null
           plaid_account_id?: string | null
           plaid_item_id?: string | null
           updated_at?: string | null
@@ -97,6 +101,7 @@ export type Database = {
           account_number_last4?: string | null
           account_type?: string | null
           available_balance?: number | null
+          bank_name?: string | null
           created_at?: string | null
           currency?: string | null
           current_balance?: number | null
@@ -106,6 +111,7 @@ export type Database = {
           is_active?: boolean | null
           last_synced_at?: string | null
           notes?: string | null
+          plaid_access_token?: string | null
           plaid_account_id?: string | null
           plaid_item_id?: string | null
           updated_at?: string | null
@@ -269,6 +275,7 @@ export type Database = {
       }
       plaid_access_tokens: {
         Row: {
+          access_token: string | null
           access_token_encrypted: string
           created_at: string | null
           id: string
@@ -280,6 +287,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          access_token?: string | null
           access_token_encrypted: string
           created_at?: string | null
           id?: string
@@ -291,6 +299,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          access_token?: string | null
           access_token_encrypted?: string
           created_at?: string | null
           id?: string
