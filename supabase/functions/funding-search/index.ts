@@ -150,10 +150,10 @@ serve(async (req) => {
     );
 
     // Generate AI-powered insights
-    const openAIKey = Deno.env.get('OPENAI_API_KEY');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     let aiInsights = null;
 
-    if (openAIKey && query) {
+    if (LOVABLE_API_KEY && query) {
       try {
         const aiPrompt = `
         Based on these funding search criteria:
@@ -167,14 +167,14 @@ serve(async (req) => {
         - action: What to do next
         `;
 
-        const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        const lovableResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${openAIKey}`,
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-4o-mini',
+            model: 'google/gemini-2.5-flash',
             messages: [
               {
                 role: 'system',
@@ -182,13 +182,12 @@ serve(async (req) => {
               },
               { role: 'user', content: aiPrompt }
             ],
-            response_format: { type: "json_object" },
             temperature: 0.7,
           }),
         });
 
-        if (openAIResponse.ok) {
-          const aiData = await openAIResponse.json();
+        if (lovableResponse.ok) {
+          const aiData = await lovableResponse.json();
           aiInsights = JSON.parse(aiData.choices[0].message.content);
         }
       } catch (aiError) {

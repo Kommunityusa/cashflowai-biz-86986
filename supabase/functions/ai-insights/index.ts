@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 import { getErrorMessage } from '../_shared/error-handler.ts';
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
@@ -21,15 +21,15 @@ serve(async (req) => {
   try {
     console.log('[AI Insights] Function called');
     
-    // Check if OpenAI API key is configured
-    if (!openAIApiKey) {
-      console.log('[AI Insights] OpenAI API key not configured');
+    // Check if Lovable AI API key is configured
+    if (!LOVABLE_API_KEY) {
+      console.log('[AI Insights] Lovable AI API key not configured');
       return new Response(
         JSON.stringify({
           insights: [
             {
               title: "AI Insights Not Configured",
-              description: "OpenAI API key is missing. Please add OPENAI_API_KEY to your Supabase Edge Function secrets to enable AI-powered financial insights."
+              description: "Lovable AI is not configured. Please contact support if this persists."
             },
             {
               title: "Track Your Spending",
@@ -167,16 +167,16 @@ serve(async (req) => {
     
     Respond with a JSON object containing an "insights" array with objects having "title" and "description" fields. Make insights specific and actionable based on the actual data.`;
 
-    console.log('[AI Insights] Calling OpenAI API with gpt-4o-mini model');
+    console.log('[AI Insights] Calling Lovable AI Gateway');
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'google/gemini-2.5-flash',
         messages: [
           {
             role: 'system',
@@ -192,13 +192,13 @@ serve(async (req) => {
       }),
     });
 
-    console.log('[AI Insights] OpenAI API response status:', response.status);
+    console.log('[AI Insights] Lovable AI response status:', response.status);
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('[AI Insights] OpenAI API error:', errorData);
+      console.error('[AI Insights] Lovable AI error:', errorData);
       
-      // Return default insights if OpenAI fails
+      // Return default insights if Lovable AI fails
       return new Response(
         JSON.stringify({
           insights: [
@@ -229,9 +229,9 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log('[AI Insights] OpenAI response received');
+    console.log('[AI Insights] Lovable AI response received');
     
-    // Parse the content - OpenAI might return markdown-wrapped JSON
+    // Parse the content - Lovable AI might return markdown-wrapped JSON
     let content;
     try {
       let responseContent = data.choices[0].message.content;
@@ -250,7 +250,7 @@ serve(async (req) => {
         throw new Error('Invalid response structure');
       }
     } catch (parseError) {
-      console.error('[AI Insights] Failed to parse OpenAI response:', parseError);
+      console.error('[AI Insights] Failed to parse Lovable AI response:', parseError);
       console.error('[AI Insights] Raw response:', data.choices[0].message.content);
       // Return default insights if parsing fails
       content = {
