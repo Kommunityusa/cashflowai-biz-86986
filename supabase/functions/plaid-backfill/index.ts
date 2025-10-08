@@ -144,11 +144,13 @@ serve(async (req) => {
           throw new Error('No access token available');
         }
         
-        // Fetch last 12 months of transactions
+        // Fetch last 12 FULL months of transactions (365 days to ensure complete coverage)
         const startDate = new Date();
-        startDate.setMonth(startDate.getMonth() - 12);
+        startDate.setDate(startDate.getDate() - 365); // 365 days = 12 full months
         const startDateStr = startDate.toISOString().split('T')[0];
         const endDateStr = new Date().toISOString().split('T')[0];
+        
+        console.log(`[PLAID-BACKFILL] Fetching transactions from ${startDateStr} to ${endDateStr} (12 months)`);
         
         let allTransactions = [];
         let offset = 0;

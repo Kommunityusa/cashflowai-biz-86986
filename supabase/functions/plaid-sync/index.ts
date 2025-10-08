@@ -95,9 +95,13 @@ serve(async (req) => {
             .eq('id', account.id);
         }
 
-        // Sync transactions from last 12 months
+        // Sync transactions from last 12 FULL months (365 days)
         const startDate = new Date();
-        startDate.setMonth(startDate.getMonth() - 12); // Get last 12 months of transactions
+        startDate.setDate(startDate.getDate() - 365); // 365 days = 12 full months
+        const startDateStr = startDate.toISOString().split('T')[0];
+        const endDateStr = new Date().toISOString().split('T')[0];
+        
+        console.log(`[PLAID-SYNC] Fetching transactions from ${startDateStr} to ${endDateStr} (12 months)`);
         
         const transactionsResponse = await fetch(`${PLAID_ENV}/transactions/get`, {
           method: 'POST',
@@ -108,8 +112,8 @@ serve(async (req) => {
             client_id: plaidClientId,
             secret: plaidSecret,
             access_token: account.plaid_access_token,
-            start_date: startDate.toISOString().split('T')[0],
-            end_date: new Date().toISOString().split('T')[0],
+            start_date: startDateStr,
+            end_date: endDateStr,
           }),
         });
 

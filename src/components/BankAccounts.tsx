@@ -253,7 +253,7 @@ export function BankAccounts() {
 
       toast({
         title: "Syncing Transactions",
-        description: "Importing transactions from the last 12 months. This may take a few minutes...",
+        description: "Importing transactions from the last 12 months (365 days). This may take a few minutes...",
       });
 
       console.log('[Sync] About to call plaid-backfill');
