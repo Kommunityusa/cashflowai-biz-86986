@@ -233,6 +233,7 @@ export function BankAccounts() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
+        console.error('Backfill: No session found');
         toast({
           title: "Error",
           description: "Please sign in to import historical data",
@@ -242,11 +243,14 @@ export function BankAccounts() {
         return;
       }
 
+      console.log('Backfill: Starting import for user', user?.id);
+      
       toast({
         title: "Starting Import",
         description: "Importing 12 months of historical transactions. This may take a few minutes...",
       });
 
+      console.log('Backfill: Calling edge function...');
       const { data, error } = await supabase.functions.invoke("plaid-backfill", {
         body: {},
         headers: {
@@ -255,21 +259,30 @@ export function BankAccounts() {
       });
 
       if (error) {
-        console.error('Backfill error:', error);
+        console.error('Backfill: Edge function error:', error);
         throw error;
       }
+
+      console.log('Backfill: Received response:', data);
 
       if (data?.summary) {
         toast({
           title: "Import Complete!",
           description: `Successfully imported ${data.summary.total_new_transactions} new transactions from ${data.summary.successful} account(s).`,
         });
-        fetchAccounts();
+        await fetchAccounts();
       } else if (data?.error) {
+        console.error('Backfill: Data error:', data.error);
         throw new Error(data.error);
+      } else {
+        console.log('Backfill: Unexpected response format');
+        toast({
+          title: "Import Status Unknown",
+          description: "The import may have completed but the response was unexpected. Please check your transactions.",
+        });
       }
     } catch (error) {
-      console.error("Error backfilling:", error);
+      console.error("Backfill: Full error:", error);
       toast({
         title: "Import Failed",
         description: error instanceof Error ? error.message : "Failed to import historical data. Please try again.",
@@ -415,7 +428,7 @@ export function BankAccounts() {
           <PlaidOnboarding onSuccess={fetchAccounts} />
         ) : (
           <div className="space-y-4">
-            <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4">
+            <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4 mb-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-muted-foreground">
                   Total Balance
@@ -425,7 +438,8 @@ export function BankAccounts() {
                 </span>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2">
+            
+            <div className="flex flex-col sm:flex-row gap-2 mb-6">
               <Button variant="outline" onClick={syncTransactions}>
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Sync All Accounts
@@ -440,7 +454,7 @@ export function BankAccounts() {
               </Button>
             </div>
             
-            <div className="space-y-3 mt-4">
+            <div className="space-y-3">
               {accounts.map((account) => (
                 <div
                   key={account.id}

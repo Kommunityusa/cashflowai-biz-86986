@@ -23,16 +23,23 @@ export function AIInsights() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
+        console.error('AI Insights: No session found');
         throw new Error("Not authenticated");
       }
 
+      console.log('AI Insights: Calling edge function...');
       const { data, error } = await supabase.functions.invoke('ai-insights', {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('AI Insights: Edge function error:', error);
+        throw error;
+      }
+
+      console.log('AI Insights: Received data:', data);
 
       // Log audit event
       await logAuditEvent({
@@ -41,13 +48,14 @@ export function AIInsights() {
       });
 
       // Handle the response properly
-      const insightsData = data.insights || data;
+      const insightsData = data?.insights || data;
+      console.log('AI Insights: Processed insights:', insightsData);
       setInsights(Array.isArray(insightsData) ? insightsData : []);
     } catch (error) {
-      console.error('Error fetching insights:', error);
+      console.error('AI Insights: Full error:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch AI insights",
+        description: error instanceof Error ? error.message : "Failed to fetch AI insights",
         variant: "destructive",
       });
     }

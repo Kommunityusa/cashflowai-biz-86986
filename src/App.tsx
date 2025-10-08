@@ -37,110 +37,90 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
   const [hasPlan, setHasPlan] = useState<boolean | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
+    
     const checkAuthAndPlan = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session) {
-        setAuthenticated(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
         
-        // Check if user is admin
-        const { data: roles } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id);
+        if (!mounted) return;
         
-        const hasAdminRole = roles?.some(r => r.role === 'admin');
-        setIsAdmin(hasAdminRole || false);
-        
-        // Check if user has selected a plan
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('subscription_plan')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
-        
-        const hasProfilePlan = profile?.subscription_plan ? true : false;
-        
-        // Check for active subscription/trial via Stripe with timeout
-        let hasActiveSubscription = false;
-        try {
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Subscription check timeout')), 3000)
-          );
+        if (session) {
+          setAuthenticated(true);
           
-          const checkPromise = supabase.functions.invoke('check-subscription', {
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
-          });
+          // Quick check for admin or profile plan (no external API calls)
+          const [rolesResult, profileResult] = await Promise.all([
+            supabase.from('user_roles').select('role').eq('user_id', session.user.id),
+            supabase.from('profiles').select('subscription_plan').eq('user_id', session.user.id).maybeSingle()
+          ]);
           
-          const { data: subData } = await Promise.race([checkPromise, timeoutPromise]) as any;
-          hasActiveSubscription = subData?.subscribed || false;
-        } catch (error) {
-          console.log('Subscription check skipped:', error);
-          // Silent fail - subscription check is optional, don't block dashboard
+          const hasAdminRole = rolesResult.data?.some(r => r.role === 'admin') || false;
+          const hasProfilePlan = !!profileResult.data?.subscription_plan;
+          
+          // Allow access immediately if admin or has profile plan
+          if (hasAdminRole || hasProfilePlan) {
+            setHasPlan(true);
+            setLoading(false);
+            return;
+          }
+          
+          // Otherwise check Stripe subscription (with quick timeout)
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 2000);
+            
+            const { data: subData } = await supabase.functions.invoke('check-subscription', {
+              headers: { Authorization: `Bearer ${session.access_token}` },
+            });
+            
+            clearTimeout(timeoutId);
+            setHasPlan(!!subData?.subscribed);
+          } catch (error) {
+            // On timeout or error, default to no plan
+            console.log('Subscription check failed, defaulting to no plan');
+            setHasPlan(false);
+          }
+        } else {
+          setAuthenticated(false);
         }
         
-        // Allow access if: admin OR has profile plan OR has active subscription/trial
-        setHasPlan(hasAdminRole || hasProfilePlan || hasActiveSubscription);
-      } else {
-        setAuthenticated(false);
+        setLoading(false);
+      } catch (error) {
+        console.error('Auth check error:', error);
+        if (mounted) {
+          setLoading(false);
+          setAuthenticated(false);
+        }
       }
-      
-      setLoading(false);
     };
 
     checkAuthAndPlan();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!mounted) return;
+      
       setAuthenticated(!!session);
       
       if (session) {
-        // Check if user is admin
-        const { data: roles } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id);
+        // Quick check without external calls
+        const [rolesResult, profileResult] = await Promise.all([
+          supabase.from('user_roles').select('role').eq('user_id', session.user.id),
+          supabase.from('profiles').select('subscription_plan').eq('user_id', session.user.id).maybeSingle()
+        ]);
         
-        const hasAdminRole = roles?.some(r => r.role === 'admin');
-        setIsAdmin(hasAdminRole || false);
+        const hasAdminRole = rolesResult.data?.some(r => r.role === 'admin') || false;
+        const hasProfilePlan = !!profileResult.data?.subscription_plan;
         
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('subscription_plan')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
-        
-        const hasProfilePlan = profile?.subscription_plan ? true : false;
-        
-        // Check for active subscription/trial with timeout
-        let hasActiveSubscription = false;
-        try {
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Subscription check timeout')), 3000)
-          );
-          
-          const checkPromise = supabase.functions.invoke('check-subscription', {
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
-          });
-          
-          const { data: subData } = await Promise.race([checkPromise, timeoutPromise]) as any;
-          hasActiveSubscription = subData?.subscribed || false;
-        } catch (error) {
-          console.log('Subscription check skipped:', error);
-          // Silent fail
-        }
-        
-        setHasPlan(hasAdminRole || hasProfilePlan || hasActiveSubscription);
+        setHasPlan(hasAdminRole || hasProfilePlan);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   if (loading) {

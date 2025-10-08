@@ -241,6 +241,9 @@ verify_jwt = true
 [functions.plaid-auto-sync]
 verify_jwt = false
 
+[functions.plaid-backfill]
+verify_jwt = true
+
 [functions.ai-funding-analysis]
 verify_jwt = true
 
