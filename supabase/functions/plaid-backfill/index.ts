@@ -7,21 +7,24 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  console.log('=== PLAID-BACKFILL REQUEST RECEIVED ===');
+  console.log('=== PLAID-BACKFILL START ===');
+  console.log('Method:', req.method);
+  console.log('Headers:', Object.fromEntries(req.headers.entries()));
   
   if (req.method === 'OPTIONS') {
+    console.log('CORS preflight - returning');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Get environment variables
+    console.log('\n[Step 1] Checking environment variables...');
     const plaidClientId = Deno.env.get('PLAID_CLIENT_ID');
     const plaidSecret = Deno.env.get('PLAID_SECRET');
     const plaidEnv = Deno.env.get('PLAID_ENV') || 'sandbox';
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    console.log('[BACKFILL] Environment check:', {
+    console.log('Environment check:', {
       hasPlaidClientId: !!plaidClientId,
       hasPlaidSecret: !!plaidSecret,
       plaidEnv,
@@ -30,14 +33,7 @@ serve(async (req) => {
     });
 
     if (!plaidClientId || !plaidSecret || !supabaseUrl || !supabaseServiceKey) {
-      console.error('[BACKFILL] Missing required environment variables');
-      return new Response(
-        JSON.stringify({ 
-          error: 'Configuration error',
-          details: 'Missing required environment variables'
-        }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error('Missing required environment variables');
     }
 
     const PLAID_API_URL = plaidEnv === 'production' 
@@ -46,116 +42,95 @@ serve(async (req) => {
       ? 'https://development.plaid.com'
       : 'https://sandbox.plaid.com';
 
-    console.log('[BACKFILL] Plaid API URL:', PLAID_API_URL);
+    console.log('Plaid URL:', PLAID_API_URL);
     
-    // Get authorization
+    console.log('\n[Step 2] Checking authorization...');
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.error('[BACKFILL] No authorization header');
-      return new Response(
-        JSON.stringify({ error: 'Authorization required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error('No authorization header');
     }
+    console.log('Auth header present');
     
-    // Initialize Supabase client
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    console.log('\n[Step 3] Initializing Supabase...');
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { persistSession: false }
+    });
+    console.log('Supabase client created');
 
-    // Authenticate user
+    console.log('\n[Step 4] Authenticating user...');
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     
-    if (userError || !user) {
-      console.error('[BACKFILL] Authentication failed:', userError?.message);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Authentication failed',
-          details: userError?.message
-        }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (userError) {
+      console.error('Auth error:', userError);
+      throw new Error(`Authentication failed: ${userError.message}`);
+    }
+    if (!user) {
+      throw new Error('No user found');
     }
 
-    console.log('[BACKFILL] Authenticated user:', user.id);
+    console.log('User authenticated:', user.id);
 
-    // Get Plaid-connected bank accounts
+    console.log('\n[Step 5] Fetching bank accounts...');
     const { data: accounts, error: accountsError } = await supabase
       .from('bank_accounts')
-      .select('*')
+      .select('id, account_name, plaid_item_id, plaid_access_token, plaid_access_token_encrypted')
       .eq('user_id', user.id)
       .eq('is_active', true)
       .not('plaid_item_id', 'is', null);
 
     if (accountsError) {
-      console.error('[BACKFILL] Database error:', accountsError.message);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Database error',
-          details: accountsError.message
-        }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.error('DB error:', accountsError);
+      throw new Error(`Database error: ${accountsError.message}`);
     }
 
-    console.log(`[BACKFILL] Found ${accounts?.length || 0} accounts`);
+    console.log(`Found ${accounts?.length || 0} accounts`);
     
     if (!accounts || accounts.length === 0) {
+      console.log('No accounts to sync');
       return new Response(
         JSON.stringify({ 
           success: true,
           message: 'No Plaid accounts found',
-          summary: {
-            total_accounts: 0,
-            successful: 0,
-            errors: 0,
-            total_new_transactions: 0
-          }
+          transactionsSynced: 0
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Calculate date range (365 days)
+    console.log('\n[Step 6] Setting up date range...');
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 365);
     const startDateStr = startDate.toISOString().split('T')[0];
     const endDateStr = endDate.toISOString().split('T')[0];
     
-    console.log(`[BACKFILL] Date range: ${startDateStr} to ${endDateStr}`);
+    console.log(`Date range: ${startDateStr} to ${endDateStr}`);
 
     let totalNew = 0;
     let totalSuccess = 0;
     let totalErrors = 0;
-    const results = [];
 
-    // Process each account
+    console.log('\n[Step 7] Processing accounts...');
     for (const account of accounts) {
       try {
-        console.log(`[BACKFILL] Processing ${account.account_name}`);
+        console.log(`\n--- Account: ${account.account_name} ---`);
         
         let accessToken = account.plaid_access_token;
         
-        // Handle encrypted tokens
-        if (!accessToken && account.plaid_access_token_encrypted) {
-          console.log('[BACKFILL] Decrypting token...');
-          const { data: decryptData, error: decryptError } = await supabase.functions.invoke('token-storage', {
-            body: { action: 'decrypt_access_token', data: { item_id: account.plaid_item_id } }
-          });
-          
-          if (decryptError || !decryptData?.access_token) {
-            throw new Error('Failed to decrypt token');
-          }
-          accessToken = decryptData.access_token;
-        }
-        
         if (!accessToken) {
-          throw new Error('No access token');
+          console.log('No plain access token, checking encrypted...');
+          if (!account.plaid_access_token_encrypted) {
+            throw new Error('No access token available');
+          }
+          // For now, skip encrypted tokens to avoid nested function calls
+          console.log('Encrypted token found, skipping for now');
+          totalErrors++;
+          continue;
         }
 
-        // Fetch transactions from Plaid
-        console.log('[BACKFILL] Calling Plaid API...');
-        const response = await fetch(`${PLAID_API_URL}/transactions/get`, {
+        console.log('Calling Plaid API...');
+        const plaidResp = await fetch(`${PLAID_API_URL}/transactions/get`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -168,32 +143,34 @@ serve(async (req) => {
           }),
         });
 
-        if (!response.ok) {
-          throw new Error(`Plaid API error: ${response.status}`);
+        if (!plaidResp.ok) {
+          throw new Error(`Plaid HTTP ${plaidResp.status}`);
         }
 
-        const data = await response.json();
+        const plaidData = await plaidResp.json();
         
-        if (data.error_code) {
-          throw new Error(`${data.error_code}: ${data.error_message}`);
+        if (plaidData.error_code) {
+          throw new Error(`${plaidData.error_code}: ${plaidData.error_message}`);
         }
 
-        console.log(`[BACKFILL] Received ${data.transactions?.length || 0} transactions`);
+        const txnCount = plaidData.transactions?.length || 0;
+        console.log(`Received ${txnCount} transactions`);
 
         let newCount = 0;
         
-        // Import transactions
-        for (const txn of data.transactions || []) {
-          const { data: existing } = await supabase
-            .from('transactions')
-            .select('id')
-            .eq('plaid_transaction_id', txn.transaction_id)
-            .maybeSingle();
+        for (const txn of plaidData.transactions || []) {
+          try {
+            const { data: existing } = await supabase
+              .from('transactions')
+              .select('id')
+              .eq('plaid_transaction_id', txn.transaction_id)
+              .maybeSingle();
 
-          if (!existing) {
+            if (existing) continue;
+
             const type = txn.amount > 0 ? 'expense' : 'income';
             
-            await supabase.from('transactions').insert({
+            const { error: insertError } = await supabase.from('transactions').insert({
               user_id: user.id,
               bank_account_id: account.id,
               plaid_transaction_id: txn.transaction_id,
@@ -205,12 +182,17 @@ serve(async (req) => {
               status: 'completed',
               notes: `Payment via ${txn.payment_channel || 'unknown'}`,
             });
-            
-            newCount++;
+
+            if (insertError) {
+              console.error(`Insert error for ${txn.transaction_id}:`, insertError.message);
+            } else {
+              newCount++;
+            }
+          } catch (txnError: any) {
+            console.error(`Transaction error:`, txnError.message);
           }
         }
 
-        // Update sync timestamp
         await supabase
           .from('bank_accounts')
           .update({ last_synced_at: new Date().toISOString() })
@@ -219,55 +201,45 @@ serve(async (req) => {
         totalNew += newCount;
         totalSuccess++;
         
-        results.push({
-          account_id: account.id,
-          account_name: account.account_name,
-          status: 'success',
-          new_transactions: newCount
-        });
+        console.log(`✓ ${account.account_name}: ${newCount} new transactions`);
         
-        console.log(`[BACKFILL] ${account.account_name}: ${newCount} new transactions`);
-        
-      } catch (error) {
-        console.error(`[BACKFILL] Error for ${account.account_name}:`, error);
+      } catch (accountError: any) {
+        console.error(`✗ ${account.account_name}: ${accountError.message}`);
         totalErrors++;
-        results.push({
-          account_id: account.id,
-          account_name: account.account_name,
-          status: 'error',
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
       }
     }
 
     const summary = {
-      total_accounts: accounts.length,
+      totalAccounts: accounts.length,
       successful: totalSuccess,
       errors: totalErrors,
-      total_new_transactions: totalNew
+      transactionsSynced: totalNew
     };
 
-    console.log('[BACKFILL] Complete:', summary);
+    console.log('\n=== COMPLETE ===');
+    console.log('Summary:', summary);
 
-    // Log to audit
     await supabase.from('audit_logs').insert({
       user_id: user.id,
-      action: 'plaid_sync_transactions',
+      action: 'plaid_backfill',
       entity_type: 'bank_accounts',
-      details: { summary, results }
+      details: summary
     });
 
     return new Response(
-      JSON.stringify({ success: true, summary, results }),
+      JSON.stringify({ success: true, ...summary }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
     
-  } catch (error) {
-    console.error('[BACKFILL] FATAL ERROR:', error);
+  } catch (error: any) {
+    console.error('\n=== FATAL ERROR ===');
+    console.error('Message:', error.message);
+    console.error('Stack:', error.stack);
+    
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
+        error: error.message || 'Sync failed',
+        details: error.stack
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
