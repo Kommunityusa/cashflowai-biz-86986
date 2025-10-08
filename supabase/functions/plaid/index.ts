@@ -789,7 +789,6 @@ serve(async (req) => {
           .from('bank_accounts')
           .update({
             is_active: false,
-            plaid_access_token: null,
             plaid_access_token_encrypted: null,
             plaid_item_id: null,
             notes: 'Account disconnected by user',

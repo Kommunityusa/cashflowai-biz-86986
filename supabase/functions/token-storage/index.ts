@@ -106,7 +106,6 @@ serve(async (req) => {
           .from('bank_accounts')
           .update({
             plaid_access_token_encrypted: JSON.stringify(encryptedData),
-            plaid_access_token: null, // Clear plaintext token
             encryption_enabled: true,
             updated_at: new Date().toISOString(),
           })
