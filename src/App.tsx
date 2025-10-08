@@ -17,9 +17,6 @@ import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Terms from "./pages/Terms";
 import Security from "./pages/Security";
-import SetupAccount from "./pages/SetupAccount";
-import Subscribe from "./pages/Subscribe";
-import TestCheckout from "./pages/TestCheckout";
 
 import PlaidOAuthCallback from "./pages/PlaidOAuthCallback";
 import Blog from "./pages/Blog";
@@ -29,39 +26,24 @@ import DoubleEntryBookkeeping from "./pages/blog/DoubleEntryBookkeeping";
 import TaxSeasonChecklist from "./pages/blog/TaxSeasonChecklist";
 import Demo from "./pages/Demo";
 import Investors from "./pages/Investors";
-import SelectPlan from "./pages/SelectPlan";
 
 const queryClient = new QueryClient();
 
-// Protected Route component with AI Chat Bubble and Subscription Check
+// Protected Route component with AI Chat Bubble
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
-  const [hasSubscription, setHasSubscription] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     
-    const checkAuthAndSubscription = async () => {
+    const checkAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!mounted) return;
         
-        if (session) {
-          setAuthenticated(true);
-          
-          // Check subscription status
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("subscription_plan")
-            .eq("user_id", session.user.id)
-            .single();
-          
-          setHasSubscription(profile?.subscription_plan === "professional");
-        } else {
-          setAuthenticated(false);
-        }
+        setAuthenticated(!!session);
         setLoading(false);
       } catch (error) {
         console.error('[ProtectedRoute] Auth check error:', error);
@@ -72,19 +54,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       }
     };
 
-    checkAuthAndSubscription();
+    checkAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
-      
       setAuthenticated(!!session);
-      if (session) {
-        // Recheck subscription when auth state changes
-        setTimeout(() => {
-          checkAuthAndSubscription();
-        }, 0);
-      }
     });
 
     return () => {
@@ -105,10 +80,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/auth" replace />;
   }
 
-  if (!hasSubscription) {
-    return <Navigate to="/subscribe" replace />;
-  }
-
   return (
     <>
       {children}
@@ -127,10 +98,6 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/setup-account" element={<SetupAccount />} />
-            <Route path="/subscribe" element={<Subscribe />} />
-            <Route path="/test-checkout" element={<TestCheckout />} />
-            <Route path="/select-plan" element={<SelectPlan />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />

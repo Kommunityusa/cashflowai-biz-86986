@@ -1,88 +1,14 @@
 import { Button } from "@/components/ui/button";
-import { Check, X, Star } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Mail } from "lucide-react";
 
 export function Pricing() {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { t } = useLanguage();
-  const [isLoading, setIsLoading] = useState(false);
-  const [showTrialModal, setShowTrialModal] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<string>("");
 
   const handleGetStarted = () => {
     navigate("/auth");
-  };
-
-  const handleUpgrade = async (planName: string) => {
-    setSelectedPlan(planName);
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    // If already logged in, use their email
-    if (session?.user?.email) {
-      await processCheckout(session.user.email, planName);
-      return;
-    }
-    
-    // If not logged in, show email modal for guest checkout
-    setShowTrialModal(true);
-  };
-
-  const processCheckout = async (email: string, planName: string) => {
-    setIsLoading(true);
-    setShowTrialModal(false);
-
-    try {
-      console.log("[PRICING] Starting checkout for email:", email);
-      
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { email },
-      });
-
-      console.log("[PRICING] Function response:", { data, error });
-
-      if (error) {
-        console.error("[PRICING] Function error:", error);
-        throw error;
-      }
-      
-      if (!data?.url) {
-        console.error("[PRICING] No URL in response:", data);
-        throw new Error("No checkout URL received");
-      }
-
-      console.log("[PRICING] Redirecting to Stripe checkout:", data.url);
-      
-      // Open Stripe checkout
-      window.location.href = data.url;
-      
-      toast({
-        title: "Redirecting to Checkout",
-        description: "Complete your payment to continue",
-      });
-    } catch (error: any) {
-      console.error("[PRICING] Checkout error:", error);
-      toast({
-        title: "Checkout Failed",
-        description: error.message || "Failed to start checkout. Please try again.",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-    }
   };
 
   const plans = [
@@ -103,9 +29,9 @@ export function Pricing() {
         { text: "Bank statement uploads", included: true },
         { text: "AI-powered insights", included: true },
       ],
-      cta: "Subscribe Now",
+      cta: "Get Started",
       variant: "gradient" as const,
-      onClick: () => handleUpgrade("professional"),
+      onClick: handleGetStarted,
     },
   ];
 
@@ -168,9 +94,8 @@ export function Pricing() {
                 size="lg" 
                 className="w-full"
                 onClick={plan.onClick}
-                disabled={isLoading && plan.name === "Pro"}
               >
-                {isLoading && plan.name === "Pro" ? "Loading..." : plan.cta}
+                {plan.cta}
               </Button>
             </div>
           ))}
@@ -182,44 +107,6 @@ export function Pricing() {
           </p>
         </div>
       </div>
-      
-      <Dialog open={showTrialModal} onOpenChange={setShowTrialModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Subscribe to {selectedPlan}</DialogTitle>
-            <DialogDescription>
-              Enter your email to proceed to checkout
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            const formData = new FormData(e.currentTarget);
-            const email = formData.get('email') as string;
-            processCheckout(email, selectedPlan);
-          }} className="space-y-4">
-            <div>
-              <Label htmlFor="email">Email Address</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="your@email.com"
-                  className="pl-10"
-                  required
-                />
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                After payment, you'll create your account password
-              </p>
-            </div>
-            <Button type="submit" variant="gradient" className="w-full" disabled={isLoading}>
-              {isLoading ? "Processing..." : "Continue to Payment"}
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
     </section>
   );
 }
