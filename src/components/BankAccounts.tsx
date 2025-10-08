@@ -214,7 +214,6 @@ export function BankAccounts() {
   const syncTransactions = async () => {
     try {
       console.log('[Sync] === SYNC BUTTON CLICKED ===');
-      alert('Sync function called!');
       
       if (isSyncing) {
         console.log('[Sync] Already syncing, returning');

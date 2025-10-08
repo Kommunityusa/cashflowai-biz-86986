@@ -53,7 +53,7 @@ serve(async (req) => {
       .select('*')
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .not('plaid_access_token', 'is', null);
+      .not('plaid_item_id', 'is', null);
 
     if (accountsError) {
       throw new Error(`Failed to fetch accounts: ${accountsError.message}`);
@@ -69,6 +69,32 @@ serve(async (req) => {
     for (const account of accounts || []) {
       try {
         console.log(`[PLAID-BACKFILL] Processing account ${account.id} (${account.bank_name})`);
+        
+        // Decrypt access token
+        let accessToken = account.plaid_access_token;
+        
+        if (!accessToken && account.plaid_access_token_encrypted) {
+          console.log(`[PLAID-BACKFILL] Decrypting access token for item ${account.plaid_item_id}`);
+          const decryptResponse = await supabase.functions.invoke('token-storage', {
+            body: {
+              action: 'decrypt_access_token',
+              data: { item_id: account.plaid_item_id }
+            }
+          });
+          
+          if (decryptResponse.error || !decryptResponse.data?.access_token) {
+            console.error(`[PLAID-BACKFILL] Failed to decrypt token for account ${account.id}`);
+            throw new Error('Failed to decrypt access token');
+          }
+          
+          accessToken = decryptResponse.data.access_token;
+          console.log(`[PLAID-BACKFILL] Successfully decrypted access token`);
+        }
+        
+        if (!accessToken) {
+          console.error(`[PLAID-BACKFILL] No access token available for account ${account.id}`);
+          throw new Error('No access token available');
+        }
         
         // Fetch last 12 months of transactions
         const startDate = new Date();
@@ -91,7 +117,7 @@ serve(async (req) => {
             body: JSON.stringify({
               client_id: plaidClientId,
               secret: plaidSecret,
-              access_token: account.plaid_access_token,
+              access_token: accessToken,
               start_date: startDateStr,
               end_date: endDateStr,
               options: {
