@@ -337,6 +337,8 @@ export type Database = {
           plaid_consent_details: Json | null
           plaid_consent_version: string | null
           state: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
           subscription_plan: string | null
           tax_id: string | null
           updated_at: string | null
@@ -361,6 +363,8 @@ export type Database = {
           plaid_consent_details?: Json | null
           plaid_consent_version?: string | null
           state?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           subscription_plan?: string | null
           tax_id?: string | null
           updated_at?: string | null
@@ -385,6 +389,8 @@ export type Database = {
           plaid_consent_details?: Json | null
           plaid_consent_version?: string | null
           state?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           subscription_plan?: string | null
           tax_id?: string | null
           updated_at?: string | null
