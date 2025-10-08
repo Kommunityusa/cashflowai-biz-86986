@@ -114,7 +114,6 @@ Transactions:
 ${transactionText}`
           }
         ],
-        temperature: 0.3,
       }),
     });
 
