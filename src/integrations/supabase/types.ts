@@ -457,6 +457,7 @@ export type Database = {
           created_at: string | null
           description: string
           id: string
+          is_internal_transfer: boolean | null
           is_recurring: boolean | null
           needs_review: boolean | null
           notes: string | null
@@ -479,6 +480,7 @@ export type Database = {
           created_at?: string | null
           description: string
           id?: string
+          is_internal_transfer?: boolean | null
           is_recurring?: boolean | null
           needs_review?: boolean | null
           notes?: string | null
@@ -501,6 +503,7 @@ export type Database = {
           created_at?: string | null
           description?: string
           id?: string
+          is_internal_transfer?: boolean | null
           is_recurring?: boolean | null
           needs_review?: boolean | null
           notes?: string | null

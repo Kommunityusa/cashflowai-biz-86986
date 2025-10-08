@@ -43,6 +43,7 @@ interface Transaction {
   category_id: string | null;
   tax_deductible: boolean;
   vendor_name: string | null;
+  is_internal_transfer?: boolean;
 }
 
 interface Category {
@@ -61,29 +62,32 @@ export const TransactionAnalytics = ({ transactions, categories }: AnalyticsProp
   const [selectedPeriod, setSelectedPeriod] = useState<'month' | 'quarter' | 'year'>('month');
   const [insights, setInsights] = useState<any[]>([]);
 
+  // Exclude internal transfers from financial calculations
+  const financialTransactions = transactions.filter(t => !t.is_internal_transfer);
+
   // Calculate key metrics
-  const totalIncome = transactions
+  const totalIncome = financialTransactions
     .filter(t => t.type === 'income')
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
-  const totalExpenses = transactions
+  const totalExpenses = financialTransactions
     .filter(t => t.type === 'expense')
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
   const netIncome = totalIncome - totalExpenses;
   const savingsRate = totalIncome > 0 ? ((netIncome / totalIncome) * 100).toFixed(1) : '0';
 
-  const taxDeductibleExpenses = transactions
+  const taxDeductibleExpenses = financialTransactions
     .filter(t => t.type === 'expense' && t.tax_deductible)
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
-  // Prepare trend data for last 6 months
+  // Prepare trend data for last 6 months (excluding internal transfers)
   const trendData = [];
   for (let i = 5; i >= 0; i--) {
     const monthStart = startOfMonth(subMonths(new Date(), i));
     const monthEnd = endOfMonth(subMonths(new Date(), i));
     
-    const monthTransactions = transactions.filter(t => {
+    const monthTransactions = financialTransactions.filter(t => {
       const transDate = new Date(t.transaction_date);
       return transDate >= monthStart && transDate <= monthEnd;
     });
@@ -104,9 +108,9 @@ export const TransactionAnalytics = ({ transactions, categories }: AnalyticsProp
     });
   }
 
-  // Category breakdown data
+  // Category breakdown data (excluding internal transfers)
   const categoryBreakdown = categories.map(cat => {
-    const catTransactions = transactions.filter(t => t.category_id === cat.id);
+    const catTransactions = financialTransactions.filter(t => t.category_id === cat.id);
     const total = catTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
     return {
       name: cat.name,
@@ -118,8 +122,8 @@ export const TransactionAnalytics = ({ transactions, categories }: AnalyticsProp
   }).filter(cat => cat.value > 0)
     .sort((a, b) => b.value - a.value);
 
-  // Top vendors analysis
-  const vendorSpending = transactions
+  // Top vendors analysis (excluding internal transfers)
+  const vendorSpending = financialTransactions
     .filter(t => t.type === 'expense' && t.vendor_name)
     .reduce((acc, t) => {
       const vendor = t.vendor_name!;
