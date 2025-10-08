@@ -50,13 +50,13 @@ serve(async (req) => {
 
     console.log('[Plaid Backfill] Starting historical transaction backfill for user:', user.id);
 
-    // Get all active bank accounts
+    // Get all active bank accounts with Plaid connections
     const { data: accounts, error: accountsError } = await supabase
       .from('bank_accounts')
       .select('id, account_name, bank_name, plaid_item_id, plaid_account_id')
       .eq('user_id', user.id)
-      .eq('is_active', true)
-      .not('plaid_item_id', 'is', null);
+      .not('plaid_item_id', 'is', null)
+      .not('plaid_account_id', 'is', null);
 
     if (accountsError || !accounts || accounts.length === 0) {
       return new Response(

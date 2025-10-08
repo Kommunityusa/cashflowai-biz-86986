@@ -304,9 +304,13 @@ export function TransactionSync({ onSyncComplete }: TransactionSyncProps) {
       if (error) throw error;
 
       if (data?.success) {
+        const dateRangeInfo = data.date_range 
+          ? ` from ${data.date_range.start} to ${data.date_range.end}`
+          : '';
+        
         toast({
-          title: "Historical Import Complete",
-          description: `Imported ${data.transactions_imported} transactions from ${data.date_range.start} to ${data.date_range.end}`,
+          title: data.transactions_imported > 0 ? "Historical Import Complete" : "No New Transactions",
+          description: data.message || `Imported ${data.transactions_imported} transactions${dateRangeInfo}`,
         });
 
         // Log audit event
@@ -325,6 +329,8 @@ export function TransactionSync({ onSyncComplete }: TransactionSyncProps) {
         if (onSyncComplete) {
           onSyncComplete();
         }
+      } else {
+        throw new Error(data?.message || "Import failed");
       }
     } catch (error: any) {
       console.error('Backfill error:', error);
