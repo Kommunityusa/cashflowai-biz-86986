@@ -28,6 +28,7 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(validatePassword(""));
   const [showCheckoutMessage, setShowCheckoutMessage] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
 
   useEffect(() => {
     // Check for checkout completion redirect
@@ -172,6 +173,32 @@ export default function Auth() {
     setLoading(false);
   };
 
+  const handlePasswordReset = async () => {
+    setError(null);
+    setMessage(null);
+    
+    const emailToUse = resetEmail || email;
+    if (!emailToUse) {
+      setError("Please enter your email address");
+      return;
+    }
+    
+    setLoading(true);
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(emailToUse, {
+      redirectTo: `${window.location.origin}/auth?reset=true`,
+    });
+    
+    if (error) {
+      setError(error.message);
+    } else {
+      setMessage("Password reset link sent! Check your email.");
+      setResetEmail("");
+    }
+    
+    setLoading(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -211,7 +238,18 @@ export default function Auth() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signin-password">{t.common.password}</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="signin-password">{t.common.password}</Label>
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="h-auto p-0 text-xs text-primary hover:text-primary/80"
+                        onClick={handlePasswordReset}
+                        disabled={loading}
+                      >
+                        Forgot password?
+                      </Button>
+                    </div>
                     <Input
                       id="signin-password"
                       type="password"
