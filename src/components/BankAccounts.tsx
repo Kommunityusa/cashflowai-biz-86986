@@ -61,6 +61,7 @@ export function BankAccounts() {
   });
 
   useEffect(() => {
+    console.log('[BankAccounts] Component mounted, user:', !!user);
     if (user) {
       fetchAccounts();
     }
@@ -203,6 +204,12 @@ export function BankAccounts() {
   };
 
   const [isSyncing, setIsSyncing] = useState(false);
+
+  useEffect(() => {
+    console.log('[BankAccounts] Accounts updated:', accounts.length);
+    console.log('[BankAccounts] Plaid accounts:', accounts.filter(a => a.plaid_account_id).length);
+    console.log('[BankAccounts] isSyncing:', isSyncing);
+  }, [accounts, isSyncing]);
 
   const syncTransactions = async () => {
     console.log('[Sync] Button clicked, starting sync process...');
