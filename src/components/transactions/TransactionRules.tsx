@@ -100,9 +100,9 @@ export function TransactionRules() {
       const { error } = await supabase
         .from('categorization_rules')
         .insert({
-          user_id: user.id,
+          user_id: user.id!,
           ...newRule
-        });
+        } as any);
 
       if (error) throw error;
 

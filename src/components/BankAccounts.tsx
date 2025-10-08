@@ -96,12 +96,11 @@ export function BankAccounts() {
     const encryptionKey = SecureStorage.getKey(user?.id || '');
     
     const { data: insertedAccount, error } = await supabase.from("bank_accounts").insert({
-      user_id: user?.id,
+      user_id: user?.id!,
       account_name: newAccount.account_name,
-      bank_name: newAccount.bank_name,
+      institution_name: newAccount.bank_name,
       account_type: newAccount.account_type,
-      account_number_last4: newAccount.account_number_last4,
-      routing_number: newAccount.routing_number,
+      account_mask: newAccount.account_number_last4,
       current_balance: newAccount.current_balance ? Number(newAccount.current_balance) : 0,
       is_active: true,
     }).select().single();

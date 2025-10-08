@@ -66,7 +66,7 @@ async function verifyWebhookSignature(
     
     return verifyResult.verification_status === "SUCCESS";
   } catch (error) {
-    logStep("Webhook verification error", { error: error.message });
+    logStep("Webhook verification error", { error: error instanceof Error ? error.message : String(error) });
     return false;
   }
 }
@@ -109,11 +109,19 @@ serve(async (req) => {
         logStep("Subscription activated", { subscriptionId, email });
 
         // Find user by email and update their subscription
+        const { data: { users } } = await supabaseClient.auth.admin.listUsers();
+        const authUser = users?.find(u => u.email === email);
+        
+        if (!authUser) {
+          logStep("User not found", { email });
+          break;
+        }
+
         const { data: user } = await supabaseClient
           .from("profiles")
           .select("user_id")
-          .eq("user_id", (await supabaseClient.auth.admin.getUserByEmail(email)).data.user?.id)
-          .single();
+          .eq("user_id", authUser.id)
+          .maybeSingle();
 
         if (user) {
           await supabaseClient
