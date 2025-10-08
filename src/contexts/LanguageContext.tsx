@@ -236,32 +236,30 @@ interface Translations {
   };
   
   // Features
-  features: {
-    oneBank: string;
-    threeBanks: string;
-    unlimitedBanks: string;
-    basicAI: string;
-    advancedAI: string;
-    aiCustomRules: string;
-    monthlyReports: string;
-    weeklyReports: string;
-    realtimeReports: string;
-    transactions250: string;
-    transactions1000: string;
-    unlimitedTransactions: string;
-    emailSupport: string;
-    prioritySupport: string;
-    phoneSupport: string;
-    basicExpense: string;
-    taxReports: string;
-    advancedTax: string;
-    customCategories: string;
-    customCategoriesRules: string;
-    vendorManagement: string;
-    fullVendor: string;
-    invoiceGen: string;
-    apiAccess: string;
-  };
+    features: {
+      oneBank: string;
+      threeBanks: string;
+      unlimitedBanks: string;
+      basicAI: string;
+      advancedAI: string;
+      aiCustomRules: string;
+      monthlyReports: string;
+      weeklyReports: string;
+      realtimeReports: string;
+      transactions250: string;
+      transactions1000: string;
+      unlimitedTransactions: string;
+      emailSupport: string;
+      prioritySupport: string;
+      basicExpense: string;
+      taxReports: string;
+      advancedTax: string;
+      customCategories: string;
+      customCategoriesRules: string;
+      budgetTracking: string;
+      recurringTracking: string;
+      multiUserAccess: string;
+    };
   
   // Bank Accounts & Plaid
   bankAccounts: {
@@ -577,16 +575,14 @@ const translations: Record<Language, Translations> = {
       unlimitedTransactions: "Unlimited transactions",
       emailSupport: "Email support",
       prioritySupport: "Priority email support",
-      phoneSupport: "Priority phone & chat support",
       basicExpense: "Basic expense tracking",
       taxReports: "Tax preparation reports",
       advancedTax: "Advanced tax reports",
       customCategories: "Custom categories",
       customCategoriesRules: "Custom categories & rules",
-      vendorManagement: "Basic vendor management",
-      fullVendor: "Full vendor management",
-      invoiceGen: "Invoice generation",
-      apiAccess: "API access (Coming Soon)"
+      budgetTracking: "Budget tracking",
+      recurringTracking: "Recurring transaction detection",
+      multiUserAccess: "Multi-user access",
     },
     bankAccounts: {
       title: "Bank Accounts",
@@ -895,16 +891,14 @@ const translations: Record<Language, Translations> = {
       unlimitedTransactions: "Transacciones ilimitadas",
       emailSupport: "Soporte por correo electrónico",
       prioritySupport: "Soporte prioritario por correo",
-      phoneSupport: "Soporte prioritario por teléfono y chat",
       basicExpense: "Seguimiento básico de gastos",
       taxReports: "Informes de preparación de impuestos",
       advancedTax: "Informes fiscales avanzados",
       customCategories: "Categorías personalizadas",
       customCategoriesRules: "Categorías y reglas personalizadas",
-      vendorManagement: "Gestión básica de proveedores",
-      fullVendor: "Gestión completa de proveedores",
-      invoiceGen: "Generación de facturas",
-      apiAccess: "Acceso API (Próximamente)"
+      budgetTracking: "Seguimiento de presupuestos",
+      recurringTracking: "Detección de transacciones recurrentes",
+      multiUserAccess: "Acceso multiusuario",
     },
     bankAccounts: {
       title: "Cuentas bancarias",

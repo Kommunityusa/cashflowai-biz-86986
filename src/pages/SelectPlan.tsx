@@ -59,7 +59,7 @@ const SelectPlan = () => {
         t.features.prioritySupport,
         t.features.taxReports,
         t.features.customCategories,
-        t.features.vendorManagement
+        t.features.budgetTracking
       ],
       popular: true,
       trialDays: 14
@@ -73,12 +73,11 @@ const SelectPlan = () => {
         t.features.aiCustomRules,
         t.features.realtimeReports,
         t.features.unlimitedTransactions,
-        t.features.phoneSupport,
+        t.features.prioritySupport,
         t.features.advancedTax,
         t.features.customCategoriesRules,
-        t.features.fullVendor,
-        t.features.invoiceGen,
-        t.features.apiAccess
+        t.features.recurringTracking,
+        t.features.multiUserAccess
       ],
       popular: false,
       trialDays: 30

@@ -189,9 +189,13 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ 
-        success: true, 
-        transactionsSynced: total,
-        accountsProcessed: accounts.length
+        success: true,
+        summary: {
+          total_new_transactions: total,
+          successful: accounts.length,
+          errors: 0,
+          total_accounts: accounts.length
+        }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
