@@ -455,12 +455,12 @@ serve(async (req) => {
             // Get the access token and cursor from the plaid_access_tokens table
             const { data: tokenData, error: tokenFetchError } = await supabase
               .from('plaid_access_tokens')
-              .select('access_token, cursor')
+              .select('access_token, access_token_encrypted, cursor')
               .eq('item_id', account.plaid_item_id)
               .eq('user_id', user.id)
               .single();
               
-            if (tokenFetchError || !tokenData?.access_token) {
+            if (tokenFetchError || (!tokenData?.access_token && !tokenData?.access_token_encrypted)) {
               console.error('[Plaid Function] No access token found for item:', account.plaid_item_id);
               syncErrors.push({
                 account_id: account.id,
@@ -470,7 +470,33 @@ serve(async (req) => {
               continue;
             }
             
-            const accessToken = tokenData.access_token;
+            // Use encrypted token if available, otherwise use plain token (for backward compatibility)
+            let accessToken = tokenData.access_token;
+            if (!accessToken && tokenData.access_token_encrypted) {
+              // Call token-storage function to decrypt the token
+              console.log('[Plaid Function] Decrypting access token for item:', account.plaid_item_id);
+              const { data: decryptedData, error: decryptError } = await supabase.functions.invoke('token-storage', {
+                body: {
+                  action: 'decrypt_access_token',
+                  data: {
+                    item_id: account.plaid_item_id,
+                  },
+                },
+              });
+              
+              if (decryptError || !decryptedData?.access_token) {
+                console.error('[Plaid Function] Failed to decrypt access token:', decryptError);
+                syncErrors.push({
+                  account_id: account.id,
+                  bank_name: account.bank_name,
+                  error: 'Failed to decrypt access token - please reconnect your bank account',
+                });
+                continue;
+              }
+              
+              accessToken = decryptedData.access_token;
+              console.log('[Plaid Function] Successfully decrypted access token');
+            }
             let cursor = tokenData.cursor;
             let hasMore = true;
             let accountSynced = 0;
