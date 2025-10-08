@@ -38,12 +38,14 @@ serve(async (req) => {
       .from('profiles')
       .select('stripe_customer_id')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (profile?.stripe_customer_id) {
       customerId = profile.stripe_customer_id;
+      console.log('[STRIPE-CHECKOUT] Using existing customer:', customerId);
     } else {
       // Create Stripe customer
+      console.log('[STRIPE-CHECKOUT] Creating new Stripe customer for:', user.email);
       const customerResponse = await fetch('https://api.stripe.com/v1/customers', {
         method: 'POST',
         headers: {
@@ -64,6 +66,7 @@ serve(async (req) => {
       }
       
       customerId = customer.id;
+      console.log('[STRIPE-CHECKOUT] Created customer:', customerId);
 
       // Save customer ID
       await supabaseClient
