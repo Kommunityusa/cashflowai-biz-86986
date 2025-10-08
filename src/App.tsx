@@ -103,14 +103,37 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const handleSubscribe = async () => {
     setIsSubscribing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-checkout");
+      console.log("[CHECKOUT] Starting checkout process...");
+      
+      // Get the current session to ensure we have auth
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log("[CHECKOUT] Session:", session ? "exists" : "missing");
+      
+      if (!session) {
+        throw new Error("You must be logged in to subscribe");
+      }
 
-      if (error) throw error;
-      if (!data?.url) throw new Error("No checkout URL received");
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
 
+      console.log("[CHECKOUT] Response:", { data, error });
+
+      if (error) {
+        console.error("[CHECKOUT] Error:", error);
+        throw error;
+      }
+      
+      if (!data?.url) {
+        throw new Error("No checkout URL received");
+      }
+
+      console.log("[CHECKOUT] Redirecting to:", data.url);
       window.location.href = data.url;
     } catch (error: any) {
-      console.error("Checkout error:", error);
+      console.error("[CHECKOUT] Checkout error:", error);
       toast({
         title: "Checkout Failed",
         description: error.message || "Failed to start checkout",
