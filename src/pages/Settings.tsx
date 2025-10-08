@@ -10,29 +10,19 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { PlaidLinkButton } from "@/components/PlaidLinkButton";
-import { PlaidSetupGuide } from "@/components/PlaidSetupGuide";
-import { TransactionSync } from "@/components/TransactionSync";
-import { PlaidConnectionTest } from "@/components/PlaidConnectionTest";
 import { 
   User, 
   Building,
   CreditCard,
   Bell,
   Shield,
-  Link2,
   Download,
   Lock,
-  Key,
-  RefreshCw,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { SubscriptionStatus } from "@/components/SubscriptionStatus";
-import { AuditLogs } from "@/components/AuditLogs";
 import { CategoryManager } from "@/components/CategoryManager";
-import { VendorManager } from "@/components/VendorManager";
-import { BudgetManager } from "@/components/BudgetManager";
 import { scheduleDataRetention, exportUserData } from "@/utils/dataRetention";
 import {
   Dialog,
@@ -71,10 +61,6 @@ const Settings = () => {
   
   // Dialog states
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
-  const [enable2FAOpen, setEnable2FAOpen] = useState(false);
-  const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const [stripeOpen, setStripeOpen] = useState(false);
-  const [openAIOpen, setOpenAIOpen] = useState(false);
   
   // Password change state
   const [passwordData, setPasswordData] = useState({
@@ -220,14 +206,6 @@ const Settings = () => {
     }
   };
 
-  const enable2FA = async () => {
-    toast({
-      title: "Coming Soon",
-      description: "Two-factor authentication will be available soon",
-    });
-    setEnable2FAOpen(false);
-  };
-
   const downloadData = async () => {
     setLoading(true);
     try {
@@ -282,23 +260,6 @@ const Settings = () => {
     }
   };
 
-  const handleStripeSetup = async () => {
-    toast({
-      title: "Stripe Integration",
-      description: "Redirecting to Stripe setup...",
-    });
-    // Here you would typically redirect to Stripe Connect or setup
-    setStripeOpen(false);
-  };
-
-  const handleOpenAISetup = async () => {
-    toast({
-      title: "OpenAI Integration",
-      description: "API key configuration saved",
-    });
-    setOpenAIOpen(false);
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -309,27 +270,15 @@ const Settings = () => {
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="categories">Categories</TabsTrigger>
-            <TabsTrigger value="vendors">Vendors</TabsTrigger>
-            <TabsTrigger value="budgets">Budgets</TabsTrigger>
-            <TabsTrigger value="security">Security</TabsTrigger>
             <TabsTrigger value="billing">Billing</TabsTrigger>
-            <TabsTrigger value="integrations">Integrations</TabsTrigger>
             <TabsTrigger value="preferences">Preferences</TabsTrigger>
           </TabsList>
 
           <TabsContent value="categories" className="space-y-6">
             <CategoryManager />
-          </TabsContent>
-
-          <TabsContent value="vendors" className="space-y-6">
-            <VendorManager />
-          </TabsContent>
-
-          <TabsContent value="budgets" className="space-y-6">
-            <BudgetManager />
           </TabsContent>
 
           <TabsContent value="profile" className="space-y-6">
@@ -446,52 +395,6 @@ const Settings = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="security" className="space-y-6">
-            <Card className="p-6">
-              <div className="flex items-center mb-6">
-                <div className="p-3 bg-gradient-primary rounded-lg mr-4">
-                  <Shield className="h-6 w-6 text-primary-foreground" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-foreground">Two-Factor Authentication</h2>
-                  <p className="text-sm text-muted-foreground">Add an extra layer of security to your account</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-foreground">2FA Status</p>
-                  <p className="text-sm text-muted-foreground">Currently disabled</p>
-                </div>
-                <Dialog open={enable2FAOpen} onOpenChange={setEnable2FAOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline">Enable 2FA</Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Enable Two-Factor Authentication</DialogTitle>
-                      <DialogDescription>
-                        Two-factor authentication adds an extra layer of security to your account.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <Alert>
-                      <AlertDescription>
-                        This feature is coming soon. We'll notify you when it's available.
-                      </AlertDescription>
-                    </Alert>
-                    <DialogFooter>
-                      <Button variant="outline" onClick={() => setEnable2FAOpen(false)}>
-                        Close
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </Card>
-            
-            <AuditLogs />
-          </TabsContent>
-
           <TabsContent value="billing" className="space-y-6">
             <Card className="p-6">
               <div className="flex items-center justify-between mb-6">
@@ -507,51 +410,6 @@ const Settings = () => {
               </div>
               
               <SubscriptionStatus />
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="integrations" className="space-y-6">
-            <Card className="p-6">
-              <div className="flex items-center mb-6">
-                <div className="p-3 bg-gradient-primary rounded-lg mr-4">
-                  <Link2 className="h-6 w-6 text-primary-foreground" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-foreground">Bank Connections</h2>
-                  <p className="text-sm text-muted-foreground">Connect your bank accounts for automatic sync</p>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                  <div>
-                    <p className="font-medium text-foreground">Connect with Plaid</p>
-                    <p className="text-sm text-muted-foreground">Securely link your bank accounts</p>
-                  </div>
-                  <PlaidLinkButton />
-                </div>
-              </div>
-              
-              <div className="mt-6 p-4 bg-muted rounded-lg">
-                <div className="flex items-center mb-3">
-                  <RefreshCw className="h-5 w-5 text-muted-foreground mr-2" />
-                  <h3 className="font-medium">Transaction Import Status</h3>
-                </div>
-                <TransactionSync onSyncComplete={() => {}} />
-              </div>
-            </Card>
-            
-            <PlaidSetupGuide />
-            
-            <Card className="p-6">
-              <div className="flex items-center mb-4">
-                <Shield className="h-5 w-5 text-muted-foreground mr-2" />
-                <h3 className="font-semibold">Platform Integrations</h3>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Stripe and OpenAI integrations are managed by the platform.
-                Contact support to enable these features.
-              </p>
             </Card>
           </TabsContent>
 
@@ -687,16 +545,7 @@ const Settings = () => {
                   </DialogContent>
                 </Dialog>
                 
-                <Button 
-                  variant="outline" 
-                  className="w-full sm:w-auto"
-                  onClick={enable2FA}
-                >
-                  <Key className="h-4 w-4 mr-2" />
-                  Enable Two-Factor Authentication
-                </Button>
-                
-                <Button 
+                <Button
                   variant="outline" 
                   className="w-full sm:w-auto"
                   onClick={downloadData}
