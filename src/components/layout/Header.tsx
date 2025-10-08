@@ -13,7 +13,6 @@ import {
   BarChart3,
   CreditCard,
   Shield,
-  DollarSign,
   X
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -51,7 +50,6 @@ export function Header() {
     { href: "/dashboard", label: t.nav.dashboard, icon: Home },
     { href: "/transactions", label: t.nav.transactions, icon: FileText },
     { href: "/reports", label: t.nav.reports, icon: BarChart3 },
-    { href: "/funding", label: t.nav.funding, icon: DollarSign },
     { href: "/settings", label: t.nav.settings, icon: Settings },
   ];
 

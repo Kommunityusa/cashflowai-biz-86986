@@ -27,7 +27,6 @@ import DoubleEntryBookkeeping from "./pages/blog/DoubleEntryBookkeeping";
 import TaxSeasonChecklist from "./pages/blog/TaxSeasonChecklist";
 import Demo from "./pages/Demo";
 import Investors from "./pages/Investors";
-import Funding from "./pages/Funding";
 import SelectPlan from "./pages/SelectPlan";
 
 const queryClient = new QueryClient();
@@ -135,11 +134,6 @@ const App = () => (
             <Route path="/settings" element={
               <ProtectedRoute>
                 <Settings />
-              </ProtectedRoute>
-            } />
-            <Route path="/funding" element={
-              <ProtectedRoute>
-                <Funding />
               </ProtectedRoute>
             } />
             <Route path="/privacy" element={<PrivacyPolicy />} />
