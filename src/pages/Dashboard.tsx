@@ -5,7 +5,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { BankAccounts } from "@/components/BankAccounts";
-import { SecurityMonitor } from "@/components/SecurityMonitor";
 
 import { RecurringTransactionDetector } from "@/components/RecurringTransactionDetector";
 import { TaxPreparation } from "@/components/TaxPreparation";
@@ -727,9 +726,6 @@ export default function Dashboard() {
 
             {/* Bank Accounts */}
             <BankAccounts />
-
-            {/* Security Monitor */}
-            <SecurityMonitor />
 
             {/* Recent Transactions */}
             <Card className="mb-8">
