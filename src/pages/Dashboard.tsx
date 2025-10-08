@@ -6,7 +6,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { BankAccounts } from "@/components/BankAccounts";
 
-import { RecurringTransactionDetector } from "@/components/RecurringTransactionDetector";
 import { TaxPreparation } from "@/components/TaxPreparation";
 import { TrialBanner } from "@/components/TrialBanner";
 import { NewsletterBanner } from "@/components/NewsletterBanner";
@@ -785,21 +784,10 @@ export default function Dashboard() {
         </Card>
         
 
-        {/* Financial Analysis Section */}
-        <Tabs defaultValue="recurring" className="mt-8">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="recurring">{t.ui.recurringTransactions}</TabsTrigger>
-            <TabsTrigger value="tax">{t.ui.taxPreparation}</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="recurring" className="mt-6">
-            <RecurringTransactionDetector />
-          </TabsContent>
-
-          <TabsContent value="tax" className="mt-6">
-            <TaxPreparation />
-          </TabsContent>
-        </Tabs>
+        {/* Tax Preparation Section */}
+        <div className="mt-8">
+          <TaxPreparation />
+        </div>
       </>
         )}
       </main>
