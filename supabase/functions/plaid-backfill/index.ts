@@ -7,22 +7,43 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('Function called:', req.method);
+  
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    console.log('Returning CORS headers');
+    return new Response(null, { headers: corsHeaders, status: 200 });
   }
 
+  // Immediate response test
+  if (req.method === 'GET') {
+    return new Response(
+      JSON.stringify({ status: 'alive', method: 'GET' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+    );
+  }
+
+  console.log('POST request started');
+
   try {
-    console.log('START: plaid-backfill');
-    
-    // Get credentials
     const PLAID_CLIENT_ID = Deno.env.get('PLAID_CLIENT_ID');
     const PLAID_SECRET = Deno.env.get('PLAID_SECRET');
     const PLAID_ENV = Deno.env.get('PLAID_ENV') || 'sandbox';
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-    const SUPABASE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    if (!PLAID_CLIENT_ID || !PLAID_SECRET) {
-      throw new Error('Missing Plaid credentials');
+    console.log('Env check:', {
+      hasPlaid: !!PLAID_CLIENT_ID,
+      hasSecret: !!PLAID_SECRET,
+      env: PLAID_ENV,
+      hasUrl: !!SUPABASE_URL,
+      hasKey: !!SUPABASE_KEY
+    });
+
+    if (!PLAID_CLIENT_ID || !PLAID_SECRET || !SUPABASE_URL || !SUPABASE_KEY) {
+      return new Response(
+        JSON.stringify({ error: 'Missing credentials' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
 
     const PLAID_API = PLAID_ENV === 'production' 
@@ -31,21 +52,32 @@ serve(async (req) => {
       ? 'https://development.plaid.com'
       : 'https://sandbox.plaid.com';
 
-    console.log('Plaid env:', PLAID_ENV);
-    
-    // Auth
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) throw new Error('No auth');
-    
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'No auth header' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      );
+    }
+
+    console.log('Creating Supabase client');
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
     
-    if (authError || !user) throw new Error('Auth failed');
+    console.log('Getting user');
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      console.error('Auth error:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Auth failed', details: authError?.message }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      );
+    }
+
     console.log('User:', user.id);
 
-    // Get accounts
+    console.log('Fetching accounts');
     const { data: accounts, error: accError } = await supabase
       .from('bank_accounts')
       .select('id, account_name, plaid_item_id, plaid_access_token')
@@ -54,31 +86,40 @@ serve(async (req) => {
       .not('plaid_item_id', 'is', null)
       .not('plaid_access_token', 'is', null);
 
-    if (accError) throw accError;
-    if (!accounts || accounts.length === 0) {
+    if (accError) {
+      console.error('DB error:', accError);
       return new Response(
-        JSON.stringify({ success: true, message: 'No accounts', transactionsSynced: 0 }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'DB error', details: accError.message }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
-    console.log('Accounts:', accounts.length);
+    console.log('Accounts:', accounts?.length || 0);
 
-    // Date range
+    if (!accounts || accounts.length === 0) {
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'No Plaid accounts found',
+          transactionsSynced: 0 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+
     const end = new Date();
     const start = new Date();
     start.setDate(start.getDate() - 365);
     const startDate = start.toISOString().split('T')[0];
     const endDate = end.toISOString().split('T')[0];
 
-    console.log('Range:', startDate, 'to', endDate);
+    console.log('Date range:', startDate, 'to', endDate);
 
     let total = 0;
-    let errors = 0;
 
     for (const acc of accounts) {
       try {
-        console.log('Processing:', acc.account_name);
+        console.log('Account:', acc.account_name);
         
         const plaidResp = await fetch(`${PLAID_API}/transactions/get`, {
           method: 'POST',
@@ -93,12 +134,19 @@ serve(async (req) => {
           }),
         });
 
-        if (!plaidResp.ok) throw new Error(`Plaid ${plaidResp.status}`);
+        if (!plaidResp.ok) {
+          console.error('Plaid error:', plaidResp.status);
+          continue;
+        }
+
         const plaidData = await plaidResp.json();
         
-        if (plaidData.error_code) throw new Error(plaidData.error_message);
+        if (plaidData.error_code) {
+          console.error('Plaid error:', plaidData.error_message);
+          continue;
+        }
 
-        console.log('Txns:', plaidData.transactions?.length || 0);
+        console.log('Transactions:', plaidData.transactions?.length || 0);
 
         let added = 0;
         for (const txn of plaidData.transactions || []) {
@@ -109,7 +157,7 @@ serve(async (req) => {
             .maybeSingle();
 
           if (!exists) {
-            await supabase.from('transactions').insert({
+            const { error: insertError } = await supabase.from('transactions').insert({
               user_id: user.id,
               bank_account_id: acc.id,
               plaid_transaction_id: txn.transaction_id,
@@ -120,7 +168,8 @@ serve(async (req) => {
               transaction_date: txn.date,
               status: 'completed',
             });
-            added++;
+
+            if (!insertError) added++;
           }
         }
 
@@ -130,29 +179,27 @@ serve(async (req) => {
           .eq('id', acc.id);
 
         total += added;
-        console.log('Added:', added, 'for', acc.account_name);
+        console.log('Added:', added);
       } catch (err: any) {
         console.error('Account error:', err.message);
-        errors++;
       }
     }
 
-    console.log('COMPLETE:', total, 'transactions');
+    console.log('Complete:', total);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         transactionsSynced: total,
-        accountsProcessed: accounts.length - errors,
-        errors 
+        accountsProcessed: accounts.length
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
   } catch (error: any) {
-    console.error('FATAL:', error.message);
+    console.error('FATAL:', error.message, error.stack);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: error.message, stack: error.stack }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
 });
