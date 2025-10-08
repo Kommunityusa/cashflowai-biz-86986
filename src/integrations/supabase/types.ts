@@ -63,7 +63,7 @@ export type Database = {
           current_balance: number | null
           encryption_enabled: boolean | null
           id: string
-          institution_name: string
+          institution_name: string | null
           is_active: boolean | null
           last_synced_at: string | null
           notes: string | null
@@ -86,7 +86,7 @@ export type Database = {
           current_balance?: number | null
           encryption_enabled?: boolean | null
           id?: string
-          institution_name: string
+          institution_name?: string | null
           is_active?: boolean | null
           last_synced_at?: string | null
           notes?: string | null
@@ -109,7 +109,7 @@ export type Database = {
           current_balance?: number | null
           encryption_enabled?: boolean | null
           id?: string
-          institution_name?: string
+          institution_name?: string | null
           is_active?: boolean | null
           last_synced_at?: string | null
           notes?: string | null
@@ -279,7 +279,7 @@ export type Database = {
       plaid_access_tokens: {
         Row: {
           access_token: string | null
-          access_token_encrypted: string
+          access_token_encrypted: string | null
           created_at: string | null
           id: string
           institution_id: string | null
@@ -291,7 +291,7 @@ export type Database = {
         }
         Insert: {
           access_token?: string | null
-          access_token_encrypted: string
+          access_token_encrypted?: string | null
           created_at?: string | null
           id?: string
           institution_id?: string | null
@@ -303,7 +303,7 @@ export type Database = {
         }
         Update: {
           access_token?: string | null
-          access_token_encrypted?: string
+          access_token_encrypted?: string | null
           created_at?: string | null
           id?: string
           institution_id?: string | null

@@ -303,6 +303,7 @@ serve(async (req) => {
             user_id: user.id,
             item_id: itemId,
             access_token: accessToken,
+            access_token_encrypted: null, // Will be encrypted later by token-storage function
           }, {
             onConflict: 'item_id'
           });
