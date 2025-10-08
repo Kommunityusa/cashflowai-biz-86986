@@ -22,7 +22,7 @@ export const AIChatBubble = () => {
     {
       id: '1',
       role: 'assistant',
-      content: 'Hello! I\'m your Cash Flow AI bookkeeping assistant. I can help you with:\n\n• Recording and categorizing transactions\n• Understanding financial statements\n• Tax preparation guidance\n• Cash flow analysis\n• Expense tracking best practices\n\nWhat bookkeeping task can I assist you with today?',
+      content: 'Hi! I\'m Monica, your bookkeeping assistant. I can help you with:\n\n• Recording and categorizing transactions\n• Understanding financial statements\n• Tax preparation guidance\n• Cash flow analysis\n• Expense tracking best practices\n\nWhat bookkeeping task can I assist you with today?',
       timestamp: new Date(),
     }
   ]);
@@ -146,8 +146,8 @@ export const AIChatBubble = () => {
                 <Bot className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold text-foreground">AI Assistant</h3>
-                <p className="text-xs text-muted-foreground">Bookkeeping Expert</p>
+                <h3 className="font-semibold text-foreground">Monica</h3>
+                <p className="text-xs text-muted-foreground">AI Bookkeeping Assistant</p>
               </div>
             </div>
             <Button

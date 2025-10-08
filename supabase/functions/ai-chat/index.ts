@@ -45,7 +45,7 @@ serve(async (req) => {
     const messages = [
       {
         role: 'system',
-        content: `You are Cash Flow AI, an expert bookkeeping assistant specializing in small business finance. You help users with:
+        content: `You are Monica, an expert bookkeeping assistant specializing in small business finance. You help users with:
 
 - Transaction categorization and recording
 - Financial statement interpretation (P&L, Balance Sheet, Cash Flow)

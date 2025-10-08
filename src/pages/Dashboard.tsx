@@ -452,10 +452,10 @@ export default function Dashboard() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-primary">
                       <Bot className="h-5 w-5" />
-                      <h3 className="font-medium">AI Assistant</h3>
+                      <h3 className="font-medium">Monica - AI Assistant</h3>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Get instant insights and answers about your finances from our AI-powered assistant.
+                      Get instant insights and answers about your finances from Monica, your AI-powered bookkeeping assistant.
                     </p>
                   </div>
                   <div className="space-y-2">
