@@ -309,6 +309,42 @@ export type Database = {
           },
         ]
       }
+      email_sequences: {
+        Row: {
+          created_at: string | null
+          email: string
+          followup_sent_at: string | null
+          id: string
+          monthly_sent_at: string | null
+          updated_at: string | null
+          user_id: string
+          user_name: string | null
+          welcome_sent_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          followup_sent_at?: string | null
+          id?: string
+          monthly_sent_at?: string | null
+          updated_at?: string | null
+          user_id: string
+          user_name?: string | null
+          welcome_sent_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          followup_sent_at?: string | null
+          id?: string
+          monthly_sent_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+          user_name?: string | null
+          welcome_sent_at?: string | null
+        }
+        Relationships: []
+      }
       email_subscribers: {
         Row: {
           email: string

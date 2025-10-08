@@ -103,6 +103,20 @@ export default function Auth() {
         setError(error.message);
       }
     } else {
+      // Trigger welcome email after successful signup
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        try {
+          await supabase.functions.invoke('send-welcome-email', {
+            body: { userId: user.id }
+          });
+          console.log('Welcome email triggered for new user');
+        } catch (emailError) {
+          console.error('Failed to trigger welcome email:', emailError);
+          // Don't show error to user - email will be sent async
+        }
+      }
+      
       setMessage("Check your email for the confirmation link to verify your account!");
       setEmail("");
       setPassword("");
