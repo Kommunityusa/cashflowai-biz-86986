@@ -76,19 +76,26 @@ const SelectPlan = () => {
         return;
       }
 
-      // Capitalize plan name for backend
-      const planName = planId.charAt(0).toUpperCase() + planId.slice(1);
-      
+      console.log('[SelectPlan] Starting plan selection', { planId, hasSession: !!session });
+
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         headers: {
           Authorization: `Bearer ${session.access_token}`
         }
       });
 
-      if (error) throw error;
+      console.log('[SelectPlan] Response:', { data, error });
+
+      if (error) {
+        console.error('[SelectPlan] Error:', error);
+        throw error;
+      }
       
       if (data?.url) {
+        console.log('[SelectPlan] Redirecting to checkout');
         window.location.href = data.url;
+      } else {
+        throw new Error("No checkout URL received");
       }
     } catch (error) {
       console.error('Error selecting plan:', error);

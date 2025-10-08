@@ -71,6 +71,8 @@ export function SubscriptionStatus() {
       setIsManaging(true);
       const { data: { session } } = await supabase.auth.getSession();
       
+      console.log('[SubscriptionStatus] Starting upgrade', { hasSession: !!session });
+      
       if (!session) {
         toast({
           title: "Authentication Required",
@@ -80,16 +82,30 @@ export function SubscriptionStatus() {
         return;
       }
 
+      console.log('[SubscriptionStatus] Invoking create-checkout');
+
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
       });
 
-      if (error) throw error;
+      console.log('[SubscriptionStatus] Response:', { data, error });
+
+      if (error) {
+        console.error('[SubscriptionStatus] Error:', error);
+        throw error;
+      }
       
       if (data?.url) {
+        console.log('[SubscriptionStatus] Opening checkout');
         window.open(data.url, "_blank");
+        toast({
+          title: "Redirecting to Checkout",
+          description: "Complete your payment in the new tab",
+        });
+      } else {
+        throw new Error("No checkout URL received");
       }
     } catch (error) {
       console.error("Checkout error:", error);

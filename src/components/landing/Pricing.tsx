@@ -40,63 +40,47 @@ export function Pricing() {
       
       const { data: { session } } = await supabase.auth.getSession();
       
-      // Capitalize plan name for backend
-      const capitalizedPlan = planName 
-        ? planName.charAt(0).toUpperCase() + planName.slice(1) 
-        : 'Professional';
+      console.log('[Pricing] Starting checkout process', { hasSession: !!session, email, planName });
       
-      // Prepare the request body with plan information
-      const requestBody = { 
-        email, 
-        plan: capitalizedPlan 
-      };
-      const headers: any = {};
-      
-      if (session) {
-        headers.Authorization = `Bearer ${session.access_token}`;
+      if (!session) {
+        toast({
+          title: "Authentication Required",
+          description: "Please sign in to subscribe",
+          variant: "destructive",
+        });
+        navigate("/auth");
+        return;
       }
 
+      console.log('[Pricing] Invoking create-checkout function');
+      
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        headers,
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
+      console.log('[Pricing] Function response', { data, error });
+
       if (error) {
+        console.error('[Pricing] Function error:', error);
         throw error;
       }
       
-      if (data?.hasSubscription) {
-        toast({
-          title: "Already Subscribed",
-          description: "You already have an active subscription",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (data?.hasTrial) {
-        toast({
-          title: "Trial Active",
-          description: "You already have an active trial",
-          variant: "destructive",
-        });
-        return;
-      }
-      
       if (data?.url) {
-        // Open in new tab for Stripe checkout
+        console.log('[Pricing] Opening checkout URL');
         window.open(data.url, '_blank');
         
-        if (!session) {
-          toast({
-            title: "Complete Your Signup",
-            description: "After completing checkout, return here to create your account with the same email.",
-          });
-        }
+        toast({
+          title: "Redirecting to Checkout",
+          description: "Complete your payment in the new tab",
+        });
       } else {
+        console.error('[Pricing] No URL in response:', data);
         throw new Error("No checkout URL received");
       }
     } catch (error: any) {
-      console.error("Checkout error:", error);
+      console.error("[Pricing] Checkout error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to start checkout process. Please try again.",
