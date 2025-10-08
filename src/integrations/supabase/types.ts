@@ -281,6 +281,7 @@ export type Database = {
           access_token: string | null
           access_token_encrypted: string | null
           created_at: string | null
+          cursor: string | null
           id: string
           institution_id: string | null
           institution_name: string | null
@@ -293,6 +294,7 @@ export type Database = {
           access_token?: string | null
           access_token_encrypted?: string | null
           created_at?: string | null
+          cursor?: string | null
           id?: string
           institution_id?: string | null
           institution_name?: string | null
@@ -305,6 +307,7 @@ export type Database = {
           access_token?: string | null
           access_token_encrypted?: string | null
           created_at?: string | null
+          cursor?: string | null
           id?: string
           institution_id?: string | null
           institution_name?: string | null
