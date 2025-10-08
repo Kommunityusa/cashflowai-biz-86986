@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { getErrorMessage } from '../_shared/error-handler.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,32 +21,48 @@ serve(async (req) => {
   try {
     console.log("[CREATE-CHECKOUT] Function started");
 
-    // Parse request body for email (guest checkout)
+    // Parse request body for email
     let requestEmail: string | undefined;
     try {
       const body = await req.json();
       requestEmail = body?.email;
-      console.log("[CREATE-CHECKOUT] Request body parsed", { email: requestEmail });
+      console.log("[CREATE-CHECKOUT] Request body:", { email: requestEmail });
     } catch (e) {
-      console.log("[CREATE-CHECKOUT] No body or invalid JSON");
+      console.log("[CREATE-CHECKOUT] Failed to parse body:", e);
     }
 
-    // Try to retrieve authenticated user (optional for guest checkout)
+    // Only try to get user if there's a proper JWT (not just anon key)
     const authHeader = req.headers.get("Authorization");
     let userEmail: string | undefined;
     
-    if (authHeader) {
-      const token = authHeader.replace("Bearer ", "");
-      const { data } = await supabaseClient.auth.getUser(token);
-      userEmail = data.user?.email;
-      console.log("[CREATE-CHECKOUT] Authenticated user:", userEmail);
-    } else {
-      console.log("[CREATE-CHECKOUT] Guest checkout (no auth)");
+    // Check if we have a real user token (not just anon key)
+    if (authHeader && authHeader.startsWith("Bearer ey") && !authHeader.includes("anon")) {
+      try {
+        const token = authHeader.replace("Bearer ", "");
+        const { data, error } = await supabaseClient.auth.getUser(token);
+        if (!error && data.user?.email) {
+          userEmail = data.user.email;
+          console.log("[CREATE-CHECKOUT] Authenticated user:", userEmail);
+        }
+      } catch (e) {
+        console.log("[CREATE-CHECKOUT] Auth check failed:", e);
+      }
     }
 
     // Use email from authenticated user first, then request body
     const email = userEmail || requestEmail;
-    console.log("[CREATE-CHECKOUT] Using email:", email);
+    console.log("[CREATE-CHECKOUT] Final email to use:", email);
+
+    if (!email) {
+      console.log("[CREATE-CHECKOUT] No email provided");
+      return new Response(
+        JSON.stringify({ error: "Email is required" }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        }
+      );
+    }
 
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
@@ -93,8 +108,9 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("[CREATE-CHECKOUT] Error:", error);
+    const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
     return new Response(
-      JSON.stringify({ error: getErrorMessage(error) }),
+      JSON.stringify({ error: errorMessage }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,
