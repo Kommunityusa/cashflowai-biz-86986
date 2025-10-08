@@ -191,31 +191,25 @@ export function SubscriptionStatus() {
                 You have full access to all Pro features including unlimited transactions, 
                 AI insights, and priority support.
               </p>
-              <div className="flex gap-3">
-                <Button 
-                  variant="outline" 
-                  onClick={handleManageSubscription}
-                  disabled={isManaging}
-                  className="flex-1"
-                >
-                  {isManaging ? "Loading..." : "Manage Subscription"}
-                </Button>
-              </div>
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  Subscription management is available in the deployed version of the app. 
+                  Your Pro plan is active and all features are available.
+                </AlertDescription>
+              </Alert>
             </>
           ) : (
             <>
               <p className="text-sm text-muted-foreground">
                 Upgrade to Pro for unlimited transactions, advanced AI features, and more.
               </p>
-              <Button 
-                variant="gradient" 
-                onClick={handleUpgrade}
-                disabled={isManaging}
-                className="w-full"
-              >
-                {isManaging ? "Loading..." : "Upgrade to Pro"}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  Stripe checkout will be available once the app is deployed with proper Stripe configuration.
+                </AlertDescription>
+              </Alert>
             </>
           )}
         </div>
@@ -258,15 +252,6 @@ export function SubscriptionStatus() {
         </div>
       </Card>
 
-      {isPro && (
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertDescription>
-            You can pause, resume, or cancel your subscription at any time through the 
-            subscription management portal. Changes will take effect at the end of your current billing period.
-          </AlertDescription>
-        </Alert>
-      )}
     </div>
   );
 }
