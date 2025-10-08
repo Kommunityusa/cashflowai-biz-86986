@@ -289,15 +289,35 @@ export function BankAccounts() {
           }
 
           if (backfillData?.summary) {
+            const { total_new_transactions, successful, errors, total_accounts } = backfillData.summary;
+            
+            let description = `Successfully synced ${total_new_transactions} transactions from ${successful} account(s).`;
+            if (errors > 0) {
+              description += ` ${errors} account(s) had errors.`;
+            }
+            
             toast({
               title: "Sync Complete!",
-              description: `Successfully synced ${backfillData.summary.total_new_transactions} transactions from ${backfillData.summary.successful} account(s).`,
+              description,
+              variant: errors > 0 ? "default" : "default",
             });
+            
+            // Log results for debugging
+            if (backfillData.results && backfillData.results.length > 0) {
+              console.log('[Sync] Detailed results:', backfillData.results);
+              const errorResults = backfillData.results.filter((r: any) => r.status === 'error');
+              if (errorResults.length > 0) {
+                console.error('[Sync] Accounts with errors:', errorResults);
+              }
+            }
+            
             await fetchAccounts();
             return; // Success - exit the retry loop
           } else if (backfillData?.error) {
-            throw new Error(backfillData.error);
+            console.error('[Sync] Backfill returned error:', backfillData.error, backfillData.details);
+            throw new Error(backfillData.details || backfillData.error);
           } else {
+            console.warn('[Sync] Unexpected response format:', backfillData);
             toast({
               title: "Sync Status Unknown",
               description: "The sync may have completed but the response was unexpected. Please check your transactions.",
@@ -322,9 +342,26 @@ export function BankAccounts() {
       }
     } catch (error) {
       console.error("[Sync] Error:", error);
+      
+      let errorMessage = "Failed to sync transactions. Please try again.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Provide more helpful messages for common errors
+        if (error.message.includes('Failed to fetch')) {
+          errorMessage = "Network connection issue. Please check your internet connection and try again.";
+        } else if (error.message.includes('Invalid user authentication')) {
+          errorMessage = "Authentication expired. Please refresh the page and try again.";
+        } else if (error.message.includes('ITEM_LOGIN_REQUIRED')) {
+          errorMessage = "Bank connection requires re-authentication. Please reconnect your bank account.";
+        } else if (error.message.includes('PLAID')) {
+          errorMessage = "Bank connection issue. Please try reconnecting your bank account.";
+        }
+      }
+      
       toast({
         title: "Sync Failed",
-        description: error instanceof Error ? error.message : "Failed to sync transactions. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

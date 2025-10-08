@@ -25,7 +25,10 @@ export function TrialBanner() {
   const checkSubscription = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      if (!session) {
+        setLoading(false);
+        return;
+      }
 
       const { data, error } = await supabase.functions.invoke('check-subscription', {
         headers: {
@@ -33,10 +36,31 @@ export function TrialBanner() {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error checking subscription:', error);
+        // Default to free plan on error to prevent blocking UI
+        setSubscriptionStatus({
+          subscribed: false,
+          plan: 'free',
+          inTrial: false,
+          trialDaysRemaining: null,
+          subscription_end: null
+        });
+        setLoading(false);
+        return;
+      }
+
       setSubscriptionStatus(data);
     } catch (error) {
       console.error('Error checking subscription:', error);
+      // Default to free plan on error to prevent blocking UI
+      setSubscriptionStatus({
+        subscribed: false,
+        plan: 'free',
+        inTrial: false,
+        trialDaysRemaining: null,
+        subscription_end: null
+      });
     } finally {
       setLoading(false);
     }

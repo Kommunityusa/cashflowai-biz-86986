@@ -27,10 +27,26 @@ serve(async (req) => {
     console.log('[PLAID-BACKFILL] Starting historical data backfill');
     console.log('[PLAID-BACKFILL] Using Plaid environment:', PLAID_ENV);
     
+    // Validate required environment variables
+    if (!plaidClientId || !plaidSecret) {
+      console.error('[PLAID-BACKFILL] Missing Plaid credentials');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Plaid credentials not configured',
+          details: 'PLAID_CLIENT_ID or PLAID_SECRET is missing'
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     // Get authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      throw new Error('No authorization header');
+      console.error('[PLAID-BACKFILL] No authorization header provided');
+      return new Response(
+        JSON.stringify({ error: 'Authorization required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
@@ -42,7 +58,14 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     
     if (userError || !user) {
-      throw new Error('Invalid user authentication');
+      console.error('[PLAID-BACKFILL] User authentication failed:', userError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid user authentication',
+          details: userError?.message || 'User not found'
+        }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     console.log(`[PLAID-BACKFILL] User ${user.id} starting backfill`);
@@ -56,10 +79,35 @@ serve(async (req) => {
       .not('plaid_item_id', 'is', null);
 
     if (accountsError) {
-      throw new Error(`Failed to fetch accounts: ${accountsError.message}`);
+      console.error('[PLAID-BACKFILL] Failed to fetch accounts:', accountsError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Failed to fetch bank accounts',
+          details: accountsError.message
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     console.log(`[PLAID-BACKFILL] Found ${accounts?.length || 0} accounts to backfill`);
+    
+    if (!accounts || accounts.length === 0) {
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          message: 'No active bank accounts found to backfill',
+          summary: {
+            total_accounts: 0,
+            successful: 0,
+            errors: 0,
+            total_new_transactions: 0,
+            user_id: user.id
+          },
+          results: []
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
 
     let totalSynced = 0;
     let totalTransactions = 0;
@@ -83,8 +131,8 @@ serve(async (req) => {
           });
           
           if (decryptResponse.error || !decryptResponse.data?.access_token) {
-            console.error(`[PLAID-BACKFILL] Failed to decrypt token for account ${account.id}`);
-            throw new Error('Failed to decrypt access token');
+            console.error(`[PLAID-BACKFILL] Failed to decrypt token for account ${account.id}:`, decryptResponse.error);
+            throw new Error(`Failed to decrypt access token: ${decryptResponse.error?.message || 'Unknown error'}`);
           }
           
           accessToken = decryptResponse.data.access_token;
@@ -128,16 +176,36 @@ serve(async (req) => {
             }),
           });
 
-          const transactionsData = await transactionsResponse.json();
-          
-          if (transactionsData.error_code) {
-            console.error(`[PLAID-BACKFILL] Error for account ${account.id}:`, transactionsData.error_message);
+          if (!transactionsResponse.ok) {
+            const errorText = await transactionsResponse.text();
+            console.error(`[PLAID-BACKFILL] HTTP error for account ${account.id}:`, transactionsResponse.status, errorText);
             totalErrors++;
             results.push({
               account_id: account.id,
               bank_name: account.bank_name,
               status: 'error',
-              error: transactionsData.error_message
+              error: `HTTP ${transactionsResponse.status}: ${errorText}`
+            });
+            break;
+          }
+
+          const transactionsData = await transactionsResponse.json();
+          
+          if (transactionsData.error_code) {
+            console.error(`[PLAID-BACKFILL] Plaid error for account ${account.id}:`, {
+              error_code: transactionsData.error_code,
+              error_message: transactionsData.error_message,
+              error_type: transactionsData.error_type,
+              request_id: transactionsData.request_id
+            });
+            totalErrors++;
+            results.push({
+              account_id: account.id,
+              bank_name: account.bank_name,
+              status: 'error',
+              error: `${transactionsData.error_code}: ${transactionsData.error_message}`,
+              error_code: transactionsData.error_code,
+              request_id: transactionsData.request_id
             });
             break;
           }
@@ -229,7 +297,8 @@ serve(async (req) => {
           account_id: account.id,
           bank_name: account.bank_name,
           status: 'error',
-          error: error.message
+          error: error instanceof Error ? error.message : 'Unknown error',
+          error_stack: error instanceof Error ? error.stack : undefined
         });
       }
     }
@@ -260,7 +329,11 @@ serve(async (req) => {
   } catch (error) {
     console.error('[PLAID-BACKFILL] Fatal error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        details: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString()
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
