@@ -95,9 +95,9 @@ serve(async (req) => {
             .eq('id', account.id);
         }
 
-        // Sync recent transactions
+        // Sync transactions from last 12 months
         const startDate = new Date();
-        startDate.setDate(startDate.getDate() - 7); // Get last 7 days of transactions
+        startDate.setMonth(startDate.getMonth() - 12); // Get last 12 months of transactions
         
         const transactionsResponse = await fetch(`${PLAID_ENV}/transactions/get`, {
           method: 'POST',
