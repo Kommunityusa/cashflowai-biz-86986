@@ -37,7 +37,7 @@ export function Hero() {
                   </Button>
                 </Link>
               ) : (
-                <Link to="/auth">
+                <Link to="/checkout">
                   <Button size="xl" variant="gradient" className="group">
                     {t.hero.cta}
                     <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />

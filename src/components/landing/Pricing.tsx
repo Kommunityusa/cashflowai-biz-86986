@@ -9,14 +9,7 @@ export function Pricing() {
   const { t } = useLanguage();
 
   const handleSubscribe = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      navigate("/auth");
-      return;
-    }
-
-    // Redirect to checkout page
+    // Always navigate to checkout - signup will happen there
     navigate("/checkout");
   };
 
