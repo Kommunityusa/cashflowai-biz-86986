@@ -106,6 +106,7 @@ serve(async (req) => {
         let offset = 0;
         const count = 500; // Maximum allowed by Plaid per request
         let totalAvailable = 0;
+        let totalFetched = 0;
         
         // Paginate through all transactions
         do {
@@ -144,6 +145,7 @@ serve(async (req) => {
           // Accumulate transactions
           if (transactionsData.transactions) {
             allTransactions = allTransactions.concat(transactionsData.transactions);
+            totalFetched += transactionsData.transactions.length;
           }
           
           totalAvailable = transactionsData.total_transactions || 0;
@@ -215,7 +217,7 @@ serve(async (req) => {
           bank_name: account.bank_name,
           status: 'success',
           new_transactions: newTransactions,
-          total_fetched: transactionsData.transactions?.length || 0
+          total_fetched: totalFetched
         });
         
         console.log(`[PLAID-BACKFILL] Account ${account.id}: ${newTransactions} new transactions imported`);
