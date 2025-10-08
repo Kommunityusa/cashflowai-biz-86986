@@ -35,6 +35,7 @@ export function SubscriptionStatus() {
         return;
       }
 
+      // Try edge function first
       const { data, error } = await supabase.functions.invoke("check-subscription", {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -43,6 +44,20 @@ export function SubscriptionStatus() {
 
       if (!error && data) {
         setSubscription(data);
+      } else {
+        // Fallback: check profiles table directly
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("subscription_plan")
+          .eq("user_id", session.user.id)
+          .single();
+
+        if (profile?.subscription_plan) {
+          setSubscription({
+            subscribed: profile.subscription_plan === "professional",
+            plan: profile.subscription_plan === "professional" ? "pro" : "free",
+          });
+        }
       }
     } catch (error) {
       console.error("Error checking subscription:", error);
@@ -134,7 +149,8 @@ export function SubscriptionStatus() {
     );
   }
 
-  const isPro = subscription?.plan === "pro";
+  // Check both the subscription response and profile data
+  const isPro = subscription?.plan === "pro" || subscription?.subscribed === true;
 
   return (
     <div className="space-y-6">
