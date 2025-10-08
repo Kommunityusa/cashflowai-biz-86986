@@ -36,7 +36,11 @@ export function SubscriptionStatus() {
       }
 
       // Try edge function first
-      const { data, error } = await supabase.functions.invoke("check-paypal-subscription");
+      const { data, error } = await supabase.functions.invoke("check-paypal-subscription", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
 
       if (!error && data) {
         setSubscription(data);
@@ -80,7 +84,11 @@ export function SubscriptionStatus() {
 
       console.log('[SubscriptionStatus] Invoking create-paypal-checkout');
 
-      const { data, error } = await supabase.functions.invoke("create-paypal-checkout");
+      const { data, error } = await supabase.functions.invoke("create-paypal-checkout", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
 
       console.log('[SubscriptionStatus] Response:', { data, error });
 
@@ -125,7 +133,11 @@ export function SubscriptionStatus() {
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke("cancel-paypal-subscription");
+      const { data, error } = await supabase.functions.invoke("cancel-paypal-subscription", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
 
       if (error) throw error;
       
