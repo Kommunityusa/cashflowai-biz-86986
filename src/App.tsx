@@ -19,6 +19,7 @@ import Terms from "./pages/Terms";
 import Security from "./pages/Security";
 import SetupAccount from "./pages/SetupAccount";
 import Subscribe from "./pages/Subscribe";
+import TestCheckout from "./pages/TestCheckout";
 
 import PlaidOAuthCallback from "./pages/PlaidOAuthCallback";
 import Blog from "./pages/Blog";
@@ -128,6 +129,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/setup-account" element={<SetupAccount />} />
             <Route path="/subscribe" element={<Subscribe />} />
+            <Route path="/test-checkout" element={<TestCheckout />} />
             <Route path="/select-plan" element={<SelectPlan />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>
