@@ -56,6 +56,7 @@ import { TransactionRules } from "@/components/transactions/TransactionRules";
 import { BulkOperations } from "@/components/transactions/BulkOperations";
 import { AdvancedSearch, SearchFilters } from "@/components/transactions/AdvancedSearch";
 import { TransactionReconciliation } from "@/components/transactions/TransactionReconciliation";
+import { TransactionSync } from "@/components/TransactionSync";
 import {
   Plus,
   Download,
@@ -568,6 +569,9 @@ export default function Transactions() {
             Manage your income and expenses with AI-powered categorization
           </p>
         </div>
+
+        {/* Bank Connection & Transaction Sync */}
+        <TransactionSync onSyncComplete={fetchTransactions} />
 
         {/* Transaction Statistics */}
         <TransactionStats transactions={filteredTransactions} />
