@@ -76,6 +76,7 @@ interface Translations {
     subtitle: string;
     cta: string;
     secondaryCta: string;
+    ctaSecondary: string;
     trustBadge: string;
   };
   
@@ -92,6 +93,12 @@ interface Translations {
     createAccount: string;
     alreadyHaveAccount: string;
     dontHaveAccount: string;
+    welcomeBack: string;
+    orContinueWith: string;
+    signInGoogle: string;
+    termsAgree: string;
+    termsOfService: string;
+    privacyPolicy: string;
   };
   
   // Dashboard
@@ -101,6 +108,49 @@ interface Translations {
     quickActions: string;
     recentTransactions: string;
     insights: string;
+    cashFlow: string;
+    income: string;
+    expenses: string;
+    netIncome: string;
+    totalBalance: string;
+    accountsConnected: string;
+    transactionsImported: string;
+    insightsGenerated: string;
+    noData: string;
+    connectBank: string;
+    importTransactions: string;
+    generateReport: string;
+    monthlyTrend: string;
+    categoryBreakdown: string;
+    lastUpdated: string;
+  };
+  
+  // Settings
+  settings: {
+    title: string;
+    description: string;
+    profile: string;
+    categories: string;
+    vendors: string;
+    budgets: string;
+    security: string;
+    billing: string;
+    integrations: string;
+    preferences: string;
+    personalInfo: string;
+    businessInfo: string;
+    changePassword: string;
+    twoFactor: string;
+    notifications: string;
+    emailNotifications: string;
+    weeklyReports: string;
+    transactionAlerts: string;
+    accountManagement: string;
+    downloadData: string;
+    exportData: string;
+    bankConnections: string;
+    connectPlaid: string;
+    platformIntegrations: string;
   };
   
   // Plans
@@ -367,15 +417,25 @@ const translations: Record<Language, Translations> = {
       title: "AI-Powered Financial Management for Small Businesses",
       subtitle: "Automate bookkeeping, track cash flow, and get AI insights to grow your business",
       cta: "Start Free Trial",
-      ctaSecondary: "Watch Demo"
+      secondaryCta: "Watch Demo",
+      ctaSecondary: "Watch Demo",
+      trustBadge: "Trusted by businesses"
     },
     auth: {
-      welcomeBack: "Welcome Back",
+      signIn: "Sign In",
+      signUp: "Sign Up",
+      signOut: "Sign Out",
+      email: "Email",
+      password: "Password",
+      confirmPassword: "Confirm Password",
+      forgotPassword: "Forgot Password?",
+      resetPassword: "Reset Password",
       createAccount: "Create Account",
-      signInGoogle: "Continue with Google",
+      alreadyHaveAccount: "Already have an account?",
+      dontHaveAccount: "Don't have an account?",
+      welcomeBack: "Welcome Back",
       orContinueWith: "Or continue with",
-      noAccount: "Don't have an account?",
-      haveAccount: "Already have an account?",
+      signInGoogle: "Continue with Google",
       termsAgree: "By continuing, you agree to our",
       privacyPolicy: "Privacy Policy",
       termsOfService: "Terms of Service"
@@ -383,7 +443,9 @@ const translations: Record<Language, Translations> = {
     dashboard: {
       welcome: "Welcome back",
       overview: "Overview",
+      quickActions: "Quick Actions",
       recentTransactions: "Recent Transactions",
+      insights: "Insights",
       cashFlow: "Cash Flow",
       income: "Income",
       expenses: "Expenses",
@@ -673,15 +735,25 @@ const translations: Record<Language, Translations> = {
       title: "Gestión financiera impulsada por IA para pequeñas empresas",
       subtitle: "Automatiza la contabilidad, rastrea el flujo de efectivo y obtén información de IA para hacer crecer tu negocio",
       cta: "Comenzar prueba gratuita",
-      ctaSecondary: "Ver demostración"
+      secondaryCta: "Ver demostración",
+      ctaSecondary: "Ver demostración",
+      trustBadge: "Confiado por empresas"
     },
     auth: {
-      welcomeBack: "Bienvenido de nuevo",
+      signIn: "Iniciar sesión",
+      signUp: "Registrarse",
+      signOut: "Cerrar sesión",
+      email: "Correo electrónico",
+      password: "Contraseña",
+      confirmPassword: "Confirmar contraseña",
+      forgotPassword: "¿Olvidaste tu contraseña?",
+      resetPassword: "Restablecer contraseña",
       createAccount: "Crear cuenta",
-      signInGoogle: "Continuar con Google",
+      alreadyHaveAccount: "¿Ya tienes una cuenta?",
+      dontHaveAccount: "¿No tienes una cuenta?",
+      welcomeBack: "Bienvenido de nuevo",
       orContinueWith: "O continuar con",
-      noAccount: "¿No tienes una cuenta?",
-      haveAccount: "¿Ya tienes una cuenta?",
+      signInGoogle: "Continuar con Google",
       termsAgree: "Al continuar, aceptas nuestra",
       privacyPolicy: "Política de privacidad",
       termsOfService: "Términos de servicio"
@@ -689,7 +761,9 @@ const translations: Record<Language, Translations> = {
     dashboard: {
       welcome: "Bienvenido de nuevo",
       overview: "Resumen",
+      quickActions: "Acciones rápidas",
       recentTransactions: "Transacciones recientes",
+      insights: "Información",
       cashFlow: "Flujo de efectivo",
       income: "Ingresos",
       expenses: "Gastos",
