@@ -41,23 +41,23 @@ export function Pricing() {
       const { data: { session } } = await supabase.auth.getSession();
       
       console.log('[Pricing] Starting checkout process', { hasSession: !!session, email, planName });
+
+      const headers: any = {};
+      const body: any = {};
       
-      if (!session) {
-        toast({
-          title: "Authentication Required",
-          description: "Please sign in to subscribe",
-          variant: "destructive",
-        });
-        navigate("/auth");
-        return;
+      if (session) {
+        headers.Authorization = `Bearer ${session.access_token}`;
+      }
+      
+      if (email) {
+        body.email = email;
       }
 
-      console.log('[Pricing] Invoking create-checkout function');
+      console.log('[Pricing] Invoking create-checkout function', { hasBody: Object.keys(body).length > 0 });
       
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        body: Object.keys(body).length > 0 ? body : undefined,
+        headers,
       });
 
       console.log('[Pricing] Function response', { data, error });
@@ -71,10 +71,17 @@ export function Pricing() {
         console.log('[Pricing] Opening checkout URL');
         window.open(data.url, '_blank');
         
-        toast({
-          title: "Redirecting to Checkout",
-          description: "Complete your payment in the new tab",
-        });
+        if (!session) {
+          toast({
+            title: "Complete Your Checkout",
+            description: "After payment, you can create an account to access your subscription",
+          });
+        } else {
+          toast({
+            title: "Redirecting to Checkout",
+            description: "Complete your payment in the new tab",
+          });
+        }
       } else {
         console.error('[Pricing] No URL in response:', data);
         throw new Error("No checkout URL received");

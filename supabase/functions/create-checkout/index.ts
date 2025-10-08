@@ -22,42 +22,54 @@ serve(async (req) => {
   try {
     console.log("[CREATE-CHECKOUT] Function started");
 
-    // Retrieve authenticated user
+    // Parse request body for email (guest checkout)
+    let requestEmail: string | undefined;
+    try {
+      const body = await req.json();
+      requestEmail = body?.email;
+    } catch {
+      // No body or invalid JSON, that's okay
+    }
+
+    // Try to retrieve authenticated user (optional for guest checkout)
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("No authorization header provided");
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
+    let userEmail: string | undefined;
     
-    if (!user?.email) {
-      throw new Error("User not authenticated or email not available");
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data } = await supabaseClient.auth.getUser(token);
+      userEmail = data.user?.email;
+      console.log("[CREATE-CHECKOUT] Authenticated user:", userEmail);
+    } else {
+      console.log("[CREATE-CHECKOUT] Guest checkout (no auth)");
     }
 
-    console.log("[CREATE-CHECKOUT] User authenticated:", user.email);
+    // Use email from request body or authenticated user
+    const email = userEmail || requestEmail;
+    console.log("[CREATE-CHECKOUT] Using email:", email);
 
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Check if a Stripe customer record exists for this user
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    // Check if a Stripe customer record exists for this email
     let customerId;
     
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
-      console.log("[CREATE-CHECKOUT] Found existing customer:", customerId);
-    } else {
-      console.log("[CREATE-CHECKOUT] No existing customer found");
+    if (email) {
+      const customers = await stripe.customers.list({ email, limit: 1 });
+      if (customers.data.length > 0) {
+        customerId = customers.data[0].id;
+        console.log("[CREATE-CHECKOUT] Found existing customer:", customerId);
+      } else {
+        console.log("[CREATE-CHECKOUT] No existing customer found");
+      }
     }
 
     // Create a subscription checkout session for Pro plan
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      customer_email: customerId ? undefined : user.email,
+      customer_email: customerId ? undefined : email, // Let Stripe collect email if not provided
       line_items: [
         {
           price: "price_1SFoOqLKh5GKHicapLodcllu", // Pro plan $10/month
