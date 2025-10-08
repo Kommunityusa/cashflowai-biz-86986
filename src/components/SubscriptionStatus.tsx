@@ -36,11 +36,7 @@ export function SubscriptionStatus() {
       }
 
       // Try edge function first
-      const { data, error } = await supabase.functions.invoke("check-subscription", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
+      const { data, error } = await supabase.functions.invoke("check-subscription");
 
       if (!error && data) {
         setSubscription(data);
@@ -84,11 +80,7 @@ export function SubscriptionStatus() {
 
       console.log('[SubscriptionStatus] Invoking create-checkout');
 
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
+      const { data, error } = await supabase.functions.invoke("create-checkout");
 
       console.log('[SubscriptionStatus] Response:', { data, error });
 
@@ -133,11 +125,7 @@ export function SubscriptionStatus() {
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke("customer-portal", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
+      const { data, error } = await supabase.functions.invoke("customer-portal");
 
       if (error) throw error;
       

@@ -55,10 +55,10 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     console.log("[CUSTOMER-PORTAL] Found customer:", customerId);
 
-    const origin = req.headers.get("origin") || "http://localhost:3000";
+    const origin = req.headers.get("origin") || "https://a90fd7c7-fc96-477a-a4ff-dcdac4fd96d9.lovableproject.com";
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${origin}/dashboard`,
+      return_url: `${origin}/settings`,
     });
 
     console.log("[CUSTOMER-PORTAL] Portal session created");

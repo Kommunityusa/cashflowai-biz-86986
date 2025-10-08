@@ -20,7 +20,8 @@ serve(async (req) => {
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    { auth: { persistSession: false } }
   );
 
   try {
@@ -81,6 +82,13 @@ serve(async (req) => {
     
     if (customers.data.length === 0) {
       logStep("No customer found");
+      
+      // Clear subscription from profile
+      await supabaseClient
+        .from("profiles")
+        .update({ subscription_plan: null })
+        .eq("user_id", user.id);
+      
       return new Response(
         JSON.stringify({ 
           subscribed: false, 
@@ -113,6 +121,13 @@ serve(async (req) => {
 
     if (!activeSubscription) {
       logStep("No active or trial subscription found");
+      
+      // Clear subscription from profile
+      await supabaseClient
+        .from("profiles")
+        .update({ subscription_plan: null })
+        .eq("user_id", user.id);
+      
       return new Response(
         JSON.stringify({ 
           subscribed: false, 
@@ -149,6 +164,12 @@ serve(async (req) => {
       inTrial,
       trialDaysRemaining
     });
+
+    // Update profile with subscription status
+    await supabaseClient
+      .from("profiles")
+      .update({ subscription_plan: "professional" })
+      .eq("user_id", user.id);
 
     return new Response(
       JSON.stringify({

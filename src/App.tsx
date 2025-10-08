@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -29,21 +30,30 @@ import Investors from "./pages/Investors";
 
 const queryClient = new QueryClient();
 
-// Protected Route component with AI Chat Bubble
+// Protected Route component with AI Chat Bubble and Subscription Check
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
+  const [hasSubscription, setHasSubscription] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     
-    const checkAuth = async () => {
+    const checkAuthAndSubscription = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!mounted) return;
         
-        setAuthenticated(!!session);
+        if (session) {
+          setAuthenticated(true);
+          
+          // Check subscription status via edge function
+          const { data: subData } = await supabase.functions.invoke("check-subscription");
+          setHasSubscription(subData?.subscribed === true);
+        } else {
+          setAuthenticated(false);
+        }
         setLoading(false);
       } catch (error) {
         console.error('[ProtectedRoute] Auth check error:', error);
@@ -54,12 +64,18 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       }
     };
 
-    checkAuth();
+    checkAuthAndSubscription();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
+      
       setAuthenticated(!!session);
+      if (session) {
+        setTimeout(() => {
+          checkAuthAndSubscription();
+        }, 0);
+      }
     });
 
     return () => {
@@ -78,6 +94,26 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!authenticated) {
     return <Navigate to="/auth" replace />;
+  }
+
+  if (!hasSubscription) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="max-w-md w-full text-center space-y-6">
+          <h2 className="text-2xl font-bold">Subscription Required</h2>
+          <p className="text-muted-foreground">
+            Subscribe to Cash Flow AI Pro to access the dashboard and all features.
+          </p>
+          <Button 
+            onClick={() => window.location.href = "/#pricing"}
+            variant="gradient"
+            size="lg"
+          >
+            View Pricing
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (

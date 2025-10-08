@@ -2,13 +2,41 @@ import { Button } from "@/components/ui/button";
 import { Check, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 export function Pricing() {
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleGetStarted = () => {
-    navigate("/auth");
+  const handleSubscribe = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      navigate("/auth");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout");
+
+      if (error) throw error;
+      if (!data?.url) throw new Error("No checkout URL received");
+
+      window.location.href = data.url;
+    } catch (error: any) {
+      console.error("Checkout error:", error);
+      toast({
+        title: "Checkout Failed",
+        description: error.message || "Failed to start checkout",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    }
   };
 
   const plans = [
@@ -29,9 +57,9 @@ export function Pricing() {
         { text: "Bank statement uploads", included: true },
         { text: "AI-powered insights", included: true },
       ],
-      cta: "Get Started",
+      cta: "Subscribe Now",
       variant: "gradient" as const,
-      onClick: handleGetStarted,
+      onClick: handleSubscribe,
     },
   ];
 
@@ -94,8 +122,9 @@ export function Pricing() {
                 size="lg" 
                 className="w-full"
                 onClick={plan.onClick}
+                disabled={isLoading}
               >
-                {plan.cta}
+                {isLoading ? "Processing..." : plan.cta}
               </Button>
             </div>
           ))}
