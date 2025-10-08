@@ -18,6 +18,7 @@ interface TransactionRowProps {
   onEdit: (transaction: any) => void;
   onDelete: (id: string) => void;
   onCategoryChange: (transactionId: string, categoryId: string) => void;
+  onTypeChange: (transactionId: string, type: 'income' | 'expense', isInternalTransfer: boolean) => void;
 }
 
 export function TransactionRow({
@@ -26,18 +27,33 @@ export function TransactionRow({
   onEdit,
   onDelete,
   onCategoryChange,
+  onTypeChange,
 }: TransactionRowProps) {
   const [isEditingCategory, setIsEditingCategory] = useState(false);
+  const [isEditingType, setIsEditingType] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(transaction.category_id || "");
+  const [selectedType, setSelectedType] = useState<'income' | 'expense'>(transaction.type);
+  const [isInternalTransfer, setIsInternalTransfer] = useState(transaction.is_internal_transfer || false);
 
   const handleSaveCategory = () => {
     onCategoryChange(transaction.id, selectedCategory);
     setIsEditingCategory(false);
   };
 
+  const handleSaveType = () => {
+    onTypeChange(transaction.id, selectedType, isInternalTransfer);
+    setIsEditingType(false);
+  };
+
   const handleCancelEdit = () => {
     setSelectedCategory(transaction.category_id || "");
     setIsEditingCategory(false);
+  };
+
+  const handleCancelTypeEdit = () => {
+    setSelectedType(transaction.type);
+    setIsInternalTransfer(transaction.is_internal_transfer || false);
+    setIsEditingType(false);
   };
 
   const formatDate = (date: string) => {
@@ -128,20 +144,61 @@ export function TransactionRow({
       </TableCell>
       
       <TableCell>
-        <Badge 
-          variant={transaction.type === 'income' ? 'default' : 'destructive'}
-          className="flex items-center gap-1 w-fit"
-        >
-          {transaction.type === 'income' ? (
-            <>
-              <span className="text-xs">↓</span> Income
-            </>
-          ) : (
-            <>
-              <span className="text-xs">↑</span> Expense
-            </>
-          )}
-        </Badge>
+        {isEditingType ? (
+          <div className="flex items-center gap-2">
+            <Select value={selectedType} onValueChange={(value: 'income' | 'expense') => setSelectedType(value)}>
+              <SelectTrigger className="w-[120px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-background">
+                <SelectItem value="income">Income</SelectItem>
+                <SelectItem value="expense">Expense</SelectItem>
+              </SelectContent>
+            </Select>
+            <label className="flex items-center gap-1 text-xs whitespace-nowrap">
+              <input 
+                type="checkbox" 
+                checked={isInternalTransfer}
+                onChange={(e) => setIsInternalTransfer(e.target.checked)}
+                className="rounded"
+              />
+              Transfer
+            </label>
+            <Button size="icon" variant="ghost" onClick={handleSaveType}>
+              <Check className="h-4 w-4 text-green-600" />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={handleCancelTypeEdit}>
+              <X className="h-4 w-4 text-red-600" />
+            </Button>
+          </div>
+        ) : (
+          <div 
+            className="flex items-center gap-2 cursor-pointer group/type"
+            onClick={() => setIsEditingType(true)}
+          >
+            {transaction.is_internal_transfer ? (
+              <Badge variant="outline" className="border-blue-600/50">
+                Transfer
+              </Badge>
+            ) : (
+              <Badge 
+                variant={transaction.type === 'income' ? 'default' : 'destructive'}
+                className="flex items-center gap-1 w-fit"
+              >
+                {transaction.type === 'income' ? (
+                  <>
+                    <span className="text-xs">↓</span> Income
+                  </>
+                ) : (
+                  <>
+                    <span className="text-xs">↑</span> Expense
+                  </>
+                )}
+              </Badge>
+            )}
+            <Edit className="h-3 w-3 text-muted-foreground opacity-0 group-hover/type:opacity-100 transition-opacity" />
+          </div>
+        )}
       </TableCell>
       
       <TableCell className="text-right">

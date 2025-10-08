@@ -37,6 +37,8 @@ export function BulkOperations({
 }: BulkOperationsProps) {
   const { toast } = useToast();
   const [bulkCategoryId, setBulkCategoryId] = useState<string>("");
+  const [bulkType, setBulkType] = useState<string>("");
+  const [bulkIsInternalTransfer, setBulkIsInternalTransfer] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleSelectAll = (checked: boolean) => {
@@ -125,6 +127,42 @@ export function BulkOperations({
     }
   };
 
+  const handleBulkChangeType = async () => {
+    if (selectedIds.size === 0 || !bulkType) return;
+    
+    setIsProcessing(true);
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .update({ 
+          type: bulkType,
+          is_internal_transfer: bulkIsInternalTransfer
+        })
+        .in('id', Array.from(selectedIds));
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Updated ${selectedIds.size} transactions`,
+      });
+      
+      onSelectionChange(new Set());
+      setBulkType("");
+      setBulkIsInternalTransfer(false);
+      onRefresh();
+    } catch (error) {
+      console.error('Bulk type change error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update transaction types",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleBulkExport = () => {
     const selectedTransactions = transactions.filter(t => selectedIds.has(t.id));
     
@@ -166,12 +204,39 @@ export function BulkOperations({
         </div>
         
         {selectedIds.size > 0 && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select value={bulkType} onValueChange={setBulkType}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Change type" />
+              </SelectTrigger>
+              <SelectContent className="bg-background z-50">
+                <SelectItem value="income">Income</SelectItem>
+                <SelectItem value="expense">Expense</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={bulkIsInternalTransfer}
+                onCheckedChange={(checked) => setBulkIsInternalTransfer(checked as boolean)}
+              />
+              <span className="whitespace-nowrap">Internal Transfer</span>
+            </label>
+
+            <Button
+              onClick={handleBulkChangeType}
+              disabled={!bulkType || isProcessing}
+              size="sm"
+              variant="outline"
+            >
+              Update Type
+            </Button>
+            
             <Select value={bulkCategoryId} onValueChange={setBulkCategoryId}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Choose category" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background z-50">
                 {categories.map(cat => (
                   <SelectItem key={cat.id} value={cat.id}>
                     {cat.name} ({cat.type})

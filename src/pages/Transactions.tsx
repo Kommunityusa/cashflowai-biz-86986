@@ -406,6 +406,44 @@ export default function Transactions() {
     }
   };
 
+  const handleTypeChange = async (transactionId: string, type: 'income' | 'expense', isInternalTransfer: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .update({ 
+          type,
+          is_internal_transfer: isInternalTransfer
+        })
+        .eq('id', transactionId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Transaction type updated",
+      });
+
+      fetchTransactions();
+
+      await logAuditEvent({
+        action: 'UPDATE_TRANSACTION',
+        entityType: 'transaction',
+        entityId: transactionId,
+        details: {
+          type,
+          is_internal_transfer: isInternalTransfer
+        }
+      });
+    } catch (error) {
+      console.error('Error updating type:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update transaction type",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleCancelEdit = () => {
     setEditingCategoryId(null);
     setEditingCategory("");
