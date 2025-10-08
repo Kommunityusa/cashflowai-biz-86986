@@ -18,7 +18,6 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Terms from "./pages/Terms";
 import Security from "./pages/Security";
 
-import PlaidTesting from "./pages/PlaidTesting";
 import PlaidOAuthCallback from "./pages/PlaidOAuthCallback";
 import Blog from "./pages/Blog";
 import About from "./pages/About";
@@ -141,11 +140,6 @@ const App = () => (
             <Route path="/security" element={
               <ProtectedRoute>
                 <Security />
-              </ProtectedRoute>
-            } />
-            <Route path="/plaid-testing" element={
-              <ProtectedRoute>
-                <PlaidTesting />
               </ProtectedRoute>
             } />
             <Route path="/auth/callback" element={<PlaidOAuthCallback />} />

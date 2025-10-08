@@ -4,8 +4,17 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { TrialSignupModal } from "@/components/TrialSignupModal";
 import { useLanguage } from "@/contexts/LanguageContext";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Mail } from "lucide-react";
 
 export function Pricing() {
   const navigate = useNavigate();
@@ -196,13 +205,40 @@ export function Pricing() {
         </div>
       </div>
       
-      <TrialSignupModal
-        isOpen={showTrialModal}
-        onClose={() => setShowTrialModal(false)}
-        onSubmit={(email) => processCheckout(email, selectedPlan)}
-        isLoading={isLoading}
-        plan={selectedPlan}
-      />
+      <Dialog open={showTrialModal} onOpenChange={setShowTrialModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Get Started with {selectedPlan}</DialogTitle>
+            <DialogDescription>
+              Enter your email to continue with your subscription
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            const email = formData.get('email') as string;
+            processCheckout(email, selectedPlan);
+          }} className="space-y-4">
+            <div>
+              <Label htmlFor="email">Email Address</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="your@email.com"
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+            <Button type="submit" variant="gradient" className="w-full" disabled={isLoading}>
+              {isLoading ? "Processing..." : "Continue to Checkout"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

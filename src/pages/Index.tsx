@@ -2,7 +2,6 @@ import { Header } from "@/components/layout/Header";
 import { Hero } from "@/components/landing/Hero";
 import { Features } from "@/components/landing/Features";
 import { Pricing } from "@/components/landing/Pricing";
-import { LoanCalculator } from "@/components/landing/LoanCalculator";
 import { NewsletterSection } from "@/components/landing/NewsletterSection";
 import { Footer } from "@/components/landing/Footer";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,7 +15,6 @@ const Index = () => {
   const { user, loading } = useAuth(false); // Don't require auth on landing
   const navigate = useNavigate();
   const [redirecting, setRedirecting] = useState(false);
-  const [showLoanCalculatorPopup, setShowLoanCalculatorPopup] = useState(false);
   const { t } = useLanguage();
 
   useEffect(() => {
@@ -26,19 +24,8 @@ const Index = () => {
       // Small delay to show the redirect message
       const timer = setTimeout(() => {
         navigate("/dashboard", { replace: true });
-      }, 500);
+      }, 1000);
       return () => clearTimeout(timer);
-    }
-    
-    // Check if we should show loan calculator popup for non-authenticated users
-    if (!loading && !user) {
-      const hasSubmittedEmail = localStorage.getItem('loan_calculator_email_submitted');
-      const popupShowCount = parseInt(localStorage.getItem('loan_calculator_popup_count') || '0');
-      
-      // Only show popup if user hasn't submitted email and hasn't seen it twice
-      if (!hasSubmittedEmail && popupShowCount < 2) {
-        setShowLoanCalculatorPopup(true);
-      }
     }
   }, [user, loading, navigate]);
 
@@ -91,20 +78,11 @@ const Index = () => {
       <Header />
       <main>
         <Hero />
-        <LoanCalculator />
         <Features />
         <NewsletterSection />
         <Pricing />
       </main>
       <Footer />
-      
-      {/* Loan Calculator Popup - only shows when conditions are met */}
-      {showLoanCalculatorPopup && (
-        <LoanCalculator 
-          showAsPopup={true} 
-          onClose={() => setShowLoanCalculatorPopup(false)} 
-        />
-      )}
     </div>
   );
 };
