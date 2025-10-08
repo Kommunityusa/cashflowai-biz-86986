@@ -178,20 +178,8 @@ verify_jwt = true
 [functions.ai-insights]
 verify_jwt = true
 
-[functions.ai-budget]
-verify_jwt = true
-
 [functions.plaid]
 verify_jwt = true
-
-[functions.audit]
-verify_jwt = false
-
-[functions.encryption]
-verify_jwt = true
-
-[functions.rate-limit]
-verify_jwt = false
 
 [functions.create-checkout]
 verify_jwt = false
@@ -200,12 +188,6 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.customer-portal]
-verify_jwt = true
-
-[functions.auto-encrypt]
-verify_jwt = false
-
-[functions.ai-chat]
 verify_jwt = true
 
 [functions.plaid-webhook]
@@ -229,9 +211,6 @@ verify_jwt = true
 [functions.token-storage]
 verify_jwt = true
 
-[functions.plaid-test]
-verify_jwt = false
-
 [functions.ai-categorize-transactions]
 verify_jwt = true
 
@@ -242,21 +221,6 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.plaid-backfill]
-verify_jwt = true
-
-[functions.ai-funding-analysis]
-verify_jwt = true
-
-[functions.create-trial-checkout]
-verify_jwt = true
-
-[functions.mailerlite]
-verify_jwt = false
-
-[functions.email-sequence]
-verify_jwt = false
-
-[functions.send-transactional-email]
 verify_jwt = true
 
 [functions.translate]
