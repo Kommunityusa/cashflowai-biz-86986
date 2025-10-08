@@ -252,6 +252,90 @@ interface Translations {
     invoiceGen: string;
     apiAccess: string;
   };
+  
+  // Bank Accounts & Plaid
+  bankAccounts: {
+    title: string;
+    totalBalance: string;
+    addManually: string;
+    syncAll: string;
+    import12Months: string;
+    importing: string;
+    connected: string;
+    lastUpdated: string;
+    accountName: string;
+    bankName: string;
+    accountType: string;
+    checking: string;
+    savings: string;
+    credit: string;
+    currentBalance: string;
+    accountNumber: string;
+    routingNumber: string;
+    noAccounts: string;
+    connectYourBank: string;
+  };
+  
+  // Tax & Reports
+  tax: {
+    preparation: string;
+    totalIncome: string;
+    totalExpenses: string;
+    deductible: string;
+    savings: string;
+    netTaxable: string;
+    grossRevenue: string;
+    allBusinessExpenses: string;
+    eligibleDeductions: string;
+    afterDeductions: string;
+    deductibleExpenses: string;
+    quarterly: string;
+    forms: string;
+    tips: string;
+    exportPDF: string;
+    exportCSV: string;
+    atTaxRate: string;
+  };
+  
+  // General UI
+  ui: {
+    welcomeBack: string;
+    financialOverview: string;
+    forMonth: string;
+    letsGetStarted: string;
+    dashboardReady: string;
+    addFirstTransaction: string;
+    generateSampleData: string;
+    gettingStartedTips: string;
+    connectBank: string;
+    aiAssistant: string;
+    instantInsights: string;
+    professionalReports: string;
+    totalRevenue: string;
+    totalExpenses: string;
+    netProfit: string;
+    avgTransaction: string;
+    perTransaction: string;
+    profitable: string;
+    loss: string;
+    recorded: string;
+    financialOverviewLast30: string;
+    incomeByCategory: string;
+    expensesByCategory: string;
+    monthlyIncomeVsExpenses: string;
+    overview: string;
+    categories: string;
+    monthly: string;
+    recentTransactions: string;
+    viewAll: string;
+    uncategorized: string;
+    recurringTransactions: string;
+    taxPreparation: string;
+    refresh: string;
+    aiFinancialInsights: string;
+    needMoreData: string;
+    loading: string;
+  };
 }
 
 const translations: Record<Language, Translations> = {
@@ -483,6 +567,84 @@ const translations: Record<Language, Translations> = {
       fullVendor: "Full vendor management",
       invoiceGen: "Invoice generation",
       apiAccess: "API access (Coming Soon)"
+    },
+    bankAccounts: {
+      title: "Bank Accounts",
+      totalBalance: "Total Balance",
+      addManually: "Add Manually",
+      syncAll: "Sync All Accounts",
+      import12Months: "Import 12 Months History",
+      importing: "Importing...",
+      connected: "Connected",
+      lastUpdated: "Last updated",
+      accountName: "Account Name",
+      bankName: "Bank Name",
+      accountType: "Account Type",
+      checking: "Checking",
+      savings: "Savings",
+      credit: "Credit",
+      currentBalance: "Current Balance",
+      accountNumber: "Account Number",
+      routingNumber: "Routing Number",
+      noAccounts: "No accounts yet",
+      connectYourBank: "Connect your bank to get started"
+    },
+    tax: {
+      preparation: "Tax Preparation",
+      totalIncome: "Total Income",
+      totalExpenses: "Total Expenses",
+      deductible: "Tax Deductible",
+      savings: "Tax Savings",
+      netTaxable: "Net Taxable",
+      grossRevenue: "Gross revenue",
+      allBusinessExpenses: "All business expenses",
+      eligibleDeductions: "Eligible deductions",
+      afterDeductions: "After deductions",
+      deductibleExpenses: "Deductible Expenses by Category",
+      quarterly: "Quarterly",
+      forms: "Tax Forms",
+      tips: "Tax Tips",
+      exportPDF: "Export PDF Report",
+      exportCSV: "Export CSV Data",
+      atTaxRate: "At"
+    },
+    ui: {
+      welcomeBack: "Welcome back",
+      financialOverview: "Here's your financial overview for",
+      forMonth: "for",
+      letsGetStarted: "Let's get started!",
+      dashboardReady: "Your dashboard is ready. Start by adding your first transaction or connecting your bank account for automatic imports.",
+      addFirstTransaction: "Add Your First Transaction",
+      generateSampleData: "Generate Sample Data",
+      gettingStartedTips: "Getting Started Tips",
+      connectBank: "Connect Your Bank",
+      aiAssistant: "AI Assistant",
+      instantInsights: "Get instant insights and answers about your finances from our AI-powered assistant.",
+      professionalReports: "Create professional financial reports for taxes, investors, or business planning.",
+      totalRevenue: "Total Revenue",
+      totalExpenses: "Total Expenses",
+      netProfit: "Net Profit",
+      avgTransaction: "Avg Transaction",
+      perTransaction: "Per transaction",
+      profitable: "Profitable",
+      loss: "Loss",
+      recorded: "Total recorded",
+      financialOverviewLast30: "Financial Overview (Last 30 Days)",
+      incomeByCategory: "Income by Category",
+      expensesByCategory: "Expenses by Category",
+      monthlyIncomeVsExpenses: "Monthly Income vs Expenses",
+      overview: "Overview",
+      categories: "Categories",
+      monthly: "Monthly Trend",
+      recentTransactions: "Recent Transactions",
+      viewAll: "View All",
+      uncategorized: "Uncategorized",
+      recurringTransactions: "Recurring Transactions",
+      taxPreparation: "Tax Preparation",
+      refresh: "Refresh",
+      aiFinancialInsights: "AI Financial Insights",
+      needMoreData: "Add more transactions to get personalized financial insights.",
+      loading: "Loading"
     }
   },
   es: {
@@ -713,6 +875,84 @@ const translations: Record<Language, Translations> = {
       fullVendor: "Gestión completa de proveedores",
       invoiceGen: "Generación de facturas",
       apiAccess: "Acceso API (Próximamente)"
+    },
+    bankAccounts: {
+      title: "Cuentas bancarias",
+      totalBalance: "Saldo total",
+      addManually: "Agregar manualmente",
+      syncAll: "Sincronizar todas las cuentas",
+      import12Months: "Importar historial de 12 meses",
+      importing: "Importando...",
+      connected: "Conectado",
+      lastUpdated: "Última actualización",
+      accountName: "Nombre de la cuenta",
+      bankName: "Nombre del banco",
+      accountType: "Tipo de cuenta",
+      checking: "Corriente",
+      savings: "Ahorros",
+      credit: "Crédito",
+      currentBalance: "Saldo actual",
+      accountNumber: "Número de cuenta",
+      routingNumber: "Número de ruta",
+      noAccounts: "Aún no hay cuentas",
+      connectYourBank: "Conecta tu banco para comenzar"
+    },
+    tax: {
+      preparation: "Preparación de impuestos",
+      totalIncome: "Ingresos totales",
+      totalExpenses: "Gastos totales",
+      deductible: "Deducible de impuestos",
+      savings: "Ahorro fiscal",
+      netTaxable: "Ingreso neto gravable",
+      grossRevenue: "Ingresos brutos",
+      allBusinessExpenses: "Todos los gastos del negocio",
+      eligibleDeductions: "Deducciones elegibles",
+      afterDeductions: "Después de deducciones",
+      deductibleExpenses: "Gastos deducibles por categoría",
+      quarterly: "Trimestral",
+      forms: "Formularios fiscales",
+      tips: "Consejos fiscales",
+      exportPDF: "Exportar informe PDF",
+      exportCSV: "Exportar datos CSV",
+      atTaxRate: "Con tasa de impuesto del"
+    },
+    ui: {
+      welcomeBack: "Bienvenido de nuevo",
+      financialOverview: "Aquí está tu resumen financiero de",
+      forMonth: "para",
+      letsGetStarted: "¡Comencemos!",
+      dashboardReady: "Tu panel está listo. Comienza agregando tu primera transacción o conectando tu cuenta bancaria para importaciones automáticas.",
+      addFirstTransaction: "Agregar tu primera transacción",
+      generateSampleData: "Generar datos de muestra",
+      gettingStartedTips: "Consejos para comenzar",
+      connectBank: "Conecta tu banco",
+      aiAssistant: "Asistente IA",
+      instantInsights: "Obtén información instantánea y respuestas sobre tus finanzas de nuestro asistente impulsado por IA.",
+      professionalReports: "Crea informes financieros profesionales para impuestos, inversores o planificación empresarial.",
+      totalRevenue: "Ingresos totales",
+      totalExpenses: "Gastos totales",
+      netProfit: "Beneficio neto",
+      avgTransaction: "Transacción promedio",
+      perTransaction: "Por transacción",
+      profitable: "Rentable",
+      loss: "Pérdida",
+      recorded: "Total registrado",
+      financialOverviewLast30: "Resumen financiero (Últimos 30 días)",
+      incomeByCategory: "Ingresos por categoría",
+      expensesByCategory: "Gastos por categoría",
+      monthlyIncomeVsExpenses: "Ingresos vs gastos mensuales",
+      overview: "Resumen",
+      categories: "Categorías",
+      monthly: "Tendencia mensual",
+      recentTransactions: "Transacciones recientes",
+      viewAll: "Ver todo",
+      uncategorized: "Sin categorizar",
+      recurringTransactions: "Transacciones recurrentes",
+      taxPreparation: "Preparación de impuestos",
+      refresh: "Actualizar",
+      aiFinancialInsights: "Información financiera con IA",
+      needMoreData: "Agrega más transacciones para obtener información financiera personalizada.",
+      loading: "Cargando"
     }
   }
 };

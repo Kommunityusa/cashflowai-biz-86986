@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { logAuditEvent } from "@/utils/auditLogger";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -52,6 +53,7 @@ interface TaxSummary {
 export function TaxPreparation() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [year, setYear] = useState(new Date().getFullYear());
   const [taxSummary, setTaxSummary] = useState<TaxSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -231,66 +233,66 @@ export function TaxPreparation() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Income</CardTitle>
+            <CardTitle className="text-sm font-medium">{t.tax.totalIncome}</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               ${taxSummary?.totalIncome.toFixed(2) || 0}
             </div>
-            <p className="text-xs text-muted-foreground">Gross revenue</p>
+            <p className="text-xs text-muted-foreground">{t.tax.grossRevenue}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+            <CardTitle className="text-sm font-medium">{t.tax.totalExpenses}</CardTitle>
             <Receipt className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               ${taxSummary?.totalExpenses.toFixed(2) || 0}
             </div>
-            <p className="text-xs text-muted-foreground">All business expenses</p>
+            <p className="text-xs text-muted-foreground">{t.tax.allBusinessExpenses}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tax Deductible</CardTitle>
+            <CardTitle className="text-sm font-medium">{t.tax.deductible}</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
               ${taxSummary?.totalDeductible.toFixed(2) || 0}
             </div>
-            <p className="text-xs text-muted-foreground">Eligible deductions</p>
+            <p className="text-xs text-muted-foreground">{t.tax.eligibleDeductions}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tax Savings</CardTitle>
+            <CardTitle className="text-sm font-medium">{t.tax.savings}</CardTitle>
             <TrendingDown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
               ${taxSummary?.estimatedTaxSavings.toFixed(2) || 0}
             </div>
-            <p className="text-xs text-muted-foreground">At {taxRate}% tax rate</p>
+            <p className="text-xs text-muted-foreground">{t.tax.atTaxRate} {taxRate}%</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Net Taxable</CardTitle>
+            <CardTitle className="text-sm font-medium">{t.tax.netTaxable}</CardTitle>
             <Calculator className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               ${taxSummary?.netTaxableIncome.toFixed(2) || 0}
             </div>
-            <p className="text-xs text-muted-foreground">After deductions</p>
+            <p className="text-xs text-muted-foreground">{t.tax.afterDeductions}</p>
           </CardContent>
         </Card>
       </div>
@@ -298,16 +300,16 @@ export function TaxPreparation() {
       {/* Detailed Analysis */}
       <Tabs defaultValue="deductions" className="space-y-4">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="deductions">Deductions</TabsTrigger>
-          <TabsTrigger value="quarterly">Quarterly</TabsTrigger>
-          <TabsTrigger value="forms">Tax Forms</TabsTrigger>
-          <TabsTrigger value="tips">Tax Tips</TabsTrigger>
+          <TabsTrigger value="deductions">{t.tax.deductibleExpenses}</TabsTrigger>
+          <TabsTrigger value="quarterly">{t.tax.quarterly}</TabsTrigger>
+          <TabsTrigger value="forms">{t.tax.forms}</TabsTrigger>
+          <TabsTrigger value="tips">{t.tax.tips}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="deductions" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Deductible Expenses by Category</CardTitle>
+              <CardTitle>{t.tax.deductibleExpenses}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid md:grid-cols-2 gap-6">

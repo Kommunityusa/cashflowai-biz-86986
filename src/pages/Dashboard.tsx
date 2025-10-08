@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 // import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import { logAuditEvent } from "@/utils/auditLogger";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -53,6 +54,7 @@ export default function Dashboard() {
   const { isAdmin } = useRole();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
   // useSessionTimeout(); // Temporarily disabled to debug logout issue
   const [loading, setLoading] = useState(false); // Start with false
   const [stats, setStats] = useState({
@@ -332,26 +334,26 @@ export default function Dashboard() {
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground mb-2">
-              Welcome back, {user?.email?.split('@')[0] || 'User'}!
+              {t.ui.welcomeBack}, {user?.email?.split('@')[0] || 'User'}!
             </h1>
             <p className="text-muted-foreground">
-              Here's your financial overview for {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              {t.ui.financialOverview} {new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => navigate('/ai-assistant')}>
               <Bot className="mr-2 h-4 w-4" />
-              <span className="hidden sm:inline">AI Assistant</span>
+              <span className="hidden sm:inline">{t.ui.aiAssistant}</span>
               <span className="sm:hidden">AI</span>
             </Button>
             <Button variant="outline" onClick={() => navigate('/reports')}>
               <FileText className="mr-2 h-4 w-4" />
-              <span className="hidden sm:inline">Reports</span>
+              <span className="hidden sm:inline">{t.nav.reports}</span>
             </Button>
             <Button onClick={() => navigate('/transactions')}>
               <Plus className="mr-2 h-4 w-4" />
-              <span className="hidden sm:inline">Add Transaction</span>
-              <span className="sm:hidden">Add</span>
+              <span className="hidden sm:inline">{t.transactions.addManually}</span>
+              <span className="sm:hidden">{t.common.add}</span>
             </Button>
           </div>
         </div>
@@ -367,9 +369,9 @@ export default function Dashboard() {
                     <TrendingUp className="h-8 w-8 text-primary" />
                   </div>
                   <div className="space-y-2">
-                    <h2 className="text-2xl font-semibold">Let's get started!</h2>
+                    <h2 className="text-2xl font-semibold">{t.ui.letsGetStarted}</h2>
                     <p className="text-muted-foreground max-w-md mx-auto">
-                      Your dashboard is ready. Start by adding your first transaction or connecting your bank account for automatic imports.
+                      {t.ui.dashboardReady}
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
@@ -379,7 +381,7 @@ export default function Dashboard() {
                       className="group"
                     >
                       <Plus className="mr-2 h-5 w-5" />
-                      Add Your First Transaction
+                      {t.ui.addFirstTransaction}
                       <ArrowUpIcon className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                     </Button>
                     <Button 
@@ -419,7 +421,7 @@ export default function Dashboard() {
                           }
 
                           toast({
-                            title: "Sample data added!",
+                            title: t.common.success,
                             description: "We've added some sample transactions to get you started.",
                           });
                           
@@ -428,7 +430,7 @@ export default function Dashboard() {
                         } catch (error) {
                           console.error('Error generating sample data:', error);
                           toast({
-                            title: "Error",
+                            title: t.common.error,
                             description: "Failed to generate sample data. Please try again.",
                             variant: "destructive"
                           });
@@ -439,7 +441,7 @@ export default function Dashboard() {
                       disabled={loading}
                     >
                       <Activity className="mr-2 h-5 w-5" />
-                      Generate Sample Data
+                      {t.ui.generateSampleData}
                     </Button>
                   </div>
                 </div>
@@ -496,7 +498,7 @@ export default function Dashboard() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-8">
               <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                  <CardTitle className="text-sm font-medium">{t.ui.totalRevenue}</CardTitle>
                   <DollarSign className="h-4 w-4 text-primary" />
                 </CardHeader>
                 <CardContent>
@@ -512,7 +514,7 @@ export default function Dashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+              <CardTitle className="text-sm font-medium">{t.ui.totalExpenses}</CardTitle>
               <CreditCard className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -521,14 +523,14 @@ export default function Dashboard() {
               </div>
               <p className="text-xs text-muted-foreground">
                 <ArrowDownIcon className="inline h-3 w-3 text-red-500" />
-                All business expenses
+                {t.tax.allBusinessExpenses}
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
+              <CardTitle className="text-sm font-medium">{t.ui.netProfit}</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -537,9 +539,9 @@ export default function Dashboard() {
               </div>
               <p className="text-xs text-muted-foreground">
                 {stats.netProfit >= 0 ? (
-                  <span className="text-green-500">Profitable</span>
+                  <span className="text-green-500">{t.ui.profitable}</span>
                 ) : (
-                  <span className="text-red-500">Loss</span>
+                  <span className="text-red-500">{t.ui.loss}</span>
                 )}
               </p>
             </CardContent>
@@ -547,20 +549,20 @@ export default function Dashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Transactions</CardTitle>
+              <CardTitle className="text-sm font-medium">{t.nav.transactions}</CardTitle>
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.transactionCount}</div>
               <p className="text-xs text-muted-foreground">
-                Total recorded
+                {t.ui.recorded}
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Transaction</CardTitle>
+              <CardTitle className="text-sm font-medium">{t.ui.avgTransaction}</CardTitle>
               <Briefcase className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -570,7 +572,7 @@ export default function Dashboard() {
                   : '$0'}
               </div>
               <p className="text-xs text-muted-foreground">
-                Per transaction
+                {t.ui.perTransaction}
               </p>
             </CardContent>
           </Card>
@@ -580,15 +582,15 @@ export default function Dashboard() {
             {stats.transactionCount > 0 && (
               <Tabs defaultValue="overview" className="space-y-4 mb-8">
                 <TabsList>
-                  <TabsTrigger value="overview">Overview</TabsTrigger>
-                  <TabsTrigger value="categories">Categories</TabsTrigger>
-                  <TabsTrigger value="monthly">Monthly Trend</TabsTrigger>
+                  <TabsTrigger value="overview">{t.ui.overview}</TabsTrigger>
+                  <TabsTrigger value="categories">{t.ui.categories}</TabsTrigger>
+                  <TabsTrigger value="monthly">{t.ui.monthly}</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="overview" className="space-y-4">
                   <Card>
               <CardHeader>
-                <CardTitle>Financial Overview (Last 30 Days)</CardTitle>
+                <CardTitle>{t.ui.financialOverviewLast30}</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={350}>
@@ -637,7 +639,7 @@ export default function Dashboard() {
             <div className="grid gap-4 md:grid-cols-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>Income by Category</CardTitle>
+                  <CardTitle>{t.ui.incomeByCategory}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
@@ -666,7 +668,7 @@ export default function Dashboard() {
               
               <Card>
                 <CardHeader>
-                  <CardTitle>Expenses by Category</CardTitle>
+                  <CardTitle>{t.ui.expensesByCategory}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
@@ -698,7 +700,7 @@ export default function Dashboard() {
           <TabsContent value="monthly" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Monthly Income vs Expenses</CardTitle>
+                <CardTitle>{t.ui.monthlyIncomeVsExpenses}</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={350}>
@@ -732,9 +734,9 @@ export default function Dashboard() {
             {/* Recent Transactions */}
             <Card className="mb-8">
               <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Recent Transactions</CardTitle>
+            <CardTitle>{t.ui.recentTransactions}</CardTitle>
             <Button variant="outline" size="sm" onClick={() => navigate('/transactions')}>
-              View All
+              {t.ui.viewAll}
             </Button>
           </CardHeader>
           <CardContent>
@@ -759,7 +761,7 @@ export default function Dashboard() {
                     <div>
                       <p className="font-medium">{transaction.description}</p>
                       <p className="text-sm text-muted-foreground">
-                        {transaction.categories?.name || 'Uncategorized'} • {new Date(transaction.transaction_date).toLocaleDateString()}
+                        {transaction.categories?.name || t.ui.uncategorized} • {new Date(transaction.transaction_date).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
@@ -774,11 +776,11 @@ export default function Dashboard() {
               {recentTransactions.length === 0 && (
                 <div className="text-center py-8">
                   <p className="text-muted-foreground mb-4">
-                    No transactions yet. Start tracking your finances!
+                    {t.transactions.noTransactions}
                   </p>
                   <Button onClick={() => navigate('/transactions')}>
                     <Plus className="mr-2 h-4 w-4" />
-                    Add Your First Transaction
+                    {t.ui.addFirstTransaction}
                   </Button>
                 </div>
               )}
@@ -790,8 +792,8 @@ export default function Dashboard() {
         {/* Financial Analysis Section */}
         <Tabs defaultValue="recurring" className="mt-8">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="recurring">Recurring Transactions</TabsTrigger>
-            <TabsTrigger value="tax">Tax Preparation</TabsTrigger>
+            <TabsTrigger value="recurring">{t.ui.recurringTransactions}</TabsTrigger>
+            <TabsTrigger value="tax">{t.ui.taxPreparation}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="recurring" className="mt-6">

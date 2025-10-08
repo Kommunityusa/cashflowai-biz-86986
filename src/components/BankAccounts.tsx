@@ -306,7 +306,7 @@ export function BankAccounts() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <CardTitle className="flex items-center gap-2">
             <Building className="h-5 w-5" />
-            Bank Accounts
+            {t.bankAccounts.title}
           </CardTitle>
           <div className="flex flex-wrap gap-2">
             <PlaidLinkButton onSuccess={fetchAccounts} />
@@ -314,12 +314,12 @@ export function BankAccounts() {
               <DialogTrigger asChild>
                 <Button size="sm" variant="outline">
                   <Plus className="mr-2 h-4 w-4" />
-                  Add Manually
+                  {t.bankAccounts.addManually}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Add Bank Account</DialogTitle>
+                  <DialogTitle>{t.bankAccounts.title}</DialogTitle>
                   <DialogDescription>
                     Manually add a bank account to track your balances
                   </DialogDescription>
@@ -431,7 +431,7 @@ export function BankAccounts() {
             <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4 mb-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-muted-foreground">
-                  Total Balance
+                  {t.bankAccounts.totalBalance}
                 </span>
                 <span className="text-2xl font-bold">
                   ${totalBalance.toFixed(2)}
@@ -442,7 +442,7 @@ export function BankAccounts() {
             <div className="flex flex-col sm:flex-row gap-2 mb-6">
               <Button variant="outline" onClick={syncTransactions}>
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Sync All Accounts
+                {t.bankAccounts.syncAll}
               </Button>
               <Button 
                 variant="outline" 
@@ -450,7 +450,7 @@ export function BankAccounts() {
                 disabled={isBackfilling || accounts.filter(a => a.plaid_account_id).length === 0}
               >
                 <RefreshCw className={`mr-2 h-4 w-4 ${isBackfilling ? 'animate-spin' : ''}`} />
-                {isBackfilling ? 'Importing...' : 'Import 12 Months History'}
+                {isBackfilling ? t.bankAccounts.importing : t.bankAccounts.import12Months}
               </Button>
             </div>
             
@@ -474,7 +474,7 @@ export function BankAccounts() {
                       {account.plaid_account_id && (
                         <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
                           <Link className="inline h-3 w-3 mr-1" />
-                          Connected
+                          {t.bankAccounts.connected}
                         </span>
                       )}
                     </p>
@@ -488,7 +488,7 @@ export function BankAccounts() {
                         variant="ghost"
                         size="icon"
                         onClick={() => {
-                          const newBalance = prompt("Enter new balance:", account.current_balance);
+                          const newBalance = prompt(t.bankAccounts.currentBalance + ":", account.current_balance);
                           if (newBalance) {
                             updateBalance(account.id, Number(newBalance));
                           }
@@ -504,7 +504,7 @@ export function BankAccounts() {
                   </div>
                   {account.last_synced_at && (
                     <p className="text-xs text-muted-foreground mt-2">
-                      Last updated: {new Date(account.last_synced_at).toLocaleDateString()}
+                      {t.bankAccounts.lastUpdated}: {new Date(account.last_synced_at).toLocaleDateString()}
                     </p>
                   )}
                 </div>
