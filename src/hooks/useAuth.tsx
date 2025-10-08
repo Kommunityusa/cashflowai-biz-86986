@@ -10,16 +10,35 @@ export function useAuth(requireAuth: boolean = true) {
   const [loading, setLoading] = useState(true);
   const [subscriptionPlan, setSubscriptionPlan] = useState<"free" | "pro">("free");
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Check subscription status
   const checkSubscription = async (userSession: Session | null) => {
     if (!userSession) {
       setSubscriptionPlan("free");
+      setIsAdmin(false);
       return;
     }
 
     try {
       setSubscriptionLoading(true);
+      
+      // Check if user is admin first
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userSession.user.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+      
+      if (!roleError && roleData) {
+        setIsAdmin(true);
+        setSubscriptionPlan('pro'); // Admins get pro access
+        setSubscriptionLoading(false);
+        return;
+      }
+      
+      setIsAdmin(false);
       
       // Set a timeout for the function call
       const timeoutPromise = new Promise<never>((_, reject) =>
@@ -145,5 +164,5 @@ export function useAuth(requireAuth: boolean = true) {
     navigate("/");
   };
 
-  return { session, user, loading, signOut, subscriptionPlan, subscriptionLoading };
+  return { session, user, loading, signOut, subscriptionPlan, subscriptionLoading, isAdmin };
 }

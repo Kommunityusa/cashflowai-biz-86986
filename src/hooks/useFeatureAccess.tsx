@@ -72,10 +72,10 @@ const FEATURE_LIMITS: Record<string, FeatureLimit> = {
 };
 
 export const useFeatureAccess = () => {
-  const { subscriptionPlan, user } = useAuth();
+  const { subscriptionPlan, user, isAdmin } = useAuth();
   
-  // Admin users have access to all business features
-  const plan = subscriptionPlan as PlanType;
+  // Admin users have access to all pro features
+  const plan = (isAdmin ? 'pro' : subscriptionPlan) as PlanType;
   
   const hasFeature = (feature: keyof typeof FEATURE_LIMITS): boolean => {
     if (!plan) return false;

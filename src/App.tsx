@@ -36,6 +36,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
   const [hasSubscription, setHasSubscription] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -49,9 +50,23 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
         if (session) {
           setAuthenticated(true);
           
-          // Check subscription status via edge function
-          const { data: subData } = await supabase.functions.invoke("check-subscription");
-          setHasSubscription(subData?.subscribed === true);
+          // Check if user is admin first
+          const { data: roleData, error: roleError } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .eq('role', 'admin')
+            .maybeSingle();
+          
+          if (!roleError && roleData) {
+            setIsAdmin(true);
+            setHasSubscription(true); // Admins get free access
+          } else {
+            setIsAdmin(false);
+            // Check subscription status via edge function
+            const { data: subData } = await supabase.functions.invoke("check-subscription");
+            setHasSubscription(subData?.subscribed === true);
+          }
         } else {
           setAuthenticated(false);
         }
