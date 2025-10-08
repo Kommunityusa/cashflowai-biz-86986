@@ -226,6 +226,55 @@ export function BankAccounts() {
     }
   };
 
+  const [isBackfilling, setIsBackfilling] = useState(false);
+
+  const backfillHistoricalData = async () => {
+    setIsBackfilling(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Error",
+          description: "Please sign in to import historical data",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Starting Import",
+        description: "Importing 12 months of historical transactions. This may take a few minutes...",
+      });
+
+      const { data, error } = await supabase.functions.invoke("plaid-backfill", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.summary) {
+        toast({
+          title: "Import Complete!",
+          description: `Successfully imported ${data.summary.total_new_transactions} new transactions from ${data.summary.successful} accounts.`,
+        });
+        fetchAccounts();
+      }
+    } catch (error) {
+      console.error("Error backfilling:", error);
+      toast({
+        title: "Import Failed",
+        description: "Failed to import historical data. Please try again or contact support.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsBackfilling(false);
+    }
+  };
+
   const handleRemoveAccount = async (id: string, hasPlaid: boolean) => {
     // This will be handled by the BankAccountRemoval component
     fetchAccounts();
@@ -371,10 +420,20 @@ export function BankAccounts() {
                 </span>
               </div>
             </div>
-            <Button variant="outline" onClick={syncTransactions}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Sync All Accounts
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button variant="outline" onClick={syncTransactions}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Sync All Accounts
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={backfillHistoricalData}
+                disabled={isBackfilling || accounts.filter(a => a.plaid_account_id).length === 0}
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${isBackfilling ? 'animate-spin' : ''}`} />
+                {isBackfilling ? 'Importing...' : 'Import 12 Months History'}
+              </Button>
+            </div>
             
             <div className="space-y-3 mt-4">
               {accounts.map((account) => (
