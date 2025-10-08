@@ -205,10 +205,18 @@ export function BankAccounts() {
   const [isSyncing, setIsSyncing] = useState(false);
 
   const syncTransactions = async () => {
+    console.log('[Sync] Button clicked, starting sync process...');
+    console.log('[Sync] Current accounts:', accounts);
+    console.log('[Sync] isSyncing state:', isSyncing);
+    
     setIsSyncing(true);
     try {
+      console.log('[Sync] Getting session...');
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('[Sync] Session retrieved:', !!session);
+      
       if (!session) {
+        console.log('[Sync] No session found');
         toast({
           title: "Error",
           description: "Please sign in to sync transactions",
@@ -220,7 +228,11 @@ export function BankAccounts() {
 
       // Check if there are any Plaid-connected accounts
       const hasPlaidAccounts = accounts.some(a => a.plaid_account_id);
+      console.log('[Sync] Has Plaid accounts:', hasPlaidAccounts);
+      console.log('[Sync] Plaid accounts:', accounts.filter(a => a.plaid_account_id));
+      
       if (!hasPlaidAccounts) {
+        console.log('[Sync] No Plaid accounts found');
         toast({
           title: "No Connected Accounts",
           description: "Please connect a bank account first to sync transactions.",
@@ -237,7 +249,6 @@ export function BankAccounts() {
         description: "Importing transactions from the last 12 months. This may take a few minutes...",
       });
 
-      // First, do the 12-month backfill
       console.log('[Sync] Calling plaid-backfill edge function...');
       const { data: backfillData, error: backfillError } = await supabase.functions.invoke("plaid-backfill", {
         body: {},
@@ -246,6 +257,8 @@ export function BankAccounts() {
         },
       });
 
+      console.log('[Sync] Function invoked, checking response...');
+      
       if (backfillError) {
         console.error('[Sync] Backfill error:', backfillError);
         throw backfillError;
@@ -254,6 +267,7 @@ export function BankAccounts() {
       console.log('[Sync] Backfill response:', backfillData);
 
       if (backfillData?.summary) {
+        console.log('[Sync] Success! Summary:', backfillData.summary);
         toast({
           title: "Sync Complete!",
           description: `Successfully synced ${backfillData.summary.total_new_transactions} transactions from ${backfillData.summary.successful} account(s).`,
@@ -278,6 +292,7 @@ export function BankAccounts() {
         variant: "destructive",
       });
     } finally {
+      console.log('[Sync] Sync process finished, resetting isSyncing state');
       setIsSyncing(false);
     }
   };
