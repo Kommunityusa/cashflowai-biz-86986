@@ -212,18 +212,23 @@ export function BankAccounts() {
   }, [accounts, isSyncing]);
 
   const syncTransactions = async () => {
-    console.log('[Sync] Button clicked, starting sync process...');
-    console.log('[Sync] Current accounts:', accounts);
-    console.log('[Sync] isSyncing state:', isSyncing);
-    
-    setIsSyncing(true);
     try {
-      console.log('[Sync] Getting session...');
+      console.log('[Sync] === SYNC BUTTON CLICKED ===');
+      alert('Sync function called!');
+      
+      if (isSyncing) {
+        console.log('[Sync] Already syncing, returning');
+        return;
+      }
+
+      setIsSyncing(true);
+      console.log('[Sync] isSyncing set to true');
+
       const { data: { session } } = await supabase.auth.getSession();
-      console.log('[Sync] Session retrieved:', !!session);
+      console.log('[Sync] Session:', !!session);
       
       if (!session) {
-        console.log('[Sync] No session found');
+        console.log('[Sync] No session');
         toast({
           title: "Error",
           description: "Please sign in to sync transactions",
@@ -233,13 +238,11 @@ export function BankAccounts() {
         return;
       }
 
-      // Check if there are any Plaid-connected accounts
       const hasPlaidAccounts = accounts.some(a => a.plaid_account_id);
-      console.log('[Sync] Has Plaid accounts:', hasPlaidAccounts);
-      console.log('[Sync] Plaid accounts:', accounts.filter(a => a.plaid_account_id));
+      console.log('[Sync] Has Plaid accounts:', hasPlaidAccounts, 'Total accounts:', accounts.length);
       
       if (!hasPlaidAccounts) {
-        console.log('[Sync] No Plaid accounts found');
+        console.log('[Sync] No Plaid accounts');
         toast({
           title: "No Connected Accounts",
           description: "Please connect a bank account first to sync transactions.",
@@ -249,14 +252,12 @@ export function BankAccounts() {
         return;
       }
 
-      console.log('[Sync] Starting 12-month historical import...');
-      
       toast({
         title: "Syncing Transactions",
         description: "Importing transactions from the last 12 months. This may take a few minutes...",
       });
 
-      console.log('[Sync] Calling plaid-backfill edge function...');
+      console.log('[Sync] About to call plaid-backfill');
       const { data: backfillData, error: backfillError } = await supabase.functions.invoke("plaid-backfill", {
         body: {},
         headers: {
@@ -264,27 +265,22 @@ export function BankAccounts() {
         },
       });
 
-      console.log('[Sync] Function invoked, checking response...');
-      
+      console.log('[Sync] Backfill response:', { backfillData, backfillError });
+
       if (backfillError) {
         console.error('[Sync] Backfill error:', backfillError);
         throw backfillError;
       }
 
-      console.log('[Sync] Backfill response:', backfillData);
-
       if (backfillData?.summary) {
-        console.log('[Sync] Success! Summary:', backfillData.summary);
         toast({
           title: "Sync Complete!",
           description: `Successfully synced ${backfillData.summary.total_new_transactions} transactions from ${backfillData.summary.successful} account(s).`,
         });
         await fetchAccounts();
       } else if (backfillData?.error) {
-        console.error('[Sync] Backfill data error:', backfillData.error);
         throw new Error(backfillData.error);
       } else {
-        console.log('[Sync] Unexpected response format');
         toast({
           title: "Sync Status Unknown",
           description: "The sync may have completed but the response was unexpected. Please check your transactions.",
@@ -292,14 +288,14 @@ export function BankAccounts() {
         await fetchAccounts();
       }
     } catch (error) {
-      console.error("[Sync] Full error:", error);
+      console.error("[Sync] Error:", error);
       toast({
         title: "Sync Failed",
         description: error instanceof Error ? error.message : "Failed to sync transactions. Please try again.",
         variant: "destructive",
       });
     } finally {
-      console.log('[Sync] Sync process finished, resetting isSyncing state');
+      console.log('[Sync] Finally block - resetting isSyncing');
       setIsSyncing(false);
     }
   };
@@ -453,11 +449,7 @@ export function BankAccounts() {
             <div className="flex flex-col sm:flex-row gap-2 mb-6">
               <Button 
                 variant="outline" 
-                onClick={() => {
-                  console.log('[BUTTON CLICK TEST] Sync button clicked!');
-                  alert('Button clicked!');
-                  syncTransactions();
-                }}
+                onClick={syncTransactions}
                 disabled={isSyncing || accounts.filter(a => a.plaid_account_id).length === 0}
               >
                 <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
