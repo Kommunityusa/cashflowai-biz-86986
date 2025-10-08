@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AIChatBubble } from "@/components/AIChatBubble";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { TranslationProvider } from "@/contexts/TranslationContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -28,6 +29,8 @@ import TaxSeasonChecklist from "./pages/blog/TaxSeasonChecklist";
 import Demo from "./pages/Demo";
 import Investors from "./pages/Investors";
 import Checkout from "./pages/Checkout";
+import AdminBlog from "./pages/admin/AdminBlog";
+import BlogPost from "./pages/blog/BlogPost";
 
 const queryClient = new QueryClient();
 
@@ -143,10 +146,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+      <TranslationProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
@@ -186,11 +190,18 @@ const App = () => (
             <Route path="/demo" element={<Demo />} />
             <Route path="/investors" element={<Investors />} />
             <Route path="/checkout" element={<Checkout />} />
+            <Route path="/admin/blog" element={
+              <ProtectedRoute>
+                <AdminBlog />
+              </ProtectedRoute>
+            } />
+            <Route path="/blog/:slug" element={<BlogPost />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
+    </TranslationProvider>
     </LanguageProvider>
   </QueryClientProvider>
 );

@@ -1,9 +1,12 @@
+import { useEffect, useState } from 'react';
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, ArrowRight, BookOpen, Calculator, FileText } from "lucide-react";
+import { Calendar, Clock, ArrowRight, BookOpen, Calculator, FileText, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from '@/integrations/supabase/client';
+import { SEO } from '@/components/SEO';
 
 const blogPosts = [
   {
@@ -43,10 +46,46 @@ const blogPosts = [
 
 export default function Blog() {
   const navigate = useNavigate();
+  const [dbPosts, setDbPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadPosts();
+  }, []);
+
+  const loadPosts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select('*')
+        .eq('is_published', true)
+        .order('published_at', { ascending: false });
+
+      if (error) throw error;
+      setDbPosts(data || []);
+    } catch (error) {
+      console.error('Error loading posts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const allPosts = [...dbPosts, ...blogPosts];
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <>
+      <SEO
+        title="Blog - Financial Tips & Insights"
+        description="Expert advice on bookkeeping, taxes, and financial management for small businesses"
+        keywords={['bookkeeping', 'accounting', 'taxes', 'small business', 'financial management']}
+      />
+      <div className="min-h-screen bg-background">
+        <Header />
+        {loading && (
+          <div className="flex justify-center items-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        )}
       
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="max-w-7xl mx-auto">
@@ -146,7 +185,8 @@ export default function Blog() {
         </div>
       </main>
 
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </>
   );
 }

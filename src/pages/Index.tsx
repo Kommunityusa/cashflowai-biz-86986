@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, TrendingUp } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { SEO } from "@/components/SEO";
 
 const Index = () => {
   const { user, loading } = useAuth(false); // Don't require auth on landing
@@ -74,16 +75,23 @@ const Index = () => {
 
   // Show landing page for non-authenticated users
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <>
+      <SEO
+        title="AI-Powered Bookkeeping & Financial Management"
+        description="Streamline your business finances with Cash Flow AI. Automated bookkeeping, real-time insights, and intelligent categorization for small businesses."
+        keywords={['bookkeeping software', 'financial management', 'AI accounting', 'small business finance', 'automated bookkeeping']}
+      />
+      <div className="min-h-screen bg-background">
+        <Header />
       <main>
         <Hero />
         <Features />
         <NewsletterSection />
         <Pricing />
       </main>
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </>
   );
 };
 
