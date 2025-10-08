@@ -24,10 +24,10 @@ serve(async (req) => {
   }
 
   try {
-    console.log('[PLAID-BACKFILL] Starting historical data backfill');
-    console.log('[PLAID-BACKFILL] Using Plaid environment:', PLAID_ENV);
+    console.log('[PLAID-BACKFILL] ============ SYNC START ============');
+    console.log('[PLAID-BACKFILL] Using Plaid environment:', plaidEnv, '→', PLAID_ENV);
     
-    // Validate required environment variables
+    // Validate Plaid credentials
     if (!plaidClientId || !plaidSecret) {
       console.error('[PLAID-BACKFILL] Missing Plaid credentials');
       return new Response(
@@ -39,10 +39,10 @@ serve(async (req) => {
       );
     }
     
-    // Get authorization header
+    // Get authorization
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.error('[PLAID-BACKFILL] No authorization header provided');
+      console.error('[PLAID-BACKFILL] No authorization header');
       return new Response(
         JSON.stringify({ error: 'Authorization required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -58,7 +58,7 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     
     if (userError || !user) {
-      console.error('[PLAID-BACKFILL] User authentication failed:', userError);
+      console.error('[PLAID-BACKFILL] Authentication failed:', userError?.message);
       return new Response(
         JSON.stringify({ 
           error: 'Invalid user authentication',
@@ -68,9 +68,9 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[PLAID-BACKFILL] User ${user.id} starting backfill`);
+    console.log('[PLAID-BACKFILL] Authenticated user:', user.id);
 
-    // Get active bank accounts for THIS USER with Plaid connections
+    // Get active Plaid-connected bank accounts
     const { data: accounts, error: accountsError } = await supabase
       .from('bank_accounts')
       .select('*')
@@ -79,7 +79,7 @@ serve(async (req) => {
       .not('plaid_item_id', 'is', null);
 
     if (accountsError) {
-      console.error('[PLAID-BACKFILL] Failed to fetch accounts:', accountsError);
+      console.error('[PLAID-BACKFILL] Failed to fetch accounts:', accountsError.message);
       return new Response(
         JSON.stringify({ 
           error: 'Failed to fetch bank accounts',
@@ -89,13 +89,13 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[PLAID-BACKFILL] Found ${accounts?.length || 0} accounts to backfill`);
+    console.log(`[PLAID-BACKFILL] Found ${accounts?.length || 0} Plaid accounts`);
     
     if (!accounts || accounts.length === 0) {
       return new Response(
         JSON.stringify({ 
           success: true,
-          message: 'No active bank accounts found to backfill',
+          message: 'No Plaid-connected bank accounts found',
           summary: {
             total_accounts: 0,
             successful: 0,
@@ -109,60 +109,75 @@ serve(async (req) => {
       );
     }
 
-    let totalSynced = 0;
-    let totalTransactions = 0;
+    let totalSuccessful = 0;
+    let totalNewTransactions = 0;
     let totalErrors = 0;
     const results = [];
 
-    for (const account of accounts || []) {
+    // Group accounts by item_id to avoid duplicate API calls
+    const itemMap = new Map();
+    for (const account of accounts) {
+      if (!itemMap.has(account.plaid_item_id)) {
+        itemMap.set(account.plaid_item_id, {
+          access_token: account.plaid_access_token,
+          access_token_encrypted: account.plaid_access_token_encrypted,
+          accounts: []
+        });
+      }
+      itemMap.get(account.plaid_item_id).accounts.push(account);
+    }
+
+    console.log(`[PLAID-BACKFILL] Processing ${itemMap.size} unique Plaid items`);
+
+    // Process each Plaid item
+    for (const [itemId, itemData] of itemMap) {
       try {
-        console.log(`[PLAID-BACKFILL] Processing account ${account.id} (${account.bank_name})`);
+        console.log(`[PLAID-BACKFILL] ---- Processing item ${itemId} ----`);
         
-        // Decrypt access token
-        let accessToken = account.plaid_access_token;
+        // Get access token (decrypt if needed)
+        let accessToken = itemData.access_token;
         
-        if (!accessToken && account.plaid_access_token_encrypted) {
-          console.log(`[PLAID-BACKFILL] Decrypting access token for item ${account.plaid_item_id}`);
+        if (!accessToken && itemData.access_token_encrypted) {
+          console.log('[PLAID-BACKFILL] Decrypting access token...');
           const decryptResponse = await supabase.functions.invoke('token-storage', {
             body: {
               action: 'decrypt_access_token',
-              data: { item_id: account.plaid_item_id }
+              data: { item_id: itemId }
             }
           });
           
           if (decryptResponse.error || !decryptResponse.data?.access_token) {
-            console.error(`[PLAID-BACKFILL] Failed to decrypt token for account ${account.id}:`, decryptResponse.error);
-            throw new Error(`Failed to decrypt access token: ${decryptResponse.error?.message || 'Unknown error'}`);
+            throw new Error(`Failed to decrypt token: ${decryptResponse.error?.message || 'Unknown error'}`);
           }
           
           accessToken = decryptResponse.data.access_token;
-          console.log(`[PLAID-BACKFILL] Successfully decrypted access token`);
+          console.log('[PLAID-BACKFILL] Token decrypted successfully');
         }
         
         if (!accessToken) {
-          console.error(`[PLAID-BACKFILL] No access token available for account ${account.id}`);
           throw new Error('No access token available');
         }
-        
-        // Fetch last 12 FULL months of transactions (365 days to ensure complete coverage)
+
+        // Calculate date range: last 12 full months (365 days)
+        const endDate = new Date();
         const startDate = new Date();
-        startDate.setDate(startDate.getDate() - 365); // 365 days = 12 full months
+        startDate.setDate(startDate.getDate() - 365);
+        
         const startDateStr = startDate.toISOString().split('T')[0];
-        const endDateStr = new Date().toISOString().split('T')[0];
+        const endDateStr = endDate.toISOString().split('T')[0];
         
-        console.log(`[PLAID-BACKFILL] Fetching transactions from ${startDateStr} to ${endDateStr} (12 months)`);
-        
+        console.log(`[PLAID-BACKFILL] Date range: ${startDateStr} to ${endDateStr} (365 days)`);
+
+        // Fetch all transactions with pagination
         let allTransactions = [];
         let offset = 0;
-        const count = 500; // Maximum allowed by Plaid per request
-        let totalAvailable = 0;
-        let totalFetched = 0;
+        const countPerRequest = 500; // Maximum allowed by Plaid
+        let hasMore = true;
         
-        // Paginate through all transactions
-        do {
-          console.log(`[PLAID-BACKFILL] Fetching transactions offset=${offset}, count=${count}`);
+        while (hasMore) {
+          console.log(`[PLAID-BACKFILL] Fetching batch: offset=${offset}, count=${countPerRequest}`);
           
-          const transactionsResponse = await fetch(`${PLAID_ENV}/transactions/get`, {
+          const response = await fetch(`${PLAID_ENV}/transactions/get`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -172,153 +187,171 @@ serve(async (req) => {
               start_date: startDateStr,
               end_date: endDateStr,
               options: {
-                count: count,
+                count: countPerRequest,
                 offset: offset,
+                include_personal_finance_category: true,
               },
             }),
           });
 
-          if (!transactionsResponse.ok) {
-            const errorText = await transactionsResponse.text();
-            console.error(`[PLAID-BACKFILL] HTTP error for account ${account.id}:`, transactionsResponse.status, errorText);
-            totalErrors++;
-            results.push({
-              account_id: account.id,
-              bank_name: account.bank_name,
-              status: 'error',
-              error: `HTTP ${transactionsResponse.status}: ${errorText}`
-            });
-            break;
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('[PLAID-BACKFILL] HTTP error:', response.status, errorText);
+            throw new Error(`Plaid API error: ${response.status} - ${errorText}`);
           }
 
-          const transactionsData = await transactionsResponse.json();
+          const data = await response.json();
           
-          if (transactionsData.error_code) {
-            console.error(`[PLAID-BACKFILL] Plaid error for account ${account.id}:`, {
-              error_code: transactionsData.error_code,
-              error_message: transactionsData.error_message,
-              error_type: transactionsData.error_type,
-              request_id: transactionsData.request_id
-            });
-            totalErrors++;
-            results.push({
-              account_id: account.id,
-              bank_name: account.bank_name,
-              status: 'error',
-              error: `${transactionsData.error_code}: ${transactionsData.error_message}`,
-              error_code: transactionsData.error_code,
-              request_id: transactionsData.request_id
-            });
-            break;
+          if (data.error_code) {
+            console.error('[PLAID-BACKFILL] Plaid error:', data.error_code, data.error_message);
+            throw new Error(`${data.error_code}: ${data.error_message}`);
           }
 
-          // Accumulate transactions
-          if (transactionsData.transactions) {
-            allTransactions = allTransactions.concat(transactionsData.transactions);
-            totalFetched += transactionsData.transactions.length;
-          }
+          const batchTransactions = data.transactions || [];
+          allTransactions = allTransactions.concat(batchTransactions);
           
-          totalAvailable = transactionsData.total_transactions || 0;
-          offset += count;
+          console.log(`[PLAID-BACKFILL] Fetched ${batchTransactions.length} transactions (total: ${allTransactions.length}/${data.total_transactions})`);
           
-          console.log(`[PLAID-BACKFILL] Fetched ${transactionsData.transactions?.length || 0} transactions, total: ${allTransactions.length}/${totalAvailable}`);
-          
-          // Continue if there are more transactions to fetch
-        } while (offset < totalAvailable);
-
-        // If there was an error, skip processing
-        if (results.some(r => r.account_id === account.id && r.status === 'error')) {
-          continue;
+          // Check if there are more transactions
+          offset += countPerRequest;
+          hasMore = offset < data.total_transactions;
         }
 
-        let newTransactions = 0;
-        
-        // Process all fetched transactions
-        for (const transaction of allTransactions) {
-          // Check if transaction already exists
-          const { data: existing } = await supabase
-            .from('transactions')
-            .select('id')
-            .eq('plaid_transaction_id', transaction.transaction_id)
-            .maybeSingle();
+        console.log(`[PLAID-BACKFILL] Total transactions fetched: ${allTransactions.length}`);
 
-          if (!existing) {
-            const transactionType = transaction.amount > 0 ? 'expense' : 'income';
-            
-            // Find matching category
-            const { data: categories } = await supabase
-              .from('categories')
-              .select('id')
-              .eq('user_id', account.user_id)
-              .eq('type', transactionType)
-              .ilike('name', `%${transaction.category?.[0] || 'Other'}%`)
-              .limit(1);
+        // Process transactions for each account
+        for (const account of itemData.accounts) {
+          let accountNewTransactions = 0;
+          
+          // Filter transactions for this specific account
+          const accountTransactions = allTransactions.filter(
+            t => t.account_id === account.plaid_account_id
+          );
+          
+          console.log(`[PLAID-BACKFILL] Processing ${accountTransactions.length} transactions for account ${account.account_name}`);
 
-            await supabase.from('transactions').insert({
-              user_id: account.user_id,
-              bank_account_id: account.id,
-              plaid_transaction_id: transaction.transaction_id,
-              description: transaction.name,
-              vendor_name: transaction.merchant_name,
-              amount: Math.abs(transaction.amount),
-              type: transactionType,
-              transaction_date: transaction.date,
-              plaid_category: transaction.category,
-              category_id: categories?.[0]?.id || null,
-              status: 'completed',
-              needs_review: true,
-            });
-            
-            newTransactions++;
+          for (const transaction of accountTransactions) {
+            try {
+              // Check if transaction exists
+              const { data: existing } = await supabase
+                .from('transactions')
+                .select('id')
+                .eq('plaid_transaction_id', transaction.transaction_id)
+                .maybeSingle();
+
+              if (existing) {
+                continue; // Skip existing transactions
+              }
+
+              // Determine transaction type
+              // Plaid convention: positive = expense (money out), negative = income (money in)
+              const transactionType = transaction.amount > 0 ? 'expense' : 'income';
+              const absoluteAmount = Math.abs(transaction.amount);
+
+              // Try to find matching category
+              const categoryName = transaction.personal_finance_category?.detailed || 
+                                   transaction.category?.[0] || 
+                                   'Other';
+              
+              const { data: categories } = await supabase
+                .from('categories')
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('type', transactionType)
+                .ilike('name', `%${categoryName}%`)
+                .limit(1);
+
+              // Extract payment channel info
+              let notes = `Payment via ${transaction.payment_channel || 'unknown'}`;
+              if (transaction.merchant_name) {
+                notes = `${transaction.merchant_name}; ${notes}`;
+              }
+
+              // Insert transaction
+              const { error: insertError } = await supabase.from('transactions').insert({
+                user_id: user.id,
+                bank_account_id: account.id,
+                plaid_transaction_id: transaction.transaction_id,
+                description: transaction.name,
+                vendor_name: transaction.merchant_name || null,
+                amount: absoluteAmount,
+                type: transactionType,
+                transaction_date: transaction.date,
+                plaid_category: {
+                  primary: transaction.personal_finance_category?.primary || transaction.category?.[0],
+                  detailed: transaction.personal_finance_category?.detailed || transaction.category?.[1],
+                  confidence_level: transaction.personal_finance_category?.confidence_level || 'LOW'
+                },
+                category_id: categories?.[0]?.id || null,
+                status: 'completed',
+                notes: notes,
+                needs_review: false,
+              });
+
+              if (insertError) {
+                console.error('[PLAID-BACKFILL] Failed to insert transaction:', insertError.message);
+              } else {
+                accountNewTransactions++;
+              }
+            } catch (txError) {
+              console.error('[PLAID-BACKFILL] Error processing transaction:', txError);
+            }
           }
+
+          // Update account sync timestamp
+          await supabase
+            .from('bank_accounts')
+            .update({ last_synced_at: new Date().toISOString() })
+            .eq('id', account.id);
+
+          totalNewTransactions += accountNewTransactions;
+          totalSuccessful++;
+          
+          results.push({
+            account_id: account.id,
+            account_name: account.account_name,
+            bank_name: account.bank_name,
+            status: 'success',
+            new_transactions: accountNewTransactions,
+            total_available: accountTransactions.length
+          });
+          
+          console.log(`[PLAID-BACKFILL] Account ${account.account_name}: ${accountNewTransactions} new transactions imported`);
         }
-
-        // Update account sync timestamp
-        await supabase
-          .from('bank_accounts')
-          .update({ last_synced_at: new Date().toISOString() })
-          .eq('id', account.id);
-
-        totalSynced++;
-        totalTransactions += newTransactions;
         
-        results.push({
-          account_id: account.id,
-          bank_name: account.bank_name,
-          status: 'success',
-          new_transactions: newTransactions,
-          total_fetched: totalFetched
-        });
-        
-        console.log(`[PLAID-BACKFILL] Account ${account.id}: ${newTransactions} new transactions imported`);
-        
-      } catch (error) {
-        console.error(`[PLAID-BACKFILL] Error processing account ${account.id}:`, error);
+      } catch (itemError) {
+        console.error(`[PLAID-BACKFILL] Error processing item ${itemId}:`, itemError);
         totalErrors++;
-        results.push({
-          account_id: account.id,
-          bank_name: account.bank_name,
-          status: 'error',
-          error: error instanceof Error ? error.message : 'Unknown error',
-          error_stack: error instanceof Error ? error.stack : undefined
-        });
+        
+        // Mark all accounts in this item as errored
+        for (const account of itemData.accounts) {
+          results.push({
+            account_id: account.id,
+            account_name: account.account_name,
+            bank_name: account.bank_name,
+            status: 'error',
+            error: itemError instanceof Error ? itemError.message : 'Unknown error'
+          });
+        }
       }
     }
 
     const summary = {
-      total_accounts: accounts?.length || 0,
-      successful: totalSynced,
+      total_accounts: accounts.length,
+      successful: totalSuccessful,
       errors: totalErrors,
-      total_new_transactions: totalTransactions,
+      total_new_transactions: totalNewTransactions,
       user_id: user.id,
+      date_range: '365 days (12 full months)'
     };
 
-    console.log('[PLAID-BACKFILL] Backfill complete:', summary);
+    console.log('[PLAID-BACKFILL] ============ SYNC COMPLETE ============');
+    console.log('[PLAID-BACKFILL] Summary:', JSON.stringify(summary, null, 2));
 
     // Log to audit
     await supabase.from('audit_logs').insert({
       user_id: user.id,
-      action: 'plaid_historical_backfill',
+      action: 'plaid_sync_transactions',
       entity_type: 'bank_accounts',
       details: { summary, results }
     });
@@ -329,7 +362,10 @@ serve(async (req) => {
     );
     
   } catch (error) {
-    console.error('[PLAID-BACKFILL] Fatal error:', error);
+    console.error('[PLAID-BACKFILL] ============ FATAL ERROR ============');
+    console.error('[PLAID-BACKFILL] Error:', error);
+    console.error('[PLAID-BACKFILL] Stack:', error instanceof Error ? error.stack : 'N/A');
+    
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Unknown error occurred',
