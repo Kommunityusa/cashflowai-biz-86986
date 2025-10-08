@@ -5,7 +5,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { BankAccounts } from "@/components/BankAccounts";
-import { GuestAccountCreation } from "@/components/GuestAccountCreation";
 import { TaxPreparation } from "@/components/TaxPreparation";
 import { NewsletterBanner } from "@/components/NewsletterBanner";
 import { useState, useEffect } from "react";
@@ -61,10 +60,6 @@ export default function Dashboard() {
   const [chartData, setChartData] = useState<any[]>([]);
   const [categoryData, setCategoryData] = useState<any[]>([]);
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
-
-  // Check if this is a post-checkout guest
-  const checkoutStatus = searchParams.get('checkout');
-  const isPostCheckoutGuest = checkoutStatus === 'success' && !user && !authLoading;
 
   useEffect(() => {
     // Check for checkout success parameter
@@ -242,24 +237,6 @@ export default function Dashboard() {
       setLoading(false);
     }
   };
-
-  // Show guest account creation if post-checkout guest
-  if (isPostCheckoutGuest) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 py-8">
-          <div className="max-w-2xl mx-auto text-center mb-8">
-            <h1 className="text-3xl font-bold mb-4">Payment Successful! 🎉</h1>
-            <p className="text-muted-foreground">
-              Thank you for subscribing! Create your account below to access your dashboard and start managing your finances.
-            </p>
-          </div>
-          <GuestAccountCreation />
-        </main>
-      </div>
-    );
-  }
 
   // Show loading skeleton
   if (authLoading) {

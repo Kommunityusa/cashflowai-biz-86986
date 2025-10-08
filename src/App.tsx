@@ -17,6 +17,7 @@ import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Terms from "./pages/Terms";
 import Security from "./pages/Security";
+import SetupAccount from "./pages/SetupAccount";
 
 import PlaidOAuthCallback from "./pages/PlaidOAuthCallback";
 import Blog from "./pages/Blog";
@@ -114,6 +115,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/setup-account" element={<SetupAccount />} />
             <Route path="/select-plan" element={<SelectPlan />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>

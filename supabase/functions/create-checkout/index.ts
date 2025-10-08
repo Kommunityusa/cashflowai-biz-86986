@@ -48,13 +48,18 @@ serve(async (req) => {
 
     console.log("Creating checkout session");
     const origin = req.headers.get("origin") || "https://a90fd7c7-fc96-477a-a4ff-dcdac4fd96d9.lovableproject.com";
+    
+    // Success URL includes the email so we can pre-fill the account creation form
+    const successUrl = `${origin}/setup-account?session_id={CHECKOUT_SESSION_ID}&email=${encodeURIComponent(email)}`;
+    const cancelUrl = `${origin}/#pricing`;
+    
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : email,
       line_items: [{ price: "price_1SFoOqLKh5GKHicapLodcllu", quantity: 1 }],
       mode: "subscription",
-      success_url: `${origin}/dashboard?checkout=success`,
-      cancel_url: `${origin}/#pricing`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
     });
 
     console.log("Checkout session created:", session.id);
