@@ -29,6 +29,7 @@ export function TransactionSync({ onSyncComplete }: TransactionSyncProps) {
   const { toast } = useToast();
   const [syncing, setSyncing] = useState(false);
   const [categorizing, setCategorizing] = useState(false);
+  const [backfilling, setBackfilling] = useState(false);
   const [connectedAccounts, setConnectedAccounts] = useState<any[]>([]);
   const [syncStatus, setSyncStatus] = useState<{
     inProgress: boolean;
@@ -280,6 +281,63 @@ export function TransactionSync({ onSyncComplete }: TransactionSyncProps) {
     }
   };
 
+  const handleHistoricalBackfill = async () => {
+    setBackfilling(true);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error("Not authenticated");
+      }
+
+      toast({
+        title: "Starting Historical Import",
+        description: "Fetching up to 24 months of transaction history...",
+      });
+
+      const { data, error } = await supabase.functions.invoke("plaid-backfill", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast({
+          title: "Historical Import Complete",
+          description: `Imported ${data.transactions_imported} transactions from ${data.date_range.start} to ${data.date_range.end}`,
+        });
+
+        // Log audit event
+        logAuditEvent({
+          action: 'PLAID_SYNC_COMPLETED' as any,
+          details: { 
+            transactions_imported: data.transactions_imported,
+            date_range: data.date_range,
+            timestamp: new Date().toISOString() 
+          }
+        });
+
+        // Refresh the data
+        await fetchSyncStatus();
+        
+        if (onSyncComplete) {
+          onSyncComplete();
+        }
+      }
+    } catch (error: any) {
+      console.error('Backfill error:', error);
+      toast({
+        title: "Historical Import Failed",
+        description: error.message || "Failed to import historical transactions",
+        variant: "destructive",
+      });
+    } finally {
+      setBackfilling(false);
+    }
+  };
+
   const formatLastSync = (date: string | null) => {
     if (!date) return "Never";
     const diff = Date.now() - new Date(date).getTime();
@@ -372,6 +430,15 @@ export function TransactionSync({ onSyncComplete }: TransactionSyncProps) {
                 >
                   <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
                   {syncing ? "Syncing..." : "Sync Transactions"}
+                </Button>
+                <Button
+                  onClick={handleHistoricalBackfill}
+                  disabled={backfilling}
+                  size="sm"
+                  variant="secondary"
+                >
+                  <Download className={`mr-2 h-4 w-4 ${backfilling ? 'animate-pulse' : ''}`} />
+                  {backfilling ? "Importing..." : "Import 24 Months"}
                 </Button>
               </div>
             </div>

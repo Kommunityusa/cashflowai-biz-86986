@@ -3,207 +3,278 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-application-name',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 serve(async (req) => {
-  console.log('Function called:', req.method);
-  
   if (req.method === 'OPTIONS') {
-    console.log('Returning CORS headers');
-    return new Response(null, { headers: corsHeaders, status: 200 });
+    return new Response(null, { headers: corsHeaders });
   }
-
-  // Immediate response test
-  if (req.method === 'GET') {
-    return new Response(
-      JSON.stringify({ status: 'alive', method: 'GET' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-    );
-  }
-
-  console.log('POST request started');
 
   try {
     const PLAID_CLIENT_ID = Deno.env.get('PLAID_CLIENT_ID');
     const PLAID_SECRET = Deno.env.get('PLAID_SECRET');
-    const PLAID_ENV = Deno.env.get('PLAID_ENV') || 'sandbox';
+    const PLAID_ENV = Deno.env.get('PLAID_ENV') || 'production';
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-    const SUPABASE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    console.log('Env check:', {
-      hasPlaid: !!PLAID_CLIENT_ID,
-      hasSecret: !!PLAID_SECRET,
-      env: PLAID_ENV,
-      hasUrl: !!SUPABASE_URL,
-      hasKey: !!SUPABASE_KEY
-    });
-
-    if (!PLAID_CLIENT_ID || !PLAID_SECRET || !SUPABASE_URL || !SUPABASE_KEY) {
-      return new Response(
-        JSON.stringify({ error: 'Missing credentials' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
+    if (!PLAID_CLIENT_ID || !PLAID_SECRET || !SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+      throw new Error('Missing required environment variables');
     }
 
-    const PLAID_API = PLAID_ENV === 'production' 
+    const PLAID_API_URL = PLAID_ENV === 'production' 
       ? 'https://production.plaid.com' 
       : PLAID_ENV === 'development'
       ? 'https://development.plaid.com'
       : 'https://sandbox.plaid.com';
 
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'No auth header' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Creating Supabase client');
-    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-    
-    console.log('Getting user');
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
-      console.error('Auth error:', authError);
       return new Response(
-        JSON.stringify({ error: 'Auth failed', details: authError?.message }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+        JSON.stringify({ error: 'Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('User:', user.id);
+    console.log('[Plaid Backfill] Starting historical transaction backfill for user:', user.id);
 
-    console.log('Fetching accounts');
-    const { data: accounts, error: accError } = await supabase
+    // Get all active bank accounts
+    const { data: accounts, error: accountsError } = await supabase
       .from('bank_accounts')
-      .select('id, account_name, plaid_item_id, plaid_access_token')
+      .select('id, account_name, bank_name, plaid_item_id, plaid_account_id')
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .not('plaid_item_id', 'is', null)
-      .not('plaid_access_token', 'is', null);
+      .not('plaid_item_id', 'is', null);
 
-    if (accError) {
-      console.error('DB error:', accError);
-      return new Response(
-        JSON.stringify({ error: 'DB error', details: accError.message }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
-    }
-
-    console.log('Accounts:', accounts?.length || 0);
-
-    if (!accounts || accounts.length === 0) {
+    if (accountsError || !accounts || accounts.length === 0) {
       return new Response(
         JSON.stringify({ 
-          success: true, 
-          message: 'No Plaid accounts found',
-          transactionsSynced: 0 
+          success: false,
+          message: 'No active bank accounts found',
+          transactions_imported: 0
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const end = new Date();
-    const start = new Date();
-    start.setDate(start.getDate() - 365);
-    const startDate = start.toISOString().split('T')[0];
-    const endDate = end.toISOString().split('T')[0];
+    console.log('[Plaid Backfill] Found', accounts.length, 'accounts to backfill');
 
-    console.log('Date range:', startDate, 'to', endDate);
+    let totalImported = 0;
+    const errors = [];
 
-    let total = 0;
+    // Calculate date range: 24 months back from today
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - 24);
 
-    for (const acc of accounts) {
+    const startDateStr = startDate.toISOString().split('T')[0];
+    const endDateStr = endDate.toISOString().split('T')[0];
+
+    console.log('[Plaid Backfill] Date range:', startDateStr, 'to', endDateStr);
+
+    // Get user categories for auto-categorization
+    const { data: userCategories } = await supabase
+      .from('categories')
+      .select('id, name, type')
+      .eq('user_id', user.id);
+
+    for (const account of accounts) {
       try {
-        console.log('Account:', acc.account_name);
-        
-        const plaidResp = await fetch(`${PLAID_API}/transactions/get`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            client_id: PLAID_CLIENT_ID,
-            secret: PLAID_SECRET,
-            access_token: acc.plaid_access_token,
-            start_date: startDate,
-            end_date: endDate,
-            options: { count: 500 }
-          }),
-        });
+        console.log('[Plaid Backfill] Processing account:', account.account_name);
 
-        if (!plaidResp.ok) {
-          console.error('Plaid error:', plaidResp.status);
+        // Get access token (encrypted or plain)
+        const { data: tokenData, error: tokenError } = await supabase
+          .from('plaid_access_tokens')
+          .select('access_token, access_token_encrypted')
+          .eq('item_id', account.plaid_item_id)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (tokenError || (!tokenData?.access_token && !tokenData?.access_token_encrypted)) {
+          console.error('[Plaid Backfill] No access token found for account:', account.id);
+          errors.push({
+            account_id: account.id,
+            account_name: account.account_name,
+            error: 'Access token not found - please reconnect your bank account'
+          });
           continue;
         }
 
-        const plaidData = await plaidResp.json();
-        
-        if (plaidData.error_code) {
-          console.error('Plaid error:', plaidData.error_message);
-          continue;
-        }
+        // Decrypt token if encrypted
+        let accessToken = tokenData.access_token;
+        if (!accessToken && tokenData.access_token_encrypted) {
+          const { data: decryptedData, error: decryptError } = await supabase.functions.invoke('token-storage', {
+            body: {
+              action: 'decrypt_access_token',
+              data: { item_id: account.plaid_item_id }
+            }
+          });
 
-        console.log('Transactions:', plaidData.transactions?.length || 0);
-
-        let added = 0;
-        for (const txn of plaidData.transactions || []) {
-          const { data: exists } = await supabase
-            .from('transactions')
-            .select('id')
-            .eq('plaid_transaction_id', txn.transaction_id)
-            .maybeSingle();
-
-          if (!exists) {
-            const { error: insertError } = await supabase.from('transactions').insert({
-              user_id: user.id,
-              bank_account_id: acc.id,
-              plaid_transaction_id: txn.transaction_id,
-              description: txn.name,
-              vendor_name: txn.merchant_name || null,
-              amount: Math.abs(txn.amount),
-              type: txn.amount > 0 ? 'expense' : 'income',
-              transaction_date: txn.date,
-              status: 'completed',
+          if (decryptError || !decryptedData?.access_token) {
+            console.error('[Plaid Backfill] Failed to decrypt token for account:', account.id);
+            errors.push({
+              account_id: account.id,
+              account_name: account.account_name,
+              error: 'Failed to decrypt access token'
             });
+            continue;
+          }
 
-            if (!insertError) added++;
+          accessToken = decryptedData.access_token;
+        }
+
+        // Fetch historical transactions using /transactions/get
+        let offset = 0;
+        let hasMore = true;
+        let accountTransactions = 0;
+
+        while (hasMore) {
+          const response = await fetch(`${PLAID_API_URL}/transactions/get`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              client_id: PLAID_CLIENT_ID,
+              secret: PLAID_SECRET,
+              access_token: accessToken,
+              start_date: startDateStr,
+              end_date: endDateStr,
+              options: {
+                count: 500,
+                offset: offset,
+                include_personal_finance_category: true,
+              }
+            })
+          });
+
+          const data = await response.json();
+
+          if (data.error_code) {
+            console.error('[Plaid Backfill] Plaid API error:', data);
+            errors.push({
+              account_id: account.id,
+              account_name: account.account_name,
+              error: data.error_message
+            });
+            break;
+          }
+
+          const transactions = data.transactions || [];
+          console.log('[Plaid Backfill] Fetched', transactions.length, 'transactions (offset:', offset, ')');
+
+          if (transactions.length > 0) {
+            // Filter transactions for this specific account
+            const accountTxns = transactions.filter(
+              (tx: any) => tx.account_id === account.plaid_account_id
+            );
+
+            if (accountTxns.length > 0) {
+              // Transform and insert transactions
+              const newTransactions = accountTxns.map((transaction: any) => {
+                const txType = transaction.amount > 0 ? 'expense' : 'income';
+                const categoryName = transaction.personal_finance_category?.primary?.toLowerCase() || 
+                                     transaction.category?.[0]?.toLowerCase() || 'other';
+                const matchingCategory = userCategories?.find(cat => 
+                  cat.type === txType && 
+                  cat.name.toLowerCase().includes(categoryName)
+                );
+
+                return {
+                  user_id: user.id,
+                  bank_account_id: account.id,
+                  plaid_transaction_id: transaction.transaction_id,
+                  description: transaction.name || transaction.merchant_name || 'Unknown',
+                  vendor_name: transaction.merchant_name,
+                  amount: Math.abs(transaction.amount),
+                  type: txType,
+                  transaction_date: transaction.date,
+                  plaid_category: transaction.personal_finance_category || transaction.category,
+                  category_id: matchingCategory?.id || null,
+                  status: 'completed',
+                  notes: transaction.payment_channel ? `Payment via ${transaction.payment_channel}` : null,
+                };
+              });
+
+              // Insert in batches
+              const BATCH_SIZE = 100;
+              for (let i = 0; i < newTransactions.length; i += BATCH_SIZE) {
+                const batch = newTransactions.slice(i, i + BATCH_SIZE);
+                const { error: insertError } = await supabase
+                  .from('transactions')
+                  .upsert(batch, {
+                    onConflict: 'plaid_transaction_id',
+                    ignoreDuplicates: true
+                  });
+
+                if (insertError) {
+                  console.error('[Plaid Backfill] Insert error:', insertError);
+                  throw insertError;
+                }
+              }
+
+              accountTransactions += newTransactions.length;
+              totalImported += newTransactions.length;
+            }
+          }
+
+          // Check if there are more transactions
+          hasMore = transactions.length === 500;
+          offset += 500;
+
+          // Safety limit to prevent infinite loops
+          if (offset > 10000) {
+            console.warn('[Plaid Backfill] Reached offset limit for account:', account.account_name);
+            break;
           }
         }
 
-        await supabase
-          .from('bank_accounts')
-          .update({ last_synced_at: new Date().toISOString() })
-          .eq('id', acc.id);
+        console.log('[Plaid Backfill] Imported', accountTransactions, 'transactions for', account.account_name);
 
-        total += added;
-        console.log('Added:', added);
-      } catch (err: any) {
-        console.error('Account error:', err.message);
+      } catch (error) {
+        console.error('[Plaid Backfill] Error processing account:', account.account_name, error);
+        errors.push({
+          account_id: account.id,
+          account_name: account.account_name,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
       }
     }
 
-    console.log('Complete:', total);
+    console.log('[Plaid Backfill] Backfill complete. Total imported:', totalImported);
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
-        summary: {
-          total_new_transactions: total,
-          successful: accounts.length,
-          errors: 0,
-          total_accounts: accounts.length
-        }
+        transactions_imported: totalImported,
+        accounts_processed: accounts.length,
+        errors: errors.length > 0 ? errors : undefined,
+        date_range: { start: startDateStr, end: endDateStr }
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-  } catch (error: any) {
-    console.error('FATAL:', error.message, error.stack);
+
+  } catch (error) {
+    console.error('[Plaid Backfill] Fatal error:', error);
     return new Response(
-      JSON.stringify({ error: error.message, stack: error.stack }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      JSON.stringify({ 
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     );
   }
 });
