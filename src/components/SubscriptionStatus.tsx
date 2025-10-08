@@ -181,16 +181,18 @@ export function SubscriptionStatus() {
             )}
             <div>
               <h3 className="text-lg font-semibold text-foreground">
-                {isPro ? "Cash Flow AI Pro" : "Free Plan"}
+                {isPro ? "Cash Flow AI Pro" : "No Active Subscription"}
               </h3>
               <p className="text-sm text-muted-foreground">
-                {isPro ? "$10 per month" : "No charge"}
+                {isPro ? "$10 per month" : "Subscribe to access all features"}
               </p>
             </div>
           </div>
-          <Badge variant={isPro ? "default" : "secondary"} className="px-3 py-1">
-            {isPro ? "Active" : "Current"}
-          </Badge>
+          {isPro && (
+            <Badge variant="default" className="px-3 py-1">
+              Active
+            </Badge>
+          )}
         </div>
 
         {isPro && subscription?.subscription_end && (
@@ -207,25 +209,28 @@ export function SubscriptionStatus() {
                 You have full access to all Pro features including unlimited transactions, 
                 AI insights, and priority support.
               </p>
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertDescription>
-                  Subscription management is available in the deployed version of the app. 
-                  Your Pro plan is active and all features are available.
-                </AlertDescription>
-              </Alert>
+              <Button 
+                onClick={handleManageSubscription} 
+                disabled={isManaging}
+                variant="outline"
+                className="w-full"
+              >
+                {isManaging ? "Loading..." : "Manage Subscription"}
+              </Button>
             </>
           ) : (
             <>
               <p className="text-sm text-muted-foreground">
-                Upgrade to Pro for unlimited transactions, advanced AI features, and more.
+                Subscribe to Cash Flow AI Pro to unlock unlimited transactions, advanced AI features, and priority support.
               </p>
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertDescription>
-                  Stripe checkout will be available once the app is deployed with proper Stripe configuration.
-                </AlertDescription>
-              </Alert>
+              <Button 
+                onClick={handleUpgrade} 
+                disabled={isManaging}
+                variant="gradient"
+                className="w-full"
+              >
+                {isManaging ? "Loading..." : "Subscribe to Pro - $10/month"}
+              </Button>
             </>
           )}
         </div>
@@ -238,25 +243,25 @@ export function SubscriptionStatus() {
           <div className="flex items-center justify-between py-2 border-b border-border">
             <span className="text-sm">Monthly Transactions</span>
             <span className="text-sm font-medium">
-              {isPro ? "Unlimited" : "100"}
+              {isPro ? "Unlimited" : "Requires Subscription"}
             </span>
           </div>
           <div className="flex items-center justify-between py-2 border-b border-border">
             <span className="text-sm">Bank Connections</span>
             <span className="text-sm font-medium">
-              {isPro ? "Unlimited" : "1"}
+              {isPro ? "Unlimited" : "Requires Subscription"}
             </span>
           </div>
           <div className="flex items-center justify-between py-2 border-b border-border">
             <span className="text-sm">AI Insights</span>
             <span className="text-sm font-medium">
-              {isPro ? "Advanced" : "Basic"}
+              {isPro ? "Advanced" : "Requires Subscription"}
             </span>
           </div>
           <div className="flex items-center justify-between py-2 border-b border-border">
             <span className="text-sm">Support</span>
             <span className="text-sm font-medium">
-              {isPro ? "Priority" : "Standard"}
+              {isPro ? "Priority" : "Requires Subscription"}
             </span>
           </div>
           <div className="flex items-center justify-between py-2">
