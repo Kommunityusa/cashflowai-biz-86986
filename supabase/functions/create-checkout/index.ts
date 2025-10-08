@@ -7,52 +7,59 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  console.log("Checkout function called", req.method);
+  console.log("[CREATE-CHECKOUT] Function invoked - Method:", req.method);
+  console.log("[CREATE-CHECKOUT] Headers:", Object.fromEntries(req.headers.entries()));
   
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    console.log("CORS preflight request");
+    console.log("[CREATE-CHECKOUT] Handling CORS preflight");
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log("Processing checkout request");
+    console.log("[CREATE-CHECKOUT] Processing POST request");
     const body = await req.json();
-    console.log("Request body:", body);
+    console.log("[CREATE-CHECKOUT] Request body:", JSON.stringify(body));
     
     const { email } = body;
     
     if (!email) {
-      console.error("No email provided");
+      console.error("[CREATE-CHECKOUT] ERROR: No email provided");
       return new Response(
         JSON.stringify({ error: "Email is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("Initializing Stripe for email:", email);
+    console.log("[CREATE-CHECKOUT] Email received:", email);
+    console.log("[CREATE-CHECKOUT] Initializing Stripe");
+    
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) {
-      console.error("STRIPE_SECRET_KEY not found");
-      throw new Error("Stripe configuration error");
+      console.error("[CREATE-CHECKOUT] ERROR: STRIPE_SECRET_KEY not found in environment");
+      return new Response(
+        JSON.stringify({ error: "Stripe configuration error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const stripe = new Stripe(stripeKey, {
       apiVersion: "2025-08-27.basil",
     });
+    console.log("[CREATE-CHECKOUT] Stripe initialized successfully");
 
-    console.log("Checking for existing customer");
+    console.log("[CREATE-CHECKOUT] Checking for existing customer");
     const customers = await stripe.customers.list({ email, limit: 1 });
     const customerId = customers.data.length > 0 ? customers.data[0].id : undefined;
-    console.log("Customer ID:", customerId || "new customer");
+    console.log("[CREATE-CHECKOUT] Customer lookup result:", customerId ? `Found: ${customerId}` : "New customer");
 
-    console.log("Creating checkout session");
     const origin = req.headers.get("origin") || "https://a90fd7c7-fc96-477a-a4ff-dcdac4fd96d9.lovableproject.com";
+    console.log("[CREATE-CHECKOUT] Origin URL:", origin);
     
-    // Success URL includes the email so we can pre-fill the account creation form
     const successUrl = `${origin}/setup-account?session_id={CHECKOUT_SESSION_ID}&email=${encodeURIComponent(email)}`;
     const cancelUrl = `${origin}/#pricing`;
     
+    console.log("[CREATE-CHECKOUT] Creating Stripe checkout session");
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : email,
@@ -62,15 +69,21 @@ serve(async (req) => {
       cancel_url: cancelUrl,
     });
 
-    console.log("Checkout session created:", session.id);
+    console.log("[CREATE-CHECKOUT] SUCCESS: Session created:", session.id);
+    console.log("[CREATE-CHECKOUT] Checkout URL:", session.url);
+    
     return new Response(
       JSON.stringify({ url: session.url }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Checkout error:", error);
+    console.error("[CREATE-CHECKOUT] FATAL ERROR:", error);
+    console.error("[CREATE-CHECKOUT] Error details:", error instanceof Error ? error.stack : "Unknown error");
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : "Unknown error",
+        details: "Check edge function logs for more information"
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

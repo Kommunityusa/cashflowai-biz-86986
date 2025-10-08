@@ -62,10 +62,9 @@ const SelectPlan = () => {
     setSelectedPlan(planId);
     
     try {
-      // For paid plans, redirect to Stripe checkout with trial
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session) {
+      if (!session?.user?.email) {
         toast({
           title: t.common.error,
           description: 'Please sign in to continue',
@@ -75,29 +74,27 @@ const SelectPlan = () => {
         return;
       }
 
-      console.log('[SelectPlan] Starting plan selection', { planId, hasSession: !!session });
+      console.log('[SelectPlan] Starting checkout for:', session.user.email);
 
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
+        body: { email: session.user.email },
       });
 
-      console.log('[SelectPlan] Response:', { data, error });
+      console.log('[SelectPlan] Checkout response:', { data, error });
 
       if (error) {
-        console.error('[SelectPlan] Error:', error);
+        console.error('[SelectPlan] Checkout error:', error);
         throw error;
       }
       
       if (data?.url) {
-        console.log('[SelectPlan] Redirecting to checkout');
+        console.log('[SelectPlan] Redirecting to Stripe checkout');
         window.location.href = data.url;
       } else {
         throw new Error("No checkout URL received");
       }
     } catch (error) {
-      console.error('Error selecting plan:', error);
+      console.error('[SelectPlan] Error:', error);
       toast({
         title: t.common.error,
         description: 'Failed to process plan selection',

@@ -47,13 +47,26 @@ export function Pricing() {
     setShowTrialModal(false);
 
     try {
+      console.log("[PRICING] Starting checkout for email:", email);
+      
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: { email },
       });
 
-      if (error) throw error;
-      if (!data?.url) throw new Error("No checkout URL received");
+      console.log("[PRICING] Function response:", { data, error });
 
+      if (error) {
+        console.error("[PRICING] Function error:", error);
+        throw error;
+      }
+      
+      if (!data?.url) {
+        console.error("[PRICING] No URL in response:", data);
+        throw new Error("No checkout URL received");
+      }
+
+      console.log("[PRICING] Redirecting to Stripe checkout:", data.url);
+      
       // Open Stripe checkout
       window.location.href = data.url;
       
@@ -62,7 +75,7 @@ export function Pricing() {
         description: "Complete your payment to continue",
       });
     } catch (error: any) {
-      console.error("Checkout error:", error);
+      console.error("[PRICING] Checkout error:", error);
       toast({
         title: "Checkout Failed",
         description: error.message || "Failed to start checkout. Please try again.",
