@@ -181,13 +181,13 @@ verify_jwt = true
 [functions.plaid]
 verify_jwt = true
 
-[functions.create-checkout]
-verify_jwt = false
-
-[functions.check-subscription]
+[functions.create-paypal-checkout]
 verify_jwt = true
 
-[functions.customer-portal]
+[functions.check-paypal-subscription]
+verify_jwt = true
+
+[functions.cancel-paypal-subscription]
 verify_jwt = true
 
 [functions.plaid-webhook]
