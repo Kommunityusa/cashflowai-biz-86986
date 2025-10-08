@@ -99,6 +99,7 @@ async function syncTransactions(accessToken: string, userId: string, accountId: 
 
     let totalSynced = 0;
     let taxDeductibleCount = 0;
+    const newTransactions: any[] = [];
 
     // Process added transactions with enhanced business categorization
     for (const transaction of data.added || []) {
@@ -113,65 +114,9 @@ async function syncTransactions(accessToken: string, userId: string, accountId: 
         // Enhanced business categorization
         const isIncome = transaction.amount < 0; // Plaid uses negative for money in
         const type = isIncome ? 'income' : 'expense';
-        
-        // Business category mapping
-        let categoryName = isIncome ? 'Other Income' : 'Other Expenses';
-        let isTaxDeductible = false;
-        
-        // Map Plaid categories to business categories
-        if (transaction.category && transaction.category.length > 0) {
-          const mainCategory = transaction.category[0].toUpperCase();
-          
-          // Business expense categories
-          if (!isIncome) {
-            if (mainCategory.includes('TRAVEL')) {
-              categoryName = 'Travel';
-              isTaxDeductible = true;
-            } else if (mainCategory.includes('OFFICE') || mainCategory.includes('SHOPS')) {
-              categoryName = 'Office Supplies';
-              isTaxDeductible = true;
-            } else if (mainCategory.includes('SERVICE') || mainCategory.includes('SUBSCRIPTION')) {
-              categoryName = 'Software';
-              isTaxDeductible = true;
-            } else if (mainCategory.includes('INSURANCE')) {
-              categoryName = 'Insurance';
-              isTaxDeductible = true;
-            } else if (mainCategory.includes('UTILITIES')) {
-              categoryName = 'Utilities';
-              isTaxDeductible = true;
-            } else if (mainCategory.includes('RENT')) {
-              categoryName = 'Rent';
-              isTaxDeductible = true;
-            }
-          } else {
-            // Income categories
-            if (mainCategory.includes('DEPOSIT') || mainCategory.includes('TRANSFER')) {
-              categoryName = 'Sales';
-            } else if (mainCategory.includes('INTEREST') || mainCategory.includes('DIVIDEND')) {
-              categoryName = 'Investments';
-            }
-          }
-        }
 
-        // Check for tax-deductible keywords in transaction name
-        const taxKeywords = ['office', 'software', 'subscription', 'insurance', 'travel', 'equipment'];
-        if (!isTaxDeductible && !isIncome) {
-          isTaxDeductible = taxKeywords.some(keyword => 
-            transaction.name.toLowerCase().includes(keyword)
-          );
-        }
-
-        // Find or use default category
-        const { data: category } = await supabase
-          .from('categories')
-          .select('id')
-          .eq('user_id', userId)
-          .eq('type', type)
-          .eq('name', categoryName)
-          .maybeSingle();
-
-        // Insert transaction with business fields
-        await supabase.from('transactions').insert({
+        // Insert transaction - AI will categorize it
+        const { data: inserted } = await supabase.from('transactions').insert({
           user_id: userId,
           bank_account_id: accountId,
           plaid_transaction_id: transaction.transaction_id,
@@ -181,14 +126,34 @@ async function syncTransactions(accessToken: string, userId: string, accountId: 
           type: type,
           transaction_date: transaction.date,
           plaid_category: transaction.category,
-          category_id: category?.id || null,
+          category_id: null, // Will be set by AI
           status: transaction.pending ? 'pending' : 'completed',
-          tax_deductible: isTaxDeductible,
           notes: transaction.pending ? 'Pending - awaiting bank clearance' : null,
-        });
+        }).select().single();
+        
+        if (inserted) {
+          newTransactions.push({
+            id: inserted.id,
+            description: transaction.name,
+            vendor_name: transaction.merchant_name,
+            amount: Math.abs(transaction.amount),
+            transaction_date: transaction.date,
+          });
+        }
         
         totalSynced++;
-        if (isTaxDeductible) taxDeductibleCount++;
+      }
+    }
+    
+    // Auto-categorize new transactions with AI
+    if (newTransactions.length > 0) {
+      try {
+        await supabase.functions.invoke('ai-categorize-transactions', {
+          body: { transactions: newTransactions }
+        });
+        console.log(`[WEBHOOK] Auto-categorized ${newTransactions.length} transactions`);
+      } catch (aiError) {
+        console.error('[WEBHOOK] AI categorization failed:', aiError);
       }
     }
 

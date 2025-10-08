@@ -123,6 +123,8 @@ serve(async (req) => {
         const transactionsData = await transactionsResponse.json();
         
         if (!transactionsData.error_code) {
+          const newTransactions: any[] = [];
+          
           // Process new transactions
           for (const transaction of transactionsData.transactions || []) {
             // Check if transaction already exists
@@ -137,17 +139,8 @@ serve(async (req) => {
               // - Positive amounts = EXPENSES (money going OUT of your account)
               // - Negative amounts = INCOME (money coming INTO your account)
               const transactionType = transaction.amount > 0 ? 'expense' : 'income';
-              
-              // Find matching category
-              const { data: categories } = await supabase
-                .from('categories')
-                .select('id')
-                .eq('user_id', account.user_id)
-                .eq('type', transactionType)
-                .ilike('name', `%${transaction.category?.[0] || 'Other'}%`)
-                .limit(1);
 
-              await supabase.from('transactions').insert({
+              const { data: inserted } = await supabase.from('transactions').insert({
                 user_id: account.user_id,
                 bank_account_id: account.id,
                 plaid_transaction_id: transaction.transaction_id,
@@ -157,10 +150,31 @@ serve(async (req) => {
                 type: transactionType,
                 transaction_date: transaction.date,
                 plaid_category: transaction.category,
-                category_id: categories?.[0]?.id || null,
+                category_id: null, // Will be set by AI
                 status: 'completed',
-                needs_review: true, // Mark for review to ensure correct categorization
+              }).select().single();
+              
+              if (inserted) {
+                newTransactions.push({
+                  id: inserted.id,
+                  description: transaction.name,
+                  vendor_name: transaction.merchant_name,
+                  amount: Math.abs(transaction.amount),
+                  transaction_date: transaction.date,
+                });
+              }
+            }
+          }
+          
+          // Auto-categorize new transactions with AI
+          if (newTransactions.length > 0) {
+            try {
+              await supabase.functions.invoke('ai-categorize-transactions', {
+                body: { transactions: newTransactions }
               });
+              console.log(`[PLAID-SYNC] Auto-categorized ${newTransactions.length} transactions`);
+            } catch (aiError) {
+              console.error('[PLAID-SYNC] AI categorization failed:', aiError);
             }
           }
         }

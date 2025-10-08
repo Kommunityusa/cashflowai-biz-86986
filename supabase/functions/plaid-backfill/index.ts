@@ -139,6 +139,7 @@ serve(async (req) => {
         let offset = 0;
         let hasMore = true;
         let accountTransactions = 0;
+        const newTransactions: any[] = [];
 
         while (hasMore) {
           const response = await fetch(`${PLAID_API_URL}/transactions/get`, {
@@ -181,14 +182,8 @@ serve(async (req) => {
 
             if (accountTxns.length > 0) {
               // Transform and insert transactions
-              const newTransactions = accountTxns.map((transaction: any) => {
+              const txnsToInsert = accountTxns.map((transaction: any) => {
                 const txType = transaction.amount > 0 ? 'expense' : 'income';
-                const categoryName = transaction.personal_finance_category?.primary?.toLowerCase() || 
-                                     transaction.category?.[0]?.toLowerCase() || 'other';
-                const matchingCategory = userCategories?.find(cat => 
-                  cat.type === txType && 
-                  cat.name.toLowerCase().includes(categoryName)
-                );
 
                 return {
                   user_id: user.id,
@@ -200,7 +195,7 @@ serve(async (req) => {
                   type: txType,
                   transaction_date: transaction.date,
                   plaid_category: transaction.personal_finance_category || transaction.category,
-                  category_id: matchingCategory?.id || null,
+                  category_id: null, // Will be set by AI
                   status: 'completed',
                   notes: transaction.payment_channel ? `Payment via ${transaction.payment_channel}` : null,
                 };
@@ -208,23 +203,37 @@ serve(async (req) => {
 
               // Insert in batches
               const BATCH_SIZE = 100;
-              for (let i = 0; i < newTransactions.length; i += BATCH_SIZE) {
-                const batch = newTransactions.slice(i, i + BATCH_SIZE);
-                const { error: insertError } = await supabase
+              for (let i = 0; i < txnsToInsert.length; i += BATCH_SIZE) {
+                const batch = txnsToInsert.slice(i, i + BATCH_SIZE);
+                const { data: inserted, error: insertError } = await supabase
                   .from('transactions')
                   .upsert(batch, {
                     onConflict: 'plaid_transaction_id',
                     ignoreDuplicates: true
-                  });
+                  })
+                  .select();
 
                 if (insertError) {
                   console.error('[Plaid Backfill] Insert error:', insertError);
                   throw insertError;
                 }
+                
+                // Track new transactions for AI categorization
+                if (inserted) {
+                  for (const tx of inserted) {
+                    newTransactions.push({
+                      id: tx.id,
+                      description: tx.description,
+                      vendor_name: tx.vendor_name,
+                      amount: tx.amount,
+                      transaction_date: tx.transaction_date,
+                    });
+                  }
+                }
               }
 
-              accountTransactions += newTransactions.length;
-              totalImported += newTransactions.length;
+              accountTransactions += txnsToInsert.length;
+              totalImported += txnsToInsert.length;
             }
           }
 
@@ -236,6 +245,18 @@ serve(async (req) => {
           if (offset > 10000) {
             console.warn('[Plaid Backfill] Reached offset limit for account:', account.account_name);
             break;
+          }
+        }
+        
+        // Auto-categorize new transactions with AI
+        if (newTransactions.length > 0) {
+          try {
+            await supabase.functions.invoke('ai-categorize-transactions', {
+              body: { transactions: newTransactions }
+            });
+            console.log(`[Plaid Backfill] Auto-categorized ${newTransactions.length} transactions for ${account.account_name}`);
+          } catch (aiError) {
+            console.error('[Plaid Backfill] AI categorization failed:', aiError);
           }
         }
 
