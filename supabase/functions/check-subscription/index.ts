@@ -28,12 +28,38 @@ serve(async (req) => {
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) {
-      throw new Error("STRIPE_SECRET_KEY is not set");
+      logStep("STRIPE_SECRET_KEY not configured, returning free plan");
+      return new Response(
+        JSON.stringify({ 
+          subscribed: false, 
+          plan: "free",
+          inTrial: false,
+          trialDaysRemaining: null,
+          subscription_end: null
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        }
+      );
     }
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      throw new Error("No authorization header provided");
+      logStep("No authorization header");
+      return new Response(
+        JSON.stringify({ 
+          subscribed: false, 
+          plan: "free",
+          inTrial: false,
+          trialDaysRemaining: null,
+          subscription_end: null
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        }
+      );
     }
 
     const token = authHeader.replace("Bearer ", "");
@@ -141,11 +167,19 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("[CHECK-SUBSCRIPTION] Error:", error);
+    // Return free plan on error to prevent blocking the UI
     return new Response(
-      JSON.stringify({ error: getErrorMessage(error) }),
+      JSON.stringify({ 
+        subscribed: false, 
+        plan: "free",
+        inTrial: false,
+        trialDaysRemaining: null,
+        subscription_end: null,
+        error: getErrorMessage(error)
+      }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
+        status: 200,
       }
     );
   }
