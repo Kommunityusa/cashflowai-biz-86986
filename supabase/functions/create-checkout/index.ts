@@ -7,39 +7,57 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log("Checkout function called", req.method);
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
+    console.log("CORS preflight request");
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { email } = await req.json();
+    console.log("Processing checkout request");
+    const body = await req.json();
+    console.log("Request body:", body);
+    
+    const { email } = body;
     
     if (!email) {
+      console.error("No email provided");
       return new Response(
         JSON.stringify({ error: "Email is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    console.log("Initializing Stripe for email:", email);
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) {
+      console.error("STRIPE_SECRET_KEY not found");
+      throw new Error("Stripe configuration error");
+    }
+
+    const stripe = new Stripe(stripeKey, {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Check for existing customer
+    console.log("Checking for existing customer");
     const customers = await stripe.customers.list({ email, limit: 1 });
     const customerId = customers.data.length > 0 ? customers.data[0].id : undefined;
+    console.log("Customer ID:", customerId || "new customer");
 
-    // Create checkout session
+    console.log("Creating checkout session");
+    const origin = req.headers.get("origin") || "https://a90fd7c7-fc96-477a-a4ff-dcdac4fd96d9.lovableproject.com";
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : email,
       line_items: [{ price: "price_1SFoOqLKh5GKHicapLodcllu", quantity: 1 }],
       mode: "subscription",
-      success_url: `${req.headers.get("origin")}/dashboard?checkout=success`,
-      cancel_url: `${req.headers.get("origin")}/#pricing`,
+      success_url: `${origin}/dashboard?checkout=success`,
+      cancel_url: `${origin}/#pricing`,
     });
 
+    console.log("Checkout session created:", session.id);
     return new Response(
       JSON.stringify({ url: session.url }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
