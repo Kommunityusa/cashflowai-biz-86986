@@ -43,26 +43,39 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     
     const checkAuthAndPlan = async () => {
       try {
+        console.log('[ProtectedRoute] Starting auth check...');
         const { data: { session } } = await supabase.auth.getSession();
         
-        if (!mounted) return;
+        if (!mounted) {
+          console.log('[ProtectedRoute] Component unmounted, aborting');
+          return;
+        }
+        
+        console.log('[ProtectedRoute] Session:', session ? 'Found' : 'Not found');
         
         if (session) {
           setAuthenticated(true);
           
           // Quick check for admin or profile plan (no external API calls)
+          console.log('[ProtectedRoute] Checking roles and profile...');
           const [rolesResult, profileResult] = await Promise.all([
             supabase.from('user_roles').select('role').eq('user_id', session.user.id),
             supabase.from('profiles').select('subscription_plan').eq('user_id', session.user.id).maybeSingle()
           ]);
           
+          console.log('[ProtectedRoute] Roles:', rolesResult.data);
+          console.log('[ProtectedRoute] Profile:', profileResult.data);
+          
           const hasAdminRole = rolesResult.data?.some(r => r.role === 'admin') || false;
           const hasProfilePlan = !!profileResult.data?.subscription_plan;
+          
+          console.log('[ProtectedRoute] Has admin:', hasAdminRole, 'Has plan:', hasProfilePlan);
           
           // Allow access immediately if admin or has profile plan
           if (hasAdminRole || hasProfilePlan) {
             setHasPlan(true);
             setLoading(false);
+            console.log('[ProtectedRoute] Access granted - admin or has plan');
             return;
           }
           
@@ -70,12 +83,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
           // This prevents dashboard lockouts due to Stripe being slow
           setHasPlan(true);
           setLoading(false);
+          console.log('[ProtectedRoute] Access granted - default allow');
         } else {
           setAuthenticated(false);
           setLoading(false);
+          console.log('[ProtectedRoute] No session - auth check complete');
         }
       } catch (error) {
-        console.error('Auth check error:', error);
+        console.error('[ProtectedRoute] Auth check error:', error);
         if (mounted) {
           setLoading(false);
           setAuthenticated(false);
@@ -86,22 +101,29 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     checkAuthAndPlan();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      console.log('[ProtectedRoute] Auth state changed:', _event);
       if (!mounted) return;
       
       setAuthenticated(!!session);
       
       if (session) {
         // Quick check without external calls
-        const [rolesResult, profileResult] = await Promise.all([
-          supabase.from('user_roles').select('role').eq('user_id', session.user.id),
-          supabase.from('profiles').select('subscription_plan').eq('user_id', session.user.id).maybeSingle()
-        ]);
-        
-        const hasAdminRole = rolesResult.data?.some(r => r.role === 'admin') || false;
-        const hasProfilePlan = !!profileResult.data?.subscription_plan;
-        
-        // Default to allowing access if admin or has profile plan
-        setHasPlan(hasAdminRole || hasProfilePlan || true);
+        try {
+          const [rolesResult, profileResult] = await Promise.all([
+            supabase.from('user_roles').select('role').eq('user_id', session.user.id),
+            supabase.from('profiles').select('subscription_plan').eq('user_id', session.user.id).maybeSingle()
+          ]);
+          
+          const hasAdminRole = rolesResult.data?.some(r => r.role === 'admin') || false;
+          const hasProfilePlan = !!profileResult.data?.subscription_plan;
+          
+          // Default to allowing access if admin or has profile plan
+          setHasPlan(hasAdminRole || hasProfilePlan || true);
+        } catch (error) {
+          console.error('[ProtectedRoute] Error in auth state change:', error);
+          // Default to allowing access on error
+          setHasPlan(true);
+        }
       }
     });
 
