@@ -5,16 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Mail } from "lucide-react";
 
 export function Pricing() {
   const navigate = useNavigate();
@@ -33,25 +23,30 @@ export function Pricing() {
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
-      setShowTrialModal(true);
-    } else {
-      // Get user email from session
-      const email = session.user?.email;
-      if (!email) {
-        toast({
-          title: "Error",
-          description: "Unable to retrieve your email. Please sign in again.",
-          variant: "destructive",
-        });
-        return;
-      }
-      await processCheckout(email, planName);
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in to subscribe to a plan",
+      });
+      navigate("/auth");
+      return;
     }
+
+    // Get user email from session
+    const email = session.user?.email;
+    if (!email) {
+      toast({
+        title: "Error",
+        description: "Unable to retrieve your email. Please sign in again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    await processCheckout(email, planName);
   };
 
-  const processCheckout = async (email?: string, planName?: string) => {
+  const processCheckout = async (email: string, planName: string) => {
     setIsLoading(true);
-    setShowTrialModal(false);
 
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
@@ -177,40 +172,6 @@ export function Pricing() {
         </div>
       </div>
       
-      <Dialog open={showTrialModal} onOpenChange={setShowTrialModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Get Started with {selectedPlan}</DialogTitle>
-            <DialogDescription>
-              Enter your email to continue with your subscription
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            const formData = new FormData(e.currentTarget);
-            const email = formData.get('email') as string;
-            processCheckout(email, selectedPlan);
-          }} className="space-y-4">
-            <div>
-              <Label htmlFor="email">Email Address</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="your@email.com"
-                  className="pl-10"
-                  required
-                />
-              </div>
-            </div>
-            <Button type="submit" variant="gradient" className="w-full" disabled={isLoading}>
-              {isLoading ? "Processing..." : "Continue to Checkout"}
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
     </section>
   );
 }
