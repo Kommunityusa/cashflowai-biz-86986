@@ -8,10 +8,15 @@ const corsHeaders = {
 
 const plaidClientId = Deno.env.get('PLAID_CLIENT_ID');
 const plaidSecret = Deno.env.get('PLAID_SECRET');
+const plaidEnv = Deno.env.get('PLAID_ENV') || 'sandbox';
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-const PLAID_ENV = 'https://production.plaid.com';
+const PLAID_ENV = plaidEnv === 'production' 
+  ? 'https://production.plaid.com' 
+  : plaidEnv === 'development'
+  ? 'https://development.plaid.com'
+  : 'https://sandbox.plaid.com';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -20,6 +25,7 @@ serve(async (req) => {
 
   try {
     console.log('[PLAID-BACKFILL] Starting historical data backfill');
+    console.log('[PLAID-BACKFILL] Using Plaid environment:', PLAID_ENV);
     
     // Get authorization header
     const authHeader = req.headers.get('Authorization');

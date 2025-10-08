@@ -318,8 +318,8 @@ export function TaxPreparation() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={(entry) => `${entry.category}: ${entry.percentage.toFixed(1)}%`}
-                      outerRadius={80}
+                      label={false}
+                      outerRadius={100}
                       fill="#8884d8"
                       dataKey="amount"
                     >
@@ -327,7 +327,12 @@ export function TaxPreparation() {
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+                    <Tooltip 
+                      formatter={(value: number, name, props) => [
+                        `$${value.toFixed(2)} (${props.payload.percentage.toFixed(1)}%)`,
+                        props.payload.category
+                      ]} 
+                    />
                   </RePieChart>
                 </ResponsiveContainer>
 
