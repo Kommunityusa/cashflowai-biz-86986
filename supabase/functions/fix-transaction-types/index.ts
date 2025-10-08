@@ -13,6 +13,8 @@ serve(async (req) => {
   }
 
   try {
+    const { userEmail } = await req.json().catch(() => ({ userEmail: null }));
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -20,11 +22,34 @@ serve(async (req) => {
 
     console.log('[FIX-TRANSACTION-TYPES] Starting transaction type fix...');
 
-    // Get all transactions
-    const { data: transactions, error } = await supabaseClient
+    // Get user ID if email provided
+    let userId = null;
+    if (userEmail) {
+      const { data: user } = await supabaseClient
+        .from('profiles')
+        .select('user_id')
+        .eq('user_id', (
+          await supabaseClient.auth.admin.listUsers()
+        ).data.users.find(u => u.email === userEmail)?.id || '')
+        .single();
+      
+      if (user) {
+        userId = user.user_id;
+        console.log(`[FIX-TRANSACTION-TYPES] Targeting user: ${userEmail} (${userId})`);
+      }
+    }
+
+    // Get all transactions (filtered by user if specified)
+    let query = supabaseClient
       .from('transactions')
-      .select('id, description, amount, type, plaid_category')
+      .select('id, description, amount, type, plaid_category, user_id')
       .order('created_at', { ascending: false });
+
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+
+    const { data: transactions, error } = await query;
 
     if (error) {
       throw error;
