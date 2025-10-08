@@ -52,11 +52,17 @@ serve(async (req) => {
         },
         body: new URLSearchParams({
           email: user.email!,
-          metadata: JSON.stringify({ user_id: user.id }),
+          'metadata[user_id]': user.id,
         }),
       });
 
       const customer = await customerResponse.json();
+      
+      if (!customerResponse.ok) {
+        console.error('[STRIPE-CHECKOUT] Customer creation error:', customer);
+        throw new Error(customer.error?.message || 'Failed to create customer');
+      }
+      
       customerId = customer.id;
 
       // Save customer ID
