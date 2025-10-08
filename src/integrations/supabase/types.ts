@@ -54,11 +54,13 @@ export type Database = {
         Row: {
           account_mask: string | null
           account_name: string
+          account_number_last4: string | null
           account_type: string | null
           available_balance: number | null
           created_at: string | null
           currency: string | null
           current_balance: number | null
+          encryption_enabled: boolean | null
           id: string
           institution_name: string
           is_active: boolean | null
@@ -72,11 +74,13 @@ export type Database = {
         Insert: {
           account_mask?: string | null
           account_name: string
+          account_number_last4?: string | null
           account_type?: string | null
           available_balance?: number | null
           created_at?: string | null
           currency?: string | null
           current_balance?: number | null
+          encryption_enabled?: boolean | null
           id?: string
           institution_name: string
           is_active?: boolean | null
@@ -90,11 +94,13 @@ export type Database = {
         Update: {
           account_mask?: string | null
           account_name?: string
+          account_number_last4?: string | null
           account_type?: string | null
           available_balance?: number | null
           created_at?: string | null
           currency?: string | null
           current_balance?: number | null
+          encryption_enabled?: boolean | null
           id?: string
           institution_name?: string
           is_active?: boolean | null
