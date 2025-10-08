@@ -335,11 +335,6 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => navigate('/ai-assistant')}>
-              <Bot className="mr-2 h-4 w-4" />
-              <span className="hidden sm:inline">{t.ui.aiAssistant}</span>
-              <span className="sm:hidden">AI</span>
-            </Button>
             <Button variant="outline" onClick={() => navigate('/reports')}>
               <FileText className="mr-2 h-4 w-4" />
               <span className="hidden sm:inline">{t.nav.reports}</span>
