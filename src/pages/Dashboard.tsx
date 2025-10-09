@@ -624,15 +624,15 @@ export default function Dashboard() {
                   <CardTitle>{t.ui.incomeByCategory}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={350}>
                     <PieChart>
                       <Pie
                         data={categoryData.filter(c => c.type === 'income')}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={(entry) => `${entry.name}: ${formatCurrency(entry.value)}`}
-                        outerRadius={80}
+                        label={false}
+                        outerRadius={100}
                         fill="#8884d8"
                         dataKey="value"
                       >
@@ -642,7 +642,24 @@ export default function Dashboard() {
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                       </Pie>
-                      <Tooltip />
+                      <Tooltip 
+                        formatter={(value: number) => formatCurrency(value)}
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--card))', 
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px'
+                        }}
+                      />
+                      <Legend 
+                        verticalAlign="bottom" 
+                        height={36}
+                        formatter={(value, entry: any) => {
+                          const categoryName = entry.payload.name;
+                          const categoryValue = formatCurrency(entry.payload.value);
+                          return `${categoryName}: ${categoryValue}`;
+                        }}
+                        wrapperStyle={{ fontSize: '12px' }}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 </CardContent>
@@ -653,15 +670,15 @@ export default function Dashboard() {
                   <CardTitle>{t.ui.expensesByCategory}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={350}>
                     <PieChart>
                       <Pie
                         data={categoryData.filter(c => c.type === 'expense')}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={(entry) => `${entry.name}: ${formatCurrency(entry.value)}`}
-                        outerRadius={80}
+                        label={false}
+                        outerRadius={100}
                         fill="#8884d8"
                         dataKey="value"
                       >
@@ -671,7 +688,24 @@ export default function Dashboard() {
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                       </Pie>
-                      <Tooltip />
+                      <Tooltip 
+                        formatter={(value: number) => formatCurrency(value)}
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--card))', 
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px'
+                        }}
+                      />
+                      <Legend 
+                        verticalAlign="bottom" 
+                        height={36}
+                        formatter={(value, entry: any) => {
+                          const categoryName = entry.payload.name;
+                          const categoryValue = formatCurrency(entry.payload.value);
+                          return `${categoryName}: ${categoryValue}`;
+                        }}
+                        wrapperStyle={{ fontSize: '12px' }}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 </CardContent>
