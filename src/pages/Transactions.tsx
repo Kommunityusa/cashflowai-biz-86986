@@ -75,7 +75,6 @@ import {
   X,
   RefreshCw,
   Settings,
-  Zap,
 } from "lucide-react";
 
 export default function Transactions() {
@@ -99,7 +98,7 @@ export default function Transactions() {
   const [selectedTransactionIds, setSelectedTransactionIds] = useState<Set<string>>(new Set());
   const [advancedFilters, setAdvancedFilters] = useState<SearchFilters | null>(null);
   const [editingDateId, setEditingDateId] = useState<string | null>(null);
-  const [isReclassifying, setIsReclassifying] = useState(false);
+  
   const [editingDate, setEditingDate] = useState("");
   const [editingTypeId, setEditingTypeId] = useState<string | null>(null);
   const [editingType, setEditingType] = useState<'income' | 'expense'>('expense');
@@ -115,7 +114,6 @@ export default function Transactions() {
     notes: "",
   });
   const [isAICategorizing, setIsAICategorizing] = useState(false);
-  const [isBulkCategorizing, setIsBulkCategorizing] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -123,6 +121,50 @@ export default function Transactions() {
       fetchTransactions();
     }
   }, [user]);
+
+  // Auto-categorize and fix types when transactions load
+  useEffect(() => {
+    if (transactions.length > 0 && user) {
+      const runAutoML = async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) return;
+
+          // Run both operations in parallel
+          const uncategorizedTransactions = transactions.filter(t => !t.category_id);
+          
+          if (uncategorizedTransactions.length > 0) {
+            // Auto-categorize uncategorized transactions in background
+            supabase.functions.invoke('ai-categorize-transactions', {
+              body: {
+                transactions: uncategorizedTransactions.map(t => ({
+                  id: t.id,
+                  description: t.description,
+                  vendor_name: t.vendor_name,
+                  amount: t.amount,
+                  transaction_date: t.transaction_date,
+                }))
+              },
+              headers: {
+                Authorization: `Bearer ${session.access_token}`,
+              },
+            });
+          }
+
+          // Auto-fix transaction types in background
+          supabase.functions.invoke('ai-reclassify-types', {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          });
+        } catch (error) {
+          console.error('Background ML error:', error);
+        }
+      };
+
+      runAutoML();
+    }
+  }, [transactions.length, user]);
 
   const fetchCategories = async () => {
     const { data, error } = await supabase
@@ -218,61 +260,6 @@ export default function Transactions() {
     setIsAICategorizing(false);
   };
 
-  const handleBulkAICategorize = async () => {
-    // Process ALL transactions to improve categorization
-    const transactionsToProcess = filteredTransactions;
-    
-    if (transactionsToProcess.length === 0) {
-      toast({
-        title: "Info",
-        description: "No transactions found to categorize",
-      });
-      return;
-    }
-
-    setIsBulkCategorizing(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error("Not authenticated");
-      }
-
-      const { data, error } = await supabase.functions.invoke('ai-categorize-transactions', {
-        body: {
-          transactions: transactionsToProcess.map(t => ({
-            id: t.id,
-            description: t.description,
-            vendor_name: t.vendor_name,
-            amount: t.amount,
-            transaction_date: t.transaction_date,
-          }))
-        },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (error) throw error;
-
-      const successCount = data?.results?.filter((r: any) => r.success).length || 0;
-      
-      toast({
-        title: "Categorization Complete",
-        description: `Successfully categorized ${successCount} out of ${transactionsToProcess.length} transactions`,
-      });
-      
-      // Refresh transactions to show updated categories
-      await fetchTransactions();
-    } catch (error) {
-      console.error('Bulk categorization error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to categorize transactions. Please try again.",
-        variant: "destructive",
-      });
-    }
-    setIsBulkCategorizing(false);
-  };
 
   const handleAddTransaction = async () => {
     if (!newTransaction.description || !newTransaction.amount) {
@@ -470,34 +457,6 @@ export default function Transactions() {
     setEditingTypeId(null);
   };
 
-  const handleReclassifyTypes = async () => {
-    setIsReclassifying(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('ai-reclassify-types');
-
-      if (error) throw error;
-
-      toast({
-        title: "Processing Started",
-        description: "AI is analyzing your transactions in the background. This may take a few minutes.",
-      });
-
-      // Refresh transactions after a delay
-      setTimeout(() => {
-        fetchTransactions();
-      }, 5000);
-
-    } catch (error) {
-      console.error('Error reclassifying transactions:', error);
-      toast({
-        title: "Error",
-        description: "Failed to start reclassification process",
-        variant: "destructive",
-      });
-    } finally {
-      setIsReclassifying(false);
-    }
-  };
 
   const handleDateChange = async (transactionId: string, newDate: string) => {
     try {
@@ -875,34 +834,7 @@ export default function Transactions() {
 
             {/* Action Buttons */}
             <div className="flex flex-wrap gap-2 my-6">
-              <Button 
-                onClick={handleReclassifyTypes}
-                disabled={isReclassifying}
-                variant="outline"
-              >
-                {isReclassifying ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Reclassifying...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="h-4 w-4 mr-2" />
-                    AI Fix Types
-                  </>
-                )}
-              </Button>
-              
-              <Button 
-                onClick={handleBulkAICategorize}
-                disabled={isBulkCategorizing}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-              >
-                <Sparkles className="mr-2 h-4 w-4" />
-                {isBulkCategorizing ? "Categorizing..." : "Auto Categorize All"}
-              </Button>
-          
-          <Button 
+          <Button
             variant="outline" 
             onClick={() => fetchTransactions()}
             disabled={loading}
