@@ -23,7 +23,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Plus, Edit, Trash2, Palette } from "lucide-react";
 import * as Icons from "lucide-react";
-import { RestoreCategoryButton } from "./RestoreCategoryButton";
 
 interface Category {
   id: string;
@@ -220,15 +219,13 @@ export function CategoryManager() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Category Management</CardTitle>
-        <div className="flex gap-2">
-          <RestoreCategoryButton />
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Category
-              </Button>
-            </DialogTrigger>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Category
+            </Button>
+          </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Add New Category</DialogTitle>
@@ -308,9 +305,8 @@ export function CategoryManager() {
                   Add Category
                 </Button>
               </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+          </DialogContent>
+        </Dialog>
       </CardHeader>
       <CardContent>
         {loading ? (
