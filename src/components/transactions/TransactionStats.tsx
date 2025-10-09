@@ -36,7 +36,7 @@ export function TransactionStats({ transactions }: TransactionStatsProps) {
     : 0;
   
   const taxDeductibleAmount = financialTransactions
-    .filter(t => t.tax_deductible && t.type === 'expense')
+    .filter(t => t.is_tax_deductible && t.type === 'expense')
     .reduce((sum, t) => sum + Number(t.amount), 0);
   
   return (
