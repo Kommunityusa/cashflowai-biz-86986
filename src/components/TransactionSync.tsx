@@ -430,15 +430,6 @@ export function TransactionSync({ onSyncComplete }: TransactionSyncProps) {
                   <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
                   {syncing ? "Syncing..." : "Sync Transactions"}
                 </Button>
-                <Button
-                  onClick={handleHistoricalBackfill}
-                  disabled={backfilling}
-                  size="sm"
-                  variant="secondary"
-                >
-                  <Download className={`mr-2 h-4 w-4 ${backfilling ? 'animate-pulse' : ''}`} />
-                  {backfilling ? "Importing..." : "Import 24 Months"}
-                </Button>
               </div>
             </div>
           )}
