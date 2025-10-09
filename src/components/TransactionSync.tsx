@@ -170,14 +170,7 @@ export function TransactionSync({ onSyncComplete }: TransactionSyncProps) {
         }
       });
 
-      // Now categorize the new transactions if any were synced
-      if (data.transactions_synced > 0) {
-        toast({
-          title: "Categorizing Transactions",
-          description: "AI is now categorizing your new transactions...",
-        });
-        await handleAICategorization();
-      }
+      // Removed auto-categorization - users can click the button to categorize
       
       // Refresh the data
       await fetchSyncStatus();
