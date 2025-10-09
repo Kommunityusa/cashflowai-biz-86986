@@ -99,6 +99,9 @@ export default function Transactions() {
   const [advancedFilters, setAdvancedFilters] = useState<SearchFilters | null>(null);
   const [editingDateId, setEditingDateId] = useState<string | null>(null);
   const [editingDate, setEditingDate] = useState("");
+  const [editingTypeId, setEditingTypeId] = useState<string | null>(null);
+  const [editingType, setEditingType] = useState<'income' | 'expense'>('expense');
+  const [editingIsInternalTransfer, setEditingIsInternalTransfer] = useState(false);
   const transactionsPerPage = 50;
   
   const [newTransaction, setNewTransaction] = useState({
@@ -448,6 +451,21 @@ export default function Transactions() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleEditType = (transactionId: string, currentType: 'income' | 'expense', isInternalTransfer: boolean) => {
+    setEditingTypeId(transactionId);
+    setEditingType(currentType);
+    setEditingIsInternalTransfer(isInternalTransfer || false);
+  };
+
+  const handleSaveType = async (transactionId: string) => {
+    await handleTypeChange(transactionId, editingType, editingIsInternalTransfer);
+    setEditingTypeId(null);
+  };
+
+  const handleCancelTypeEdit = () => {
+    setEditingTypeId(null);
   };
 
   const handleDateChange = async (transactionId: string, newDate: string) => {
@@ -1170,20 +1188,59 @@ export default function Transactions() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                          transaction.type === 'income' 
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
-                            : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                        }`}>
-                          {transaction.type === 'income' ? '↑ Income' : '↓ Expense'}
-                        </span>
-                        {transaction.tax_deductible && (
-                          <span className="text-xs text-blue-600 dark:text-blue-400" title="Tax Deductible">
-                            📋
-                          </span>
-                        )}
-                      </div>
+                      {editingTypeId === transaction.id ? (
+                        <div className="flex items-center gap-2">
+                          <Select value={editingType} onValueChange={(value: 'income' | 'expense') => setEditingType(value)}>
+                            <SelectTrigger className="w-[120px] h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background">
+                              <SelectItem value="income">Income</SelectItem>
+                              <SelectItem value="expense">Expense</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <label className="flex items-center gap-1 text-xs whitespace-nowrap">
+                            <input 
+                              type="checkbox" 
+                              checked={editingIsInternalTransfer}
+                              onChange={(e) => setEditingIsInternalTransfer(e.target.checked)}
+                              className="rounded"
+                            />
+                            Transfer
+                          </label>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleSaveType(transaction.id)}>
+                            <Check className="h-4 w-4 text-green-600" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleCancelTypeEdit}>
+                            <X className="h-4 w-4 text-red-600" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div 
+                          className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-1 transition-colors group/type"
+                          onClick={() => handleEditType(transaction.id, transaction.type, transaction.is_internal_transfer)}
+                        >
+                          {transaction.is_internal_transfer ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                              Transfer
+                            </span>
+                          ) : (
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                              transaction.type === 'income' 
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
+                                : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                            }`}>
+                              {transaction.type === 'income' ? '↑ Income' : '↓ Expense'}
+                            </span>
+                          )}
+                          {transaction.tax_deductible && (
+                            <span className="text-xs text-blue-600 dark:text-blue-400" title="Tax Deductible">
+                              📋
+                            </span>
+                          )}
+                          <Edit className="h-3 w-3 text-muted-foreground opacity-0 group-hover/type:opacity-100 transition-opacity" />
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <span className={`font-semibold text-lg ${
