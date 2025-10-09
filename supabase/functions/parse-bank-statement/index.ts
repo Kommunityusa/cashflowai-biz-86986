@@ -40,32 +40,16 @@ serve(async (req) => {
 
     console.log('[PARSE-STATEMENT] Processing PDF:', file.name, 'Size:', file.size);
 
-    // Read file as bytes
-    const arrayBuffer = await file.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
-    
-    // Convert to base64 in chunks to avoid stack overflow
-    let base64 = '';
-    const chunkSize = 10000;
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-      const chunk = bytes.slice(i, i + chunkSize);
-      base64 += btoa(String.fromCharCode(...Array.from(chunk)));
-    }
-    
-    console.log('[PARSE-STATEMENT] Converted to base64, length:', base64.length);
-    console.log('[PARSE-STATEMENT] Uploading to PDF.co...');
+    // Step 1: Upload PDF directly to PDF.co using binary upload
+    const uploadFormData = new FormData();
+    uploadFormData.append('file', file);
 
-    // Step 1: Upload PDF to PDF.co
-    const uploadResponse = await fetch('https://api.pdf.co/v1/file/upload/base64', {
+    const uploadResponse = await fetch('https://api.pdf.co/v1/file/upload', {
       method: 'POST',
       headers: {
         'x-api-key': PDFCO_API_KEY || '',
-        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        name: file.name,
-        file: base64,
-      }),
+      body: uploadFormData,
     });
 
     if (!uploadResponse.ok) {
@@ -77,7 +61,7 @@ serve(async (req) => {
     const uploadData = await uploadResponse.json();
     const pdfUrl = uploadData.url;
 
-    console.log('[PARSE-STATEMENT] PDF uploaded successfully, URL:', pdfUrl);
+    console.log('[PARSE-STATEMENT] PDF uploaded successfully to PDF.co');
     console.log('[PARSE-STATEMENT] Extracting text from PDF...');
 
     // Step 2: Extract text from PDF using PDF.co
