@@ -39,21 +39,28 @@ serve(async (req) => {
       );
     }
 
-    // Fetch user's financial data for context
-    const [transactionsResult, categoriesResult, bankAccountsResult, budgetsResult] = await Promise.all([
-      supabaseClient.from('transactions').select('*').order('transaction_date', { ascending: false }).limit(50),
+    // Fetch comprehensive financial data for context
+    const currentYear = new Date().getFullYear();
+    const yearStart = `${currentYear}-01-01`;
+    
+    const [transactionsResult, categoriesResult, bankAccountsResult, budgetsResult, vendorsResult, recurringResult] = await Promise.all([
+      supabaseClient.from('transactions').select('*').gte('transaction_date', yearStart).order('transaction_date', { ascending: false }),
       supabaseClient.from('categories').select('*'),
-      supabaseClient.from('bank_accounts').select('*').eq('is_active', true),
-      supabaseClient.from('budgets').select('*, categories(name)').eq('is_active', true)
+      supabaseClient.from('bank_accounts').select('*'),
+      supabaseClient.from('budgets').select('*, categories(name)').eq('is_active', true),
+      supabaseClient.from('vendors').select('*').eq('is_active', true),
+      supabaseClient.from('recurring_transactions').select('*').eq('is_active', true)
     ]);
 
     const transactions = transactionsResult.data || [];
     const categories = categoriesResult.data || [];
     const bankAccounts = bankAccountsResult.data || [];
     const budgets = budgetsResult.data || [];
+    const vendors = vendorsResult.data || [];
+    const recurring = recurringResult.data || [];
 
-    // Calculate financial metrics
-    const totalIncome = transactions
+    // Calculate Profit & Loss metrics
+    const revenue = transactions
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + Number(t.amount), 0);
     
@@ -61,26 +68,70 @@ serve(async (req) => {
       .filter(t => t.type === 'expense')
       .reduce((sum, t) => sum + Number(t.amount), 0);
 
-    const categorySpending = categories.map(cat => {
-      const spent = transactions
-        .filter(t => t.category_id === cat.id && t.type === 'expense')
-        .reduce((sum, t) => sum + Number(t.amount), 0);
-      return { name: cat.name, amount: spent };
-    }).filter(c => c.amount > 0).sort((a, b) => b.amount - a.amount).slice(0, 5);
+    const netIncome = revenue - totalExpenses;
 
-    console.log('Calling Lovable AI chat with user context...');
+    // Calculate Balance Sheet metrics
+    const totalAssets = bankAccounts
+      .filter(a => a.is_active)
+      .reduce((sum, a) => sum + Number(a.current_balance || 0), 0);
+
+    // Expense breakdown by category
+    const expensesByCategory = categories
+      .filter(c => c.type === 'expense')
+      .map(cat => {
+        const spent = transactions
+          .filter(t => t.category_id === cat.id && t.type === 'expense')
+          .reduce((sum, t) => sum + Number(t.amount), 0);
+        return { name: cat.name, amount: spent };
+      })
+      .filter(c => c.amount > 0)
+      .sort((a, b) => b.amount - a.amount);
+
+    // Revenue breakdown by category
+    const revenueByCategory = categories
+      .filter(c => c.type === 'income')
+      .map(cat => {
+        const earned = transactions
+          .filter(t => t.category_id === cat.id && t.type === 'income')
+          .reduce((sum, t) => sum + Number(t.amount), 0);
+        return { name: cat.name, amount: earned };
+      })
+      .filter(c => c.amount > 0)
+      .sort((a, b) => b.amount - a.amount);
+
+    console.log('Calling Lovable AI chat with comprehensive user context...');
     
-    // Build messages array with conversation history and financial context
+    // Build comprehensive financial context
     const contextInfo = `
 
-CURRENT FINANCIAL CONTEXT:
-- Total Income (Recent): $${totalIncome.toFixed(2)}
-- Total Expenses (Recent): $${totalExpenses.toFixed(2)}
-- Net Cash Flow: $${(totalIncome - totalExpenses).toFixed(2)}
-- Active Bank Accounts: ${bankAccounts.length}
-- Recent Transactions: ${transactions.length}
-${categorySpending.length > 0 ? `\nTop Spending Categories:\n${categorySpending.map(c => `  - ${c.name}: $${c.amount.toFixed(2)}`).join('\n')}` : ''}
-${budgets.length > 0 ? `\nActive Budgets: ${budgets.length}` : ''}
+COMPREHENSIVE FINANCIAL DATA (Year ${currentYear}):
+
+PROFIT & LOSS STATEMENT:
+- Total Revenue: $${revenue.toFixed(2)}
+- Total Expenses: $${totalExpenses.toFixed(2)}
+- Net Income (Profit/Loss): $${netIncome.toFixed(2)}
+- Profit Margin: ${revenue > 0 ? ((netIncome / revenue) * 100).toFixed(2) : '0.00'}%
+
+REVENUE BREAKDOWN:
+${revenueByCategory.length > 0 ? revenueByCategory.map(c => `  - ${c.name}: $${c.amount.toFixed(2)}`).join('\n') : '  - No revenue recorded'}
+
+EXPENSE BREAKDOWN:
+${expensesByCategory.length > 0 ? expensesByCategory.map(c => `  - ${c.name}: $${c.amount.toFixed(2)}`).join('\n') : '  - No expenses recorded'}
+
+BALANCE SHEET:
+- Total Assets (Bank Accounts): $${totalAssets.toFixed(2)}
+- Active Bank Accounts: ${bankAccounts.filter(a => a.is_active).length}
+${bankAccounts.filter(a => a.is_active).map(a => `  - ${a.account_name}: $${Number(a.current_balance || 0).toFixed(2)}`).join('\n')}
+
+TRANSACTION SUMMARY:
+- Total Transactions: ${transactions.length}
+- Total Vendors: ${vendors.length}
+- Recurring Transactions: ${recurring.length}
+- Active Budgets: ${budgets.length}
+
+ADDITIONAL METRICS:
+- Average Transaction Size: $${transactions.length > 0 ? (transactions.reduce((sum, t) => sum + Number(t.amount), 0) / transactions.length).toFixed(2) : '0.00'}
+- Transactions Needing Review: ${transactions.filter(t => t.needs_review).length}
 `;
 
     const messages = [
@@ -95,7 +146,7 @@ ${budgets.length > 0 ? `\nActive Budgets: ${budgets.length}` : ''}
 - Expense tracking best practices
 - Accounting terminology and concepts
 
-You have access to the user's current financial data and can provide personalized insights based on their actual numbers.
+You have FULL ACCESS to the user's financial data including all transactions, profit and loss statements, balance sheet information, vendors, budgets, and recurring transactions.
 
 ${contextInfo}
 
@@ -107,7 +158,7 @@ CRITICAL FORMATTING RULES:
 - Use simple line breaks to separate sections
 - Keep responses conversational and natural
 
-You provide clear, accurate, and actionable advice. When discussing financial matters, be specific and professional, referencing their actual data when relevant. If you're unsure about something, recommend consulting a certified accountant.
+You provide clear, accurate, and actionable advice. When discussing financial matters, be specific and professional, referencing their actual data when relevant. You can see their complete financial picture for the current year. If you're unsure about something, recommend consulting a certified accountant.
 
 Keep responses concise and well-formatted with simple paragraphs.`
       },
