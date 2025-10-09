@@ -39,9 +39,50 @@ serve(async (req) => {
       );
     }
 
-    console.log('Calling Lovable AI chat...');
+    // Fetch user's financial data for context
+    const [transactionsResult, categoriesResult, bankAccountsResult, budgetsResult] = await Promise.all([
+      supabaseClient.from('transactions').select('*').order('transaction_date', { ascending: false }).limit(50),
+      supabaseClient.from('categories').select('*'),
+      supabaseClient.from('bank_accounts').select('*').eq('is_active', true),
+      supabaseClient.from('budgets').select('*, categories(name)').eq('is_active', true)
+    ]);
+
+    const transactions = transactionsResult.data || [];
+    const categories = categoriesResult.data || [];
+    const bankAccounts = bankAccountsResult.data || [];
+    const budgets = budgetsResult.data || [];
+
+    // Calculate financial metrics
+    const totalIncome = transactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + Number(t.amount), 0);
     
-    // Build messages array with conversation history
+    const totalExpenses = transactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+    const categorySpending = categories.map(cat => {
+      const spent = transactions
+        .filter(t => t.category_id === cat.id && t.type === 'expense')
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      return { name: cat.name, amount: spent };
+    }).filter(c => c.amount > 0).sort((a, b) => b.amount - a.amount).slice(0, 5);
+
+    console.log('Calling Lovable AI chat with user context...');
+    
+    // Build messages array with conversation history and financial context
+    const contextInfo = `
+
+CURRENT FINANCIAL CONTEXT:
+- Total Income (Recent): $${totalIncome.toFixed(2)}
+- Total Expenses (Recent): $${totalExpenses.toFixed(2)}
+- Net Cash Flow: $${(totalIncome - totalExpenses).toFixed(2)}
+- Active Bank Accounts: ${bankAccounts.length}
+- Recent Transactions: ${transactions.length}
+${categorySpending.length > 0 ? `\nTop Spending Categories:\n${categorySpending.map(c => `  - ${c.name}: $${c.amount.toFixed(2)}`).join('\n')}` : ''}
+${budgets.length > 0 ? `\nActive Budgets: ${budgets.length}` : ''}
+`;
+
     const messages = [
       {
         role: 'system',
@@ -54,7 +95,11 @@ serve(async (req) => {
 - Expense tracking best practices
 - Accounting terminology and concepts
 
-You provide clear, accurate, and actionable advice. When discussing financial matters, be specific and professional. If you're unsure about something, recommend consulting a certified accountant.
+You have access to the user's current financial data and can provide personalized insights based on their actual numbers.
+
+${contextInfo}
+
+You provide clear, accurate, and actionable advice. When discussing financial matters, be specific and professional, referencing their actual data when relevant. If you're unsure about something, recommend consulting a certified accountant.
 
 Keep responses concise and well-formatted. Use bullet points and clear sections when appropriate.`
       },
