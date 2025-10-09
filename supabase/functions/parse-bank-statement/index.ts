@@ -149,17 +149,23 @@ Return ONLY valid JSON (no markdown, no explanations):
     let extractedData;
     try {
       const content = aiData.choices[0].message.content.trim();
+      console.log('[PARSE-STATEMENT] AI response preview:', content.substring(0, 500));
+      
       const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       extractedData = JSON.parse(cleanContent);
+      console.log('[PARSE-STATEMENT] Parsed data, transaction count:', extractedData.transactions?.length || 0);
     } catch (parseError) {
       console.error('[PARSE-STATEMENT] Parse error:', parseError);
+      console.error('[PARSE-STATEMENT] Raw AI response:', aiData.choices[0].message.content.substring(0, 1000));
       throw new Error('Failed to parse AI response');
     }
 
     const transactions = extractedData.transactions || [];
     
     if (transactions.length === 0) {
-      throw new Error('No transactions found in PDF');
+      console.error('[PARSE-STATEMENT] No transactions in parsed data');
+      console.error('[PARSE-STATEMENT] Full AI response:', JSON.stringify(aiData.choices[0].message.content).substring(0, 2000));
+      throw new Error('No transactions found in PDF. The AI could not extract transaction data from the statement.');
     }
 
     console.log(`[PARSE-STATEMENT] Found ${transactions.length} transactions`);
