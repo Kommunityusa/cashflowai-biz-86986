@@ -204,7 +204,11 @@ export function CategoryManager() {
     }
   };
 
-  const getIconComponent = (iconName: string) => {
+  const getIconComponent = (iconName: string | null) => {
+    const DefaultIcon = Icons.Tag;
+    if (!iconName) {
+      return <DefaultIcon className="h-4 w-4" />;
+    }
     const IconComponent = (Icons as any)[
       iconName.charAt(0).toUpperCase() + iconName.slice(1).replace(/-./g, x => x[1].toUpperCase())
     ] || Icons.Tag;
