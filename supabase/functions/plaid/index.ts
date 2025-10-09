@@ -581,17 +581,20 @@ serve(async (req) => {
                   };
                 });
 
-                // Batch insert new transactions
+                // Batch insert new transactions with upsert to handle duplicates
                 const CHUNK_SIZE = 100;
                 for (let i = 0; i < newTransactions.length; i += CHUNK_SIZE) {
                   const chunk = newTransactions.slice(i, i + CHUNK_SIZE);
                   const { error: insertError } = await supabase
                     .from('transactions')
-                    .insert(chunk);
+                    .upsert(chunk, {
+                      onConflict: 'plaid_transaction_id',
+                      ignoreDuplicates: true
+                    });
                   
                   if (insertError) {
                     console.error(`[Plaid Function] Error inserting transactions batch:`, insertError);
-                    throw insertError;
+                    // Don't throw - log and continue to process other transactions
                   }
                 }
                 
