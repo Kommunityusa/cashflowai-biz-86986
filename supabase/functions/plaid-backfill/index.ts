@@ -48,8 +48,15 @@ serve(async (req) => {
       );
     }
 
-    const { dateRange } = await req.json();
-    const daysBack = dateRange || 730; // Default to 2 years if not specified
+    // Handle empty body
+    let dateRange = 730; // Default to 2 years
+    try {
+      const body = await req.json();
+      dateRange = body.dateRange || 730;
+    } catch {
+      // Empty body, use default
+    }
+    const daysBack = dateRange;
 
     console.log('[Plaid Backfill] Starting historical transaction backfill for user:', user.id);
 
