@@ -1,9 +1,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
-import { encodeBase64 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+const PDFCO_API_KEY = Deno.env.get('PDFCO_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,16 +40,62 @@ serve(async (req) => {
 
     console.log('[PARSE-STATEMENT] Processing PDF:', file.name, 'Size:', file.size);
 
-    // Convert to base64 using Deno's standard library (handles large files better)
+    // Read file as bytes
     const arrayBuffer = await file.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-    const base64 = encodeBase64(uint8Array);
+    const bytes = new Uint8Array(arrayBuffer);
+    
+    // Convert to base64 for PDF.co upload
+    const base64 = btoa(String.fromCharCode(...Array.from(bytes.slice(0, 1000000)))); // Limit to 1MB chunks
+    
+    console.log('[PARSE-STATEMENT] Uploading to PDF.co...');
 
-    console.log('[PARSE-STATEMENT] Converted to base64, length:', base64.length);
-    console.log('[PARSE-STATEMENT] Calling AI to extract transactions...');
+    // Step 1: Upload PDF to PDF.co
+    const uploadResponse = await fetch('https://api.pdf.co/v1/file/upload/base64', {
+      method: 'POST',
+      headers: {
+        'x-api-key': PDFCO_API_KEY || '',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: file.name,
+        file: base64,
+      }),
+    });
 
-    // Call Lovable AI with PDF as base64
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    if (!uploadResponse.ok) {
+      throw new Error('Failed to upload PDF to PDF.co');
+    }
+
+    const uploadData = await uploadResponse.json();
+    const pdfUrl = uploadData.url;
+
+    console.log('[PARSE-STATEMENT] PDF uploaded, extracting text...');
+
+    // Step 2: Extract text from PDF using PDF.co
+    const extractResponse = await fetch('https://api.pdf.co/v1/pdf/convert/to/text', {
+      method: 'POST',
+      headers: {
+        'x-api-key': PDFCO_API_KEY || '',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url: pdfUrl,
+        async: false,
+      }),
+    });
+
+    if (!extractResponse.ok) {
+      throw new Error('Failed to extract text from PDF');
+    }
+
+    const extractData = await extractResponse.json();
+    const pdfText = extractData.body || '';
+
+    console.log('[PARSE-STATEMENT] Extracted text length:', pdfText.length);
+    console.log('[PARSE-STATEMENT] Calling AI to parse transactions...');
+
+    // Step 3: Use AI to parse transactions from extracted text
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${LOVABLE_API_KEY}`,
@@ -60,75 +106,54 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are an expert at extracting transaction data from bank statement PDFs.
-Extract ALL transactions and return as JSON.
+            content: `Extract ALL transactions from this bank statement text and return as JSON array.
 
 RULES:
-1. Parse dates to YYYY-MM-DD (use 2025 if year missing)
+1. Date format: YYYY-MM-DD (use 2025 if year missing)
 2. Extract merchant/vendor name
-3. Amount as absolute positive number (no $ or commas)
-4. Determine type:
-   - INCOME: "ACH In", "Deposit", "Credit", "Transfer In", amounts increasing balance
-   - EXPENSE: "ACH Pull", "Payment", "Transfer Out", "Withdrawal", amounts decreasing balance
-5. Extract EVERY transaction
+3. Amount: absolute positive number (no $ or commas)
+4. Type determination:
+   - INCOME: "ACH In", "Deposit", "Credit", "Transfer In", positive amounts, balance increases
+   - EXPENSE: "ACH Pull", "ACH Payment", "Transfer Out", "Withdrawal", negative amounts with minus sign, balance decreases
+5. Extract EVERY single transaction - do not skip any
 
-Return ONLY valid JSON (no markdown):
+Return ONLY valid JSON (no markdown, no explanations):
 {
   "transactions": [
     {
       "date": "2025-01-15",
-      "description": "Stripe Payment",
+      "description": "Merchant Name",
       "amount": 150.00,
       "type": "income",
-      "vendor_name": "Stripe"
+      "vendor_name": "Merchant Name"
     }
   ]
 }`
           },
           {
             role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: 'Extract all transactions from this bank statement. Return pure JSON only.'
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:application/pdf;base64,${base64}`
-                }
-              }
-            ]
+            content: `Extract all transactions from this bank statement:\n\n${pdfText.substring(0, 50000)}`
           }
         ],
       }),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[PARSE-STATEMENT] AI error:', response.status, errorText);
-      
-      if (response.status === 429) {
-        throw new Error('Rate limit exceeded. Please try again later.');
-      }
-      if (response.status === 402) {
-        throw new Error('Credits required. Please add funds to continue.');
-      }
-      
-      throw new Error(`AI service error: ${response.status}`);
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error('[PARSE-STATEMENT] AI error:', errorText);
+      throw new Error('AI extraction failed');
     }
 
-    const aiResponse = await response.json();
-    console.log('[PARSE-STATEMENT] AI response received');
+    const aiData = await aiResponse.json();
     
     let extractedData;
     try {
-      const content = aiResponse.choices[0].message.content.trim();
+      const content = aiData.choices[0].message.content.trim();
       const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       extractedData = JSON.parse(cleanContent);
     } catch (parseError) {
       console.error('[PARSE-STATEMENT] Parse error:', parseError);
-      throw new Error('Failed to extract transactions from PDF');
+      throw new Error('Failed to parse AI response');
     }
 
     const transactions = extractedData.transactions || [];
@@ -137,7 +162,7 @@ Return ONLY valid JSON (no markdown):
       throw new Error('No transactions found in PDF');
     }
 
-    console.log(`[PARSE-STATEMENT] Extracted ${transactions.length} transactions`);
+    console.log(`[PARSE-STATEMENT] Found ${transactions.length} transactions`);
 
     // Insert into database
     const transactionsToInsert = transactions.map((t: any) => ({
@@ -158,7 +183,7 @@ Return ONLY valid JSON (no markdown):
 
     if (insertError) {
       console.error('[PARSE-STATEMENT] Insert error:', insertError);
-      throw new Error(`Failed to save transactions: ${insertError.message}`);
+      throw new Error(`Failed to save: ${insertError.message}`);
     }
 
     console.log(`[PARSE-STATEMENT] Saved ${insertedTransactions?.length || 0} transactions`);
