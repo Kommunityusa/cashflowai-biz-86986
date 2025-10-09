@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, DollarSign, Activity, PieChart, Calendar } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, PieChart } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 interface TransactionStatsProps {
@@ -35,14 +35,10 @@ export function TransactionStats({ transactions }: TransactionStatsProps) {
     ? (categorizedCount / transactions.length) * 100 
     : 0;
   
-  const taxDeductibleAmount = financialTransactions
-    .filter(t => t.is_tax_deductible && t.type === 'expense')
-    .reduce((sum, t) => sum + Number(t.amount), 0);
-  
   return (
     <div className="space-y-4 mb-6">
       {/* Main Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="p-6 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/20 border-green-200 dark:border-green-800">
           <div className="flex items-center justify-between">
             <div>
@@ -89,21 +85,6 @@ export function TransactionStats({ transactions }: TransactionStatsProps) {
               </p>
             </div>
             <DollarSign className="h-10 w-10 text-blue-600 dark:text-blue-500 opacity-30" />
-          </div>
-        </Card>
-        
-        <Card className="p-6 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/20 dark:to-purple-900/20 border-purple-200 dark:border-purple-800">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-purple-700 dark:text-purple-300">Tax Deductible</p>
-              <p className="text-2xl font-bold text-purple-700 dark:text-purple-400">
-                ${taxDeductibleAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-              <p className="text-xs text-purple-600 dark:text-purple-500 mt-1">
-                Potential savings
-              </p>
-            </div>
-            <Activity className="h-10 w-10 text-purple-600 dark:text-purple-500 opacity-30" />
           </div>
         </Card>
       </div>
