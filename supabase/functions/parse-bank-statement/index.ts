@@ -45,8 +45,9 @@ serve(async (req) => {
     const bytes = new Uint8Array(arrayBuffer);
     
     // Convert to base64 for PDF.co upload
-    const base64 = btoa(String.fromCharCode(...Array.from(bytes.slice(0, 1000000)))); // Limit to 1MB chunks
+    const base64 = btoa(String.fromCharCode(...Array.from(bytes)));
     
+    console.log('[PARSE-STATEMENT] Converted to base64, length:', base64.length);
     console.log('[PARSE-STATEMENT] Uploading to PDF.co...');
 
     // Step 1: Upload PDF to PDF.co
@@ -63,13 +64,16 @@ serve(async (req) => {
     });
 
     if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text();
+      console.error('[PARSE-STATEMENT] PDF.co upload error:', errorText);
       throw new Error('Failed to upload PDF to PDF.co');
     }
 
     const uploadData = await uploadResponse.json();
     const pdfUrl = uploadData.url;
 
-    console.log('[PARSE-STATEMENT] PDF uploaded, extracting text...');
+    console.log('[PARSE-STATEMENT] PDF uploaded successfully, URL:', pdfUrl);
+    console.log('[PARSE-STATEMENT] Extracting text from PDF...');
 
     // Step 2: Extract text from PDF using PDF.co
     const extractResponse = await fetch('https://api.pdf.co/v1/pdf/convert/to/text', {
@@ -85,6 +89,8 @@ serve(async (req) => {
     });
 
     if (!extractResponse.ok) {
+      const errorText = await extractResponse.text();
+      console.error('[PARSE-STATEMENT] PDF.co extraction error:', errorText);
       throw new Error('Failed to extract text from PDF');
     }
 
@@ -92,6 +98,12 @@ serve(async (req) => {
     const pdfText = extractData.body || '';
 
     console.log('[PARSE-STATEMENT] Extracted text length:', pdfText.length);
+    console.log('[PARSE-STATEMENT] Text preview:', pdfText.substring(0, 500));
+    
+    if (!pdfText || pdfText.trim().length === 0) {
+      throw new Error('No text could be extracted from the PDF');
+    }
+
     console.log('[PARSE-STATEMENT] Calling AI to parse transactions...');
 
     // Step 3: Use AI to parse transactions from extracted text
