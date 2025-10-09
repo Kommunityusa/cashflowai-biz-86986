@@ -390,7 +390,6 @@ export default function Transactions() {
         .from('transactions')
         .update({ 
           category_id: editingCategory || null,
-          ai_processed_at: new Date().toISOString(),
         })
         .eq('id', transactionId);
 
