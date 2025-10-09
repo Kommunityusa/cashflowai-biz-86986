@@ -99,9 +99,17 @@ You have access to the user's current financial data and can provide personalize
 
 ${contextInfo}
 
+CRITICAL FORMATTING RULES:
+- Write in plain, clean text without any markdown formatting
+- Do NOT use asterisks, underscores, or other symbols for emphasis
+- Do NOT use bullet points with symbols (-, *, •)
+- Write numbered lists as simple text (1. Item, 2. Item)
+- Use simple line breaks to separate sections
+- Keep responses conversational and natural
+
 You provide clear, accurate, and actionable advice. When discussing financial matters, be specific and professional, referencing their actual data when relevant. If you're unsure about something, recommend consulting a certified accountant.
 
-Keep responses concise and well-formatted. Use bullet points and clear sections when appropriate.`
+Keep responses concise and well-formatted with simple paragraphs.`
       },
       ...(conversationHistory || []),
       {
