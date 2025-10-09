@@ -52,7 +52,7 @@ import { TransactionFilters } from "@/components/transactions/TransactionFilters
 import { TransactionStats } from "@/components/transactions/TransactionStats";
 import { TransactionRow } from "@/components/transactions/TransactionRow";
 import { CategoryBreakdown } from "@/components/transactions/CategoryBreakdown";
-import { TransactionRules } from "@/components/transactions/TransactionRules";
+
 import { BulkOperations } from "@/components/transactions/BulkOperations";
 import { AdvancedSearch, SearchFilters } from "@/components/transactions/AdvancedSearch";
 import { TransactionReconciliation } from "@/components/transactions/TransactionReconciliation";
@@ -790,18 +790,10 @@ export default function Transactions() {
               <RefreshCw className="mr-2 h-4 w-4" />
               Reconciliation
             </TabsTrigger>
-            <TabsTrigger value="rules">
-              <Settings className="mr-2 h-4 w-4" />
-              Automation Rules
-            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="reconciliation" className="mt-4">
             <TransactionReconciliation />
-          </TabsContent>
-          
-          <TabsContent value="rules" className="mt-4">
-            <TransactionRules />
           </TabsContent>
           
           <TabsContent value="transactions" className="mt-4 space-y-4">
