@@ -40,46 +40,90 @@ serve(async (req) => {
     const transactions = [];
     const lines = pdfText.split('\n');
     
-    // Common bank statement patterns
-    const datePattern = /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/;
-    const amountPattern = /\$?([\d,]+\.?\d{0,2})/g;
+    // Enhanced parsing with multiple date formats
+    const datePatterns = [
+      /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/,  // MM/DD/YYYY or DD/MM/YYYY
+      /(\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2})/,    // YYYY-MM-DD
+      /(\w{3}\s+\d{1,2},?\s+\d{4})/,           // Jan 15, 2024
+    ];
+    
+    const amountPattern = /[-+]?\$?\s?([\d,]+\.?\d{0,2})/g;
     
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const dateMatch = line.match(datePattern);
+      const line = lines[i].trim();
+      if (!line || line.length < 10) continue; // Skip empty or very short lines
       
-      if (dateMatch) {
-        // Extract transaction details
-        const dateStr = dateMatch[1];
+      let dateMatch = null;
+      let dateStr = '';
+      let patternUsed = 0;
+      
+      // Try each date pattern
+      for (let p = 0; p < datePatterns.length; p++) {
+        dateMatch = line.match(datePatterns[p]);
+        if (dateMatch) {
+          dateStr = dateMatch[1];
+          patternUsed = p;
+          break;
+        }
+      }
+      
+      if (dateMatch && dateStr) {
         const remainingText = line.substring(dateMatch.index! + dateMatch[0].length).trim();
+        const amounts: RegExpMatchArray[] = Array.from(remainingText.matchAll(amountPattern));
         
-        // Look for amounts (could be debit/credit)
-        const amounts = remainingText.match(amountPattern);
-        
-        if (amounts && amounts.length > 0) {
-          // Extract description (text between date and amount)
+        if (amounts.length > 0) {
+          // Extract description (text before amounts)
           let description = remainingText;
-          amounts.forEach((amt: string) => {
-            description = description.replace(amt, '');
-          });
+          for (const match of amounts) {
+            description = description.replace(match[0], '');
+          }
           description = description.trim().replace(/\s+/g, ' ');
           
-          // Parse amount
-          const amount = parseFloat(amounts[amounts.length - 1].replace(/[$,]/g, ''));
+          // Get the last amount (usually the transaction amount)
+          const lastMatch: RegExpMatchArray = amounts[amounts.length - 1];
+          const amountStr: string = lastMatch[1] || '';
+          const amount = Math.abs(parseFloat(amountStr.replace(/,/g, '')));
           
           if (description && amount > 0) {
-            // Parse date properly
-            const [month, day, year] = dateStr.split(/[\/\-]/);
-            const fullYear = year.length === 2 ? `20${year}` : year;
-            const formattedDate = `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-            
-            transactions.push({
-              date: formattedDate,
-              description: description,
-              amount: amount,
-              type: 'expense', // Will be determined by AI
-              vendor_name: description.split(/\s+/)[0] // First word as vendor
-            });
+            // Parse date based on pattern used
+            let formattedDate = '';
+            try {
+              if (patternUsed === 0) {
+                // MM/DD/YYYY or DD/MM/YYYY - try both
+                const parts = dateStr.split(/[\/\-]/);
+                const month = parseInt(parts[0]);
+                const day = parseInt(parts[1]);
+                const year = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
+                
+                // If month > 12, assume DD/MM/YYYY format
+                if (month > 12) {
+                  formattedDate = `${year}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                } else {
+                  formattedDate = `${year}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+                }
+              } else if (patternUsed === 1) {
+                // YYYY-MM-DD
+                formattedDate = dateStr;
+              } else {
+                // Month name format
+                const parsedDate = new Date(dateStr);
+                if (!isNaN(parsedDate.getTime())) {
+                  formattedDate = parsedDate.toISOString().split('T')[0];
+                }
+              }
+              
+              if (formattedDate && formattedDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                transactions.push({
+                  date: formattedDate,
+                  description: description.substring(0, 200), // Limit description length
+                  amount: amount,
+                  type: 'expense',
+                  vendor_name: description.split(/\s+/).slice(0, 3).join(' ') // First 3 words
+                });
+              }
+            } catch (e) {
+              console.error('Date parsing error:', e);
+            }
           }
         }
       }
@@ -101,11 +145,23 @@ serve(async (req) => {
             messages: [
               {
                 role: 'system',
-                content: 'Extract financial transactions from bank statement text. Return a JSON array with: date (YYYY-MM-DD), description, amount (positive number), vendor_name.'
+                content: `You are a financial data extraction expert. Extract ALL transactions from the bank statement text.
+                
+Rules:
+- Return ONLY a valid JSON array, no markdown formatting
+- Each transaction must have: date (YYYY-MM-DD format), description (string), amount (positive number), vendor_name (string)
+- Parse dates correctly - common formats: MM/DD/YYYY, DD/MM/YYYY, YYYY-MM-DD, "Jan 15 2024"
+- Extract ALL transactions, not just a sample
+- Amount should be positive number only
+- Description should be clean and concise
+- Vendor name should be the merchant/payee name
+
+Example output format:
+[{"date":"2024-01-15","description":"Purchase at Store","amount":50.00,"vendor_name":"Store"}]`
               },
               {
                 role: 'user',
-                content: `Extract all transactions:\n${pdfText.substring(0, 10000)}`
+                content: `Extract ALL transactions from this statement:\n\n${pdfText.substring(0, 15000)}`
               }
             ],
             temperature: 0.1,

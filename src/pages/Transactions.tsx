@@ -92,6 +92,8 @@ export default function Transactions() {
   const [uploadingPDF, setUploadingPDF] = useState(false);
   const [selectedTransactionIds, setSelectedTransactionIds] = useState<Set<string>>(new Set());
   const [advancedFilters, setAdvancedFilters] = useState<SearchFilters | null>(null);
+  const [editingDateId, setEditingDateId] = useState<string | null>(null);
+  const [editingDate, setEditingDate] = useState("");
   const transactionsPerPage = 50;
   
   const [newTransaction, setNewTransaction] = useState({
@@ -444,9 +446,63 @@ export default function Transactions() {
     }
   };
 
+  const handleDateChange = async (transactionId: string, newDate: string) => {
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .update({ 
+          transaction_date: newDate
+        })
+        .eq('id', transactionId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Transaction date updated",
+      });
+
+      fetchTransactions();
+
+      await logAuditEvent({
+        action: 'UPDATE_TRANSACTION',
+        entityType: 'transaction',
+        entityId: transactionId,
+        details: {
+          transaction_date: newDate
+        }
+      });
+    } catch (error) {
+      console.error('Error updating date:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update transaction date",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleCancelEdit = () => {
     setEditingCategoryId(null);
     setEditingCategory("");
+  };
+
+  const handleEditDate = (transactionId: string, currentDate: string) => {
+    setEditingDateId(transactionId);
+    setEditingDate(currentDate);
+  };
+
+  const handleSaveDate = async (transactionId: string) => {
+    if (editingDate) {
+      await handleDateChange(transactionId, editingDate);
+      setEditingDateId(null);
+      setEditingDate("");
+    }
+  };
+
+  const handleCancelDateEdit = () => {
+    setEditingDateId(null);
+    setEditingDate("");
   };
 
   const handlePDFUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -881,9 +937,42 @@ export default function Transactions() {
                           setSelectedTransactionIds(newSelection);
                         }}
                       />
-                    </TableCell>
+                     </TableCell>
                     <TableCell>
-                      {new Date(transaction.transaction_date).toLocaleDateString()}
+                      {editingDateId === transaction.id ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="date"
+                            value={editingDate}
+                            onChange={(e) => setEditingDate(e.target.value)}
+                            className="w-[160px] h-8"
+                          />
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            onClick={() => handleSaveDate(transaction.id)}
+                          >
+                            <Check className="h-4 w-4 text-green-600" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            onClick={handleCancelDateEdit}
+                          >
+                            <X className="h-4 w-4 text-red-600" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div 
+                          className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-1 transition-colors group/date"
+                          onClick={() => handleEditDate(transaction.id, transaction.transaction_date)}
+                        >
+                          <span>{new Date(transaction.transaction_date).toLocaleDateString()}</span>
+                          <Edit className="h-3 w-3 text-muted-foreground opacity-0 group-hover/date:opacity-100 transition-opacity" />
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div>

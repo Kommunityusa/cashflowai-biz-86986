@@ -2,6 +2,7 @@ import { useState } from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -9,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Edit, Trash2, Check, X, TrendingUp, TrendingDown } from "lucide-react";
+import { Edit, Trash2, Check, X, TrendingUp, TrendingDown, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TransactionRowProps {
@@ -19,6 +20,7 @@ interface TransactionRowProps {
   onDelete: (id: string) => void;
   onCategoryChange: (transactionId: string, categoryId: string) => void;
   onTypeChange: (transactionId: string, type: 'income' | 'expense', isInternalTransfer: boolean) => void;
+  onDateChange: (transactionId: string, newDate: string) => void;
 }
 
 export function TransactionRow({
@@ -28,12 +30,15 @@ export function TransactionRow({
   onDelete,
   onCategoryChange,
   onTypeChange,
+  onDateChange,
 }: TransactionRowProps) {
   const [isEditingCategory, setIsEditingCategory] = useState(false);
   const [isEditingType, setIsEditingType] = useState(false);
+  const [isEditingDate, setIsEditingDate] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(transaction.category_id || "");
   const [selectedType, setSelectedType] = useState<'income' | 'expense'>(transaction.type);
   const [isInternalTransfer, setIsInternalTransfer] = useState(transaction.is_internal_transfer || false);
+  const [selectedDate, setSelectedDate] = useState(transaction.transaction_date);
 
   const handleSaveCategory = () => {
     onCategoryChange(transaction.id, selectedCategory);
@@ -56,6 +61,18 @@ export function TransactionRow({
     setIsEditingType(false);
   };
 
+  const handleSaveDate = () => {
+    if (selectedDate && selectedDate !== transaction.transaction_date) {
+      onDateChange(transaction.id, selectedDate);
+    }
+    setIsEditingDate(false);
+  };
+
+  const handleCancelDateEdit = () => {
+    setSelectedDate(transaction.transaction_date);
+    setIsEditingDate(false);
+  };
+
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('en-US', {
       month: 'short',
@@ -67,22 +84,43 @@ export function TransactionRow({
   return (
     <TableRow className="group hover:bg-muted/50 transition-colors">
       <TableCell className="font-medium">
-        <div className="flex items-center gap-2">
-          {transaction.type === 'income' ? (
-            <div className="flex items-center gap-1">
-              <TrendingUp className="h-4 w-4 text-green-600" />
-              <span className="text-xs text-green-600 font-medium">IN</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1">
-              <TrendingDown className="h-4 w-4 text-red-600" />
-              <span className="text-xs text-red-600 font-medium">OUT</span>
-            </div>
-          )}
-          <span className="text-muted-foreground text-sm">
-            {formatDate(transaction.transaction_date)}
-          </span>
-        </div>
+        {isEditingDate ? (
+          <div className="flex items-center gap-2">
+            <Input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="w-[160px]"
+            />
+            <Button size="icon" variant="ghost" onClick={handleSaveDate}>
+              <Check className="h-4 w-4 text-green-600" />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={handleCancelDateEdit}>
+              <X className="h-4 w-4 text-red-600" />
+            </Button>
+          </div>
+        ) : (
+          <div 
+            className="flex items-center gap-2 cursor-pointer group/date"
+            onClick={() => setIsEditingDate(true)}
+          >
+            {transaction.type === 'income' ? (
+              <div className="flex items-center gap-1">
+                <TrendingUp className="h-4 w-4 text-green-600" />
+                <span className="text-xs text-green-600 font-medium">IN</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1">
+                <TrendingDown className="h-4 w-4 text-red-600" />
+                <span className="text-xs text-red-600 font-medium">OUT</span>
+              </div>
+            )}
+            <span className="text-muted-foreground text-sm">
+              {formatDate(transaction.transaction_date)}
+            </span>
+            <Calendar className="h-3 w-3 text-muted-foreground opacity-0 group-hover/date:opacity-100 transition-opacity" />
+          </div>
+        )}
       </TableCell>
       
       <TableCell>
