@@ -181,11 +181,14 @@ export default function Reports() {
       .eq("is_active", true);
 
     if (transactions) {
+      // Filter out internal transfers - they don't affect profit/loss
+      const financialTransactions = transactions.filter(t => !t.is_internal_transfer);
+      
       // Process Profit & Loss data
       const revenueByCategory = new Map<string, number>();
       const expensesByCategory = new Map<string, number>();
       
-      transactions.forEach((t) => {
+      financialTransactions.forEach((t) => {
         const categoryName = t.categories?.name || "Uncategorized";
         const amount = Number(t.amount);
         
@@ -223,7 +226,8 @@ export default function Reports() {
 
       // Process Balance Sheet data
       const totalCash = bankAccounts?.reduce((sum, acc) => sum + Number(acc.current_balance || 0), 0) || 0;
-      const accountsReceivable = transactions
+      // Only count non-internal-transfer income as receivable
+      const accountsReceivable = financialTransactions
         .filter(t => t.type === "income" && t.status === "pending")
         .reduce((sum, t) => sum + Number(t.amount), 0);
       
@@ -287,8 +291,8 @@ export default function Reports() {
                           operatingAdjustments.reduce((sum, a) => sum + a.amount, 0) +
                           workingCapitalChanges.reduce((sum, w) => sum + w.amount, 0);
       
-      // Investing Activities
-      const investingActivities = transactions
+      // Investing Activities - exclude internal transfers
+      const investingActivities = financialTransactions
         .filter(t => ["Equipment", "Property", "Investment"].some(cat => t.categories?.name?.includes(cat)))
         .reduce((acc, t) => {
           const existingIndex = acc.findIndex(a => a.name === t.categories?.name);
@@ -307,8 +311,8 @@ export default function Reports() {
       
       const investingNet = investingActivities.reduce((sum, a) => sum + a.amount, 0);
       
-      // Financing Activities
-      const financingActivities = transactions
+      // Financing Activities - exclude internal transfers
+      const financingActivities = financialTransactions
         .filter(t => ["Loan", "Capital", "Dividend"].some(cat => t.categories?.name?.includes(cat)))
         .reduce((acc, t) => {
           const existingIndex = acc.findIndex(a => a.name === t.categories?.name);
