@@ -47,7 +47,6 @@ export const Header = () => {
     { name: "Dashboard", href: "/dashboard" },
     { name: "Transactions", href: "/transactions" },
     { name: "Reports", href: "/reports" },
-    { name: "Tax Center", href: "/tax-center" },
     { name: "Settings", href: "/settings" },
   ];
 

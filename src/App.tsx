@@ -175,11 +175,6 @@ const App = () => (
                 <Settings />
               </ProtectedRoute>
             } />
-            <Route path="/tax-center" element={
-              <ProtectedRoute>
-                <TaxCenter />
-              </ProtectedRoute>
-            } />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/security" element={
