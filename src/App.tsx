@@ -31,6 +31,7 @@ import Investors from "./pages/Investors";
 import Checkout from "./pages/Checkout";
 import AdminBlog from "./pages/admin/AdminBlog";
 import BlogPost from "./pages/blog/BlogPost";
+import TaxCenter from "./pages/TaxCenter";
 
 const queryClient = new QueryClient();
 
@@ -172,6 +173,11 @@ const App = () => (
             <Route path="/settings" element={
               <ProtectedRoute>
                 <Settings />
+              </ProtectedRoute>
+            } />
+            <Route path="/tax-center" element={
+              <ProtectedRoute>
+                <TaxCenter />
               </ProtectedRoute>
             } />
             <Route path="/privacy" element={<PrivacyPolicy />} />

@@ -232,8 +232,11 @@ export type Database = {
           created_at: string | null
           icon: string | null
           id: string
+          irs_category_code: string | null
           is_default: boolean | null
+          is_tax_deductible: boolean | null
           name: string
+          tax_notes: string | null
           type: string
           updated_at: string | null
           user_id: string
@@ -243,8 +246,11 @@ export type Database = {
           created_at?: string | null
           icon?: string | null
           id?: string
+          irs_category_code?: string | null
           is_default?: boolean | null
+          is_tax_deductible?: boolean | null
           name: string
+          tax_notes?: string | null
           type: string
           updated_at?: string | null
           user_id: string
@@ -254,8 +260,11 @@ export type Database = {
           created_at?: string | null
           icon?: string | null
           id?: string
+          irs_category_code?: string | null
           is_default?: boolean | null
+          is_tax_deductible?: boolean | null
           name?: string
+          tax_notes?: string | null
           type?: string
           updated_at?: string | null
           user_id?: string
@@ -550,8 +559,10 @@ export type Database = {
           created_at: string | null
           description: string
           id: string
+          irs_form_reference: string | null
           is_internal_transfer: boolean | null
           is_recurring: boolean | null
+          is_tax_deductible: boolean | null
           needs_review: boolean | null
           notes: string | null
           plaid_category: string | null
@@ -559,6 +570,7 @@ export type Database = {
           receipt_url: string | null
           status: string | null
           tax_deductible: boolean | null
+          tax_year: number | null
           transaction_date: string
           type: string
           updated_at: string | null
@@ -573,8 +585,10 @@ export type Database = {
           created_at?: string | null
           description: string
           id?: string
+          irs_form_reference?: string | null
           is_internal_transfer?: boolean | null
           is_recurring?: boolean | null
+          is_tax_deductible?: boolean | null
           needs_review?: boolean | null
           notes?: string | null
           plaid_category?: string | null
@@ -582,6 +596,7 @@ export type Database = {
           receipt_url?: string | null
           status?: string | null
           tax_deductible?: boolean | null
+          tax_year?: number | null
           transaction_date: string
           type: string
           updated_at?: string | null
@@ -596,8 +611,10 @@ export type Database = {
           created_at?: string | null
           description?: string
           id?: string
+          irs_form_reference?: string | null
           is_internal_transfer?: boolean | null
           is_recurring?: boolean | null
+          is_tax_deductible?: boolean | null
           needs_review?: boolean | null
           notes?: string | null
           plaid_category?: string | null
@@ -605,6 +622,7 @@ export type Database = {
           receipt_url?: string | null
           status?: string | null
           tax_deductible?: boolean | null
+          tax_year?: number | null
           transaction_date?: string
           type?: string
           updated_at?: string | null

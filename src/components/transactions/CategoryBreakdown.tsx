@@ -15,7 +15,7 @@ export function CategoryBreakdown({ transactions, categories }: CategoryBreakdow
       if (!acc[categoryName]) {
         acc[categoryName] = {
           name: categoryName,
-          type: transaction.type,
+          type: transaction.categories.type, // Use category type, not transaction type
           color: transaction.categories.color,
           amount: 0,
           count: 0
