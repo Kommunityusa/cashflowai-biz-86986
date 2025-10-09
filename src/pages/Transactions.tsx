@@ -520,21 +520,30 @@ export default function Transactions() {
 
     setUploadingPDF(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      // Parse PDF on the server
-      const { data, error } = await supabase.functions.invoke('parse-bank-statement', {
-        body: formData,
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
+      // Create FormData and send directly to edge function URL
+      const formData = new FormData();
+      formData.append('file', file);
 
-      if (error) throw error;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-bank-statement`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to process PDF');
+      }
+
+      const data = await response.json();
 
       if (data?.transactions && data.transactions.length > 0) {
         // Auto-categorize the imported transactions
@@ -545,7 +554,7 @@ export default function Transactions() {
 
         toast({
           title: "Success",
-          description: `Imported ${data.count} transactions from PDF`,
+          description: `Imported ${data.transactions.length} transactions from PDF`,
         });
         
         fetchTransactions();
@@ -560,7 +569,7 @@ export default function Transactions() {
       console.error('PDF upload error:', error);
       toast({
         title: "Error",
-        description: "Failed to process PDF",
+        description: error instanceof Error ? error.message : "Failed to process PDF",
         variant: "destructive",
       });
     } finally {
