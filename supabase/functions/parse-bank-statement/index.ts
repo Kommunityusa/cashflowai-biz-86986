@@ -84,13 +84,16 @@ serve(async (req) => {
     }
 
     const extractData = await extractResponse.json();
+    console.log('[PARSE-STATEMENT] PDF.co extraction response:', JSON.stringify(extractData).substring(0, 500));
+    
     const pdfText = extractData.body || '';
 
     console.log('[PARSE-STATEMENT] Extracted text length:', pdfText.length);
     console.log('[PARSE-STATEMENT] Text preview:', pdfText.substring(0, 500));
     
     if (!pdfText || pdfText.trim().length === 0) {
-      throw new Error('No text could be extracted from the PDF');
+      console.error('[PARSE-STATEMENT] PDF.co returned empty text. Full response:', JSON.stringify(extractData));
+      throw new Error('No text could be extracted from the PDF. The PDF might be image-based or encrypted.');
     }
 
     console.log('[PARSE-STATEMENT] Calling AI to parse transactions...');
