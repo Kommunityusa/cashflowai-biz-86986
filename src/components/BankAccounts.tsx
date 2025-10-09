@@ -276,7 +276,33 @@ export function BankAccounts() {
             throw backfillError;
           }
 
-          if (backfillData?.summary) {
+          // Handle the new response format
+          if (backfillData?.success !== undefined) {
+            const transactionsImported = backfillData.transactions_imported || 0;
+            const accountsProcessed = backfillData.accounts_processed || 0;
+            const errors = backfillData.errors || [];
+            const successfulAccounts = accountsProcessed - errors.length;
+            
+            let description = `Successfully synced ${transactionsImported} transactions from ${successfulAccounts} account(s).`;
+            if (errors.length > 0) {
+              description += ` ${errors.length} account(s) need to be reconnected.`;
+            }
+            
+            toast({
+              title: "Sync Complete!",
+              description,
+              variant: errors.length > 0 ? "default" : "default",
+            });
+            
+            // Log errors for debugging
+            if (errors.length > 0) {
+              console.log('[Sync] Accounts with errors:', errors);
+            }
+            
+            await fetchAccounts();
+            return; // Success - exit the retry loop
+          } else if (backfillData?.summary) {
+            // Handle old response format for backwards compatibility
             const { total_new_transactions, successful, errors, total_accounts } = backfillData.summary;
             
             let description = `Successfully synced ${total_new_transactions} transactions from ${successful} account(s).`;
@@ -290,17 +316,8 @@ export function BankAccounts() {
               variant: errors > 0 ? "default" : "default",
             });
             
-            // Log results for debugging
-            if (backfillData.results && backfillData.results.length > 0) {
-              console.log('[Sync] Detailed results:', backfillData.results);
-              const errorResults = backfillData.results.filter((r: any) => r.status === 'error');
-              if (errorResults.length > 0) {
-                console.error('[Sync] Accounts with errors:', errorResults);
-              }
-            }
-            
             await fetchAccounts();
-            return; // Success - exit the retry loop
+            return;
           } else if (backfillData?.error) {
             console.error('[Sync] Backfill returned error:', backfillData.error, backfillData.details);
             throw new Error(backfillData.details || backfillData.error);
