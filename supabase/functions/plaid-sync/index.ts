@@ -139,6 +139,8 @@ serve(async (req) => {
               // - Positive amounts = EXPENSES (money going OUT of your account)
               // - Negative amounts = INCOME (money coming INTO your account)
               const transactionType = transaction.amount > 0 ? 'expense' : 'income';
+              
+              console.log(`[PLAID-SYNC] Transaction: ${transaction.name}, Plaid Amount: ${transaction.amount}, Type: ${transactionType}`);
 
               const { data: inserted } = await supabase.from('transactions').insert({
                 user_id: account.user_id,
@@ -149,7 +151,7 @@ serve(async (req) => {
                 amount: Math.abs(transaction.amount),
                 type: transactionType,
                 transaction_date: transaction.date,
-                plaid_category: transaction.category,
+                plaid_category: JSON.stringify(transaction.personal_finance_category || transaction.category),
                 category_id: null, // Will be set by AI
                 status: 'completed',
               }).select().single();

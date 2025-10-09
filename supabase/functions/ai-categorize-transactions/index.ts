@@ -253,13 +253,14 @@ ${transactionText}`
         categoryId = newCategory.id;
       }
 
-      // Update transaction with the category (but preserve original transaction type)
+      // CRITICAL: Only update category and tax fields - NEVER change transaction type
+      // The transaction type is determined by Plaid based on money flow direction
       const { error: updateError } = await supabaseClient
         .from('transactions')
         .update({
           category_id: categoryId,
           tax_deductible: categorization.tax_deductible || false,
-          needs_review: false,
+          needs_review: categorization.type !== transaction.type, // Flag if AI suggests different type
         })
         .eq('id', transaction.id)
         .eq('user_id', user.id);
