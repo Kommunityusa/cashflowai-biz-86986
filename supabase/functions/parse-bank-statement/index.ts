@@ -38,14 +38,15 @@ serve(async (req) => {
       throw new Error('No file provided');
     }
 
-    console.log('[PARSE-STATEMENT] Processing PDF file:', file.name);
+    console.log('[PARSE-STATEMENT] Processing PDF file:', file.name, 'Size:', file.size);
 
-    // Convert file to base64 for AI processing
+    // Read PDF as text (simple extraction - works for text-based PDFs)
     const arrayBuffer = await file.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
-    const base64 = btoa(String.fromCharCode(...bytes));
+    const pdfText = new TextDecoder().decode(arrayBuffer);
+    
+    console.log('[PARSE-STATEMENT] Extracted text length:', pdfText.length);
 
-    // Call Lovable AI to extract transactions from the PDF
+    // Call Lovable AI to extract transactions from the text
     console.log('[PARSE-STATEMENT] Calling AI to extract transactions...');
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -58,20 +59,19 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are an expert at extracting transaction data from bank statements. 
-Extract ALL transactions from this bank statement PDF and return them as a JSON array.
+            content: `You are an expert at extracting transaction data from bank statement text. 
+Extract ALL transactions and return them as a JSON array.
 
-For each transaction, determine:
-1. Date - in YYYY-MM-DD format (if year is missing, use 2025)
-2. Description - the merchant/vendor name
-3. Amount - the absolute numeric value (without $ or commas)
-4. Type - determine if it's "income" or "expense":
-   - INCOME: Look for indicators like "ACH In", "Deposit", "Credit", "Transfer In", amounts that increase the balance
-   - EXPENSE: Look for indicators like "ACH Pull", "ACH Payment", "Transfer Out", "Withdrawal", amounts that decrease the balance
-   - Check if the amount has a minus sign (-) which indicates expense
-   - Look at the "Type" column if present for clues
+IMPORTANT RULES:
+1. Parse dates correctly to YYYY-MM-DD format (if year is missing, use 2025)
+2. Extract merchant/vendor name from description
+3. Parse amount as absolute positive number (no $ or commas)
+4. Determine transaction type:
+   - INCOME: "ACH In", "Deposit", "Credit", "Transfer In", or positive amounts that increase balance
+   - EXPENSE: "ACH Pull", "ACH Payment", "Transfer Out", "Withdrawal", or negative amounts that decrease balance
+5. Extract EVERY transaction - do not skip any
 
-Return ONLY valid JSON in this exact format (no markdown, no code blocks):
+Return ONLY valid JSON (no markdown, no code blocks):
 {
   "transactions": [
     {
@@ -82,24 +82,11 @@ Return ONLY valid JSON in this exact format (no markdown, no code blocks):
       "vendor_name": "Stripe"
     }
   ]
-}
-
-CRITICAL: Extract EVERY transaction from the statement. Do not skip any. Look through all pages.`
+}`
           },
           {
             role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: 'Extract all transactions from this bank statement PDF. Return the result as pure JSON only.'
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:application/pdf;base64,${base64}`
-                }
-              }
-            ]
+            content: `Extract all transactions from this bank statement text:\n\n${pdfText.substring(0, 50000)}`
           }
         ],
       }),
@@ -130,7 +117,61 @@ CRITICAL: Extract EVERY transaction from the statement. Do not skip any. Look th
       extractedData = JSON.parse(cleanContent);
     } catch (parseError) {
       console.error('[PARSE-STATEMENT] Failed to parse AI response:', parseError);
-      throw new Error('Failed to parse transaction data from PDF');
+      
+      // Fallback: try regex parsing
+      console.log('[PARSE-STATEMENT] Attempting fallback regex parsing...');
+      const transactions = [];
+      const lines = pdfText.split('\n');
+      
+      for (const line of lines) {
+        // Look for patterns like: Jan 15  Description  $123.45
+        const datePattern = /(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}/i;
+        const amountPattern = /\$?\s?([\d,]+\.?\d{0,2})/g;
+        
+        const dateMatch = line.match(datePattern);
+        if (dateMatch) {
+          const amounts = Array.from(line.matchAll(amountPattern));
+          if (amounts.length > 0) {
+            let description = line.substring(dateMatch.index! + dateMatch[0].length);
+            for (const match of amounts) {
+              description = description.replace(match[0], '');
+            }
+            description = description.trim();
+            
+            if (description && amounts.length > 0) {
+              const amountStr = amounts[0][1] || '';
+              const amount = Math.abs(parseFloat(amountStr.replace(/,/g, '')));
+              
+              if (amount > 0) {
+                // Convert date like "Jan 15" to "2025-01-15"
+                const monthMap: Record<string, string> = {
+                  'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
+                  'may': '05', 'jun': '06', 'jul': '07', 'aug': '08',
+                  'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
+                };
+                const parts = dateMatch[0].toLowerCase().split(/\s+/);
+                const month = monthMap[parts[0]];
+                const day = parts[1].padStart(2, '0');
+                
+                transactions.push({
+                  date: `2025-${month}-${day}`,
+                  description: description.substring(0, 200),
+                  amount: amount,
+                  type: 'expense',
+                  vendor_name: description.split(/\s+/).slice(0, 3).join(' ')
+                });
+              }
+            }
+          }
+        }
+      }
+      
+      if (transactions.length > 0) {
+        extractedData = { transactions };
+        console.log('[PARSE-STATEMENT] Fallback extracted', transactions.length, 'transactions');
+      } else {
+        throw new Error('Failed to parse transaction data from PDF');
+      }
     }
 
     const transactions = extractedData.transactions || [];
@@ -150,7 +191,7 @@ CRITICAL: Extract EVERY transaction from the statement. Do not skip any. Look th
       type: t.type || 'expense',
       transaction_date: t.date,
       status: 'completed',
-      needs_review: true, // Mark for review since it's imported
+      needs_review: true,
     }));
 
     const { data: insertedTransactions, error: insertError } = await supabaseClient
