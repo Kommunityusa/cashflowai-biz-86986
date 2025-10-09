@@ -51,7 +51,7 @@ import { SecureStorage } from "@/utils/encryption";
 import { TransactionFilters } from "@/components/transactions/TransactionFilters";
 import { TransactionStats } from "@/components/transactions/TransactionStats";
 import { TransactionRow } from "@/components/transactions/TransactionRow";
-import { CategoryBreakdown } from "@/components/transactions/CategoryBreakdown";
+
 
 import { BulkOperations } from "@/components/transactions/BulkOperations";
 import { AdvancedSearch, SearchFilters } from "@/components/transactions/AdvancedSearch";
@@ -778,9 +778,6 @@ export default function Transactions() {
 
         {/* Transaction Statistics */}
         <TransactionStats transactions={filteredTransactions} />
-        
-        {/* Category Breakdown */}
-        <CategoryBreakdown transactions={filteredTransactions} categories={categories} />
 
         {/* Tabs for Rules and Transactions */}
         <Tabs defaultValue="transactions" className="mt-6">
