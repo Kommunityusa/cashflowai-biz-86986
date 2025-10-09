@@ -581,25 +581,33 @@ serve(async (req) => {
                   };
                 });
 
-                // Batch insert new transactions with upsert to handle duplicates
+                // Batch upsert transactions - update if exists, insert if new
                 const CHUNK_SIZE = 100;
+                let successCount = 0;
                 for (let i = 0; i < newTransactions.length; i += CHUNK_SIZE) {
                   const chunk = newTransactions.slice(i, i + CHUNK_SIZE);
-                  const { error: insertError } = await supabase
+                  const { data: inserted, error: insertError } = await supabase
                     .from('transactions')
                     .upsert(chunk, {
-                      onConflict: 'plaid_transaction_id',
-                      ignoreDuplicates: true
-                    });
+                      onConflict: 'plaid_transaction_id'
+                    })
+                    .select();
                   
                   if (insertError) {
-                    console.error(`[Plaid Function] Error inserting transactions batch:`, insertError);
-                    // Don't throw - log and continue to process other transactions
+                    console.error(`[Plaid Function] Error upserting transactions batch:`, {
+                      error: insertError.message,
+                      code: insertError.code,
+                      details: insertError.details,
+                    });
+                    // Continue processing other batches
+                  } else {
+                    successCount += inserted?.length || 0;
                   }
                 }
                 
-                accountSynced += newTransactions.length;
-                totalSynced += newTransactions.length;
+                console.log(`[Plaid Function] Processed ${successCount} transactions for account ${account.id}`);
+                accountSynced += successCount;
+                totalSynced += successCount;
               }
 
               // Process modified transactions
