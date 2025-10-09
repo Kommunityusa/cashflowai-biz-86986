@@ -62,9 +62,9 @@ serve(async (req) => {
     const pdfUrl = uploadData.url;
 
     console.log('[PARSE-STATEMENT] PDF uploaded successfully to PDF.co');
-    console.log('[PARSE-STATEMENT] Extracting text from PDF...');
+    console.log('[PARSE-STATEMENT] Extracting text from PDF using OCR...');
 
-    // Step 2: Extract text from PDF using PDF.co
+    // Step 2: Extract text from PDF using PDF.co OCR (handles scanned/image-based PDFs)
     const extractResponse = await fetch('https://api.pdf.co/v1/pdf/convert/to/text', {
       method: 'POST',
       headers: {
@@ -74,6 +74,8 @@ serve(async (req) => {
       body: JSON.stringify({
         url: pdfUrl,
         async: false,
+        ocr: true,  // Enable OCR for image-based PDFs
+        ocrLanguage: 'eng',
       }),
     });
 
