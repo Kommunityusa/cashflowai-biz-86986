@@ -98,12 +98,14 @@ serve(async (req) => {
     console.log('[PARSE-STATEMENT] Fetching extracted text from:', textUrl);
     const textResponse = await fetch(textUrl);
     if (!textResponse.ok) {
-      throw new Error('Failed to fetch extracted text from PDF.co');
+      const errorText = await textResponse.text();
+      console.error('[PARSE-STATEMENT] Failed to fetch text from URL:', textResponse.status, errorText);
+      throw new Error(`Failed to fetch extracted text from PDF.co: ${textResponse.status}`);
     }
     
     const pdfText = await textResponse.text();
 
-    console.log('[PARSE-STATEMENT] Extracted text length:', pdfText.length);
+    console.log('[PARSE-STATEMENT] Successfully fetched text, length:', pdfText.length);
     console.log('[PARSE-STATEMENT] Text preview:', pdfText.substring(0, 500));
     
     if (!pdfText || pdfText.trim().length === 0) {
