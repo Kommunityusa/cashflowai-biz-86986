@@ -111,7 +111,7 @@ async function handleTransactionEvent(supabase: any, payload: WebhookPayload) {
 async function handleBankAccountEvent(supabase: any, payload: WebhookPayload) {
   const { type, record } = payload;
   
-  if (type === 'INSERT' && record.plaid_access_token) {
+  if (type === 'INSERT' && record.plaid_item_id) {
     console.log('New bank account connected:', record.id);
     
     // Trigger initial sync
