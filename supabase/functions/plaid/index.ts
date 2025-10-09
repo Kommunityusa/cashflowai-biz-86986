@@ -363,7 +363,7 @@ serve(async (req) => {
           // Insert new account
           const { error } = await supabase.from('bank_accounts').insert({
             user_id: user.id,
-            plaid_access_token: null, // Never store plaintext in production
+            plaid_access_token_encrypted: null, // Will be encrypted separately
             plaid_item_id: itemId,
             plaid_account_id: account.account_id,
             account_name: account.name,
