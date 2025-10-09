@@ -757,9 +757,6 @@ export default function Transactions() {
           </p>
         </div>
 
-        {/* Bank Connection & Transaction Sync */}
-        <TransactionSync onSyncComplete={fetchTransactions} />
-
         {/* Transaction Statistics */}
         <TransactionStats transactions={filteredTransactions} />
         

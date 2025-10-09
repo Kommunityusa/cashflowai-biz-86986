@@ -253,12 +253,11 @@ ${transactionText}`
         categoryId = newCategory.id;
       }
 
-      // Update transaction with the category
+      // Update transaction with the category (but preserve original transaction type)
       const { error: updateError } = await supabaseClient
         .from('transactions')
         .update({
           category_id: categoryId,
-          type: categorization.type,
           tax_deductible: categorization.tax_deductible || false,
           needs_review: false,
         })
