@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Plus, Edit, Trash2, Palette } from "lucide-react";
 import * as Icons from "lucide-react";
+import { RestoreCategoryButton } from "./RestoreCategoryButton";
 
 interface Category {
   id: string;
@@ -219,94 +220,97 @@ export function CategoryManager() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Category Management</CardTitle>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Category
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Category</DialogTitle>
-              <DialogDescription>
-                Create a new category for organizing your transactions.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  value={newCategory.name}
-                  onChange={(e) => setNewCategory(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="e.g., Groceries"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="type">Type</Label>
-                <Select
-                  value={newCategory.type}
-                  onValueChange={(value: "income" | "expense") => 
-                    setNewCategory(prev => ({ ...prev, type: value }))
-                  }
-                >
-                  <SelectTrigger id="type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="income">Income</SelectItem>
-                    <SelectItem value="expense">Expense</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="icon">Icon</Label>
-                <Select
-                  value={newCategory.icon}
-                  onValueChange={(value) => setNewCategory(prev => ({ ...prev, icon: value }))}
-                >
-                  <SelectTrigger id="icon">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {iconOptions.map(icon => (
-                      <SelectItem key={icon} value={icon}>
-                        <div className="flex items-center gap-2">
-                          {getIconComponent(icon)}
-                          <span>{icon}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="color">Color</Label>
-                <div className="flex gap-2 flex-wrap">
-                  {colorOptions.map(color => (
-                    <button
-                      key={color}
-                      className={`w-10 h-10 rounded-lg border-2 ${
-                        newCategory.color === color ? 'border-primary' : 'border-transparent'
-                      }`}
-                      style={{ backgroundColor: color }}
-                      onClick={() => setNewCategory(prev => ({ ...prev, color }))}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleAddCategory}>
+        <div className="flex gap-2">
+          <RestoreCategoryButton />
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="mr-2 h-4 w-4" />
                 Add Category
               </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Category</DialogTitle>
+                <DialogDescription>
+                  Create a new category for organizing your transactions.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    value={newCategory.name}
+                    onChange={(e) => setNewCategory(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="e.g., Groceries"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="type">Type</Label>
+                  <Select
+                    value={newCategory.type}
+                    onValueChange={(value: "income" | "expense") => 
+                      setNewCategory(prev => ({ ...prev, type: value }))
+                    }
+                  >
+                    <SelectTrigger id="type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="income">Income</SelectItem>
+                      <SelectItem value="expense">Expense</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="icon">Icon</Label>
+                  <Select
+                    value={newCategory.icon}
+                    onValueChange={(value) => setNewCategory(prev => ({ ...prev, icon: value }))}
+                  >
+                    <SelectTrigger id="icon">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {iconOptions.map(icon => (
+                        <SelectItem key={icon} value={icon}>
+                          <div className="flex items-center gap-2">
+                            {getIconComponent(icon)}
+                            <span>{icon}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="color">Color</Label>
+                  <div className="flex gap-2 flex-wrap">
+                    {colorOptions.map(color => (
+                      <button
+                        key={color}
+                        className={`w-10 h-10 rounded-lg border-2 ${
+                          newCategory.color === color ? 'border-primary' : 'border-transparent'
+                        }`}
+                        style={{ backgroundColor: color }}
+                        onClick={() => setNewCategory(prev => ({ ...prev, color }))}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleAddCategory}>
+                  Add Category
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </CardHeader>
       <CardContent>
         {loading ? (
