@@ -628,6 +628,7 @@ export default function Dashboard() {
                     <XAxis dataKey="month" className="text-xs" />
                     <YAxis className="text-xs" />
                     <Tooltip 
+                      formatter={(value: number) => formatCurrency(value)}
                       contentStyle={{ 
                         backgroundColor: 'hsl(var(--card))', 
                         border: '1px solid hsl(var(--border))' 
