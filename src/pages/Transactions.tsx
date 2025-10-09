@@ -60,7 +60,6 @@ import { TransactionSync } from "@/components/TransactionSync";
 import { CSVImport } from "@/components/transactions/CSVImport";
 import { exportTransactionsToCSV } from "@/utils/csvExport";
 import { TransactionTypeReview } from "@/components/transactions/TransactionTypeReview";
-import { FixPlaidTransactions } from "@/components/transactions/FixPlaidTransactions";
 import {
   Plus,
   Download,
@@ -864,8 +863,6 @@ export default function Transactions() {
           <CSVImport onImportComplete={fetchTransactions} />
           
           <TransactionTypeReview />
-          
-          <FixPlaidTransactions />
           
           <Button 
             variant="outline" 
