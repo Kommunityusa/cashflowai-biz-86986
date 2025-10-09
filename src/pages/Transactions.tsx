@@ -78,6 +78,7 @@ export default function Transactions() {
   const { user } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const csvInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
@@ -90,6 +91,7 @@ export default function Transactions() {
   const [editingCategory, setEditingCategory] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [uploadingPDF, setUploadingPDF] = useState(false);
+  const [uploadingCSV, setUploadingCSV] = useState(false);
   const [selectedTransactionIds, setSelectedTransactionIds] = useState<Set<string>>(new Set());
   const [advancedFilters, setAdvancedFilters] = useState<SearchFilters | null>(null);
   const [editingDateId, setEditingDateId] = useState<string | null>(null);
@@ -518,56 +520,42 @@ export default function Transactions() {
 
     setUploadingPDF(true);
     try {
-      // Read PDF content
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const text = e.target?.result as string;
-        
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          throw new Error("Not authenticated");
-        }
+      const formData = new FormData();
+      formData.append('file', file);
 
-        // Parse PDF on the server
-        const { data, error } = await supabase.functions.invoke('parse-bank-statement', {
-          body: {
-            pdfText: text,
-            bankAccountId: null, // Optional: associate with a bank account
-          },
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      // Parse PDF on the server
+      const { data, error } = await supabase.functions.invoke('parse-bank-statement', {
+        body: formData,
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.transactions && data.transactions.length > 0) {
+        // Auto-categorize the imported transactions
+        await supabase.functions.invoke('ai-categorize-transactions', {
+          body: { transactions: data.transactions },
+          headers: { Authorization: `Bearer ${session.access_token}` },
         });
 
-        if (error) throw error;
-
-        if (data?.transactions && data.transactions.length > 0) {
-          // Auto-categorize the imported transactions
-          const { data: catData, error: catError } = await supabase.functions.invoke('ai-categorize-transactions', {
-            body: {
-              transactions: data.transactions
-            },
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
-          });
-
-          toast({
-            title: "Success",
-            description: `Imported ${data.count} transactions from PDF`,
-          });
-          
-          fetchTransactions();
-        } else {
-          toast({
-            title: "Warning",
-            description: "No transactions found in PDF",
-            variant: "destructive",
-          });
-        }
-      };
-      
-      reader.readAsText(file);
+        toast({
+          title: "Success",
+          description: `Imported ${data.count} transactions from PDF`,
+        });
+        
+        fetchTransactions();
+      } else {
+        toast({
+          title: "Warning",
+          description: "No transactions found in PDF",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error('PDF upload error:', error);
       toast({
@@ -579,6 +567,111 @@ export default function Transactions() {
       setUploadingPDF(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleCSVUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingCSV(true);
+    try {
+      const text = await file.text();
+      const lines = text.split('\n');
+      const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
+      
+      // Find column indices
+      const dateIdx = headers.findIndex(h => h.includes('date'));
+      const descIdx = headers.findIndex(h => h.includes('desc') || h.includes('name') || h.includes('merchant'));
+      const amountIdx = headers.findIndex(h => h.includes('amount') || h.includes('price'));
+      
+      if (dateIdx === -1 || descIdx === -1 || amountIdx === -1) {
+        throw new Error('CSV must have date, description, and amount columns');
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const transactions = [];
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        
+        const columns = line.split(',').map(c => c.trim().replace(/['"]/g, ''));
+        const date = columns[dateIdx];
+        const description = columns[descIdx];
+        const amountStr = columns[amountIdx];
+        
+        if (!date || !description || !amountStr) continue;
+        
+        const amount = Math.abs(parseFloat(amountStr.replace(/[$,]/g, '')));
+        if (isNaN(amount)) continue;
+
+        // Parse date
+        let formattedDate = date;
+        try {
+          const d = new Date(date);
+          if (!isNaN(d.getTime())) {
+            formattedDate = d.toISOString().split('T')[0];
+          }
+        } catch (e) {
+          console.error('Date parse error:', e);
+          continue;
+        }
+
+        transactions.push({
+          user_id: user.id,
+          description,
+          vendor_name: description.split(/\s+/).slice(0, 3).join(' '),
+          amount,
+          type: 'expense',
+          transaction_date: formattedDate,
+          status: 'pending',
+          needs_review: true,
+        });
+      }
+
+      if (transactions.length === 0) {
+        throw new Error('No valid transactions found in CSV');
+      }
+
+      // Insert transactions
+      const { data: inserted, error: insertError } = await supabase
+        .from('transactions')
+        .insert(transactions)
+        .select();
+
+      if (insertError) throw insertError;
+
+      // Auto-categorize
+      if (inserted && inserted.length > 0) {
+        await supabase.functions.invoke('ai-categorize-transactions', {
+          body: { transactions: inserted },
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+      }
+
+      toast({
+        title: "Success",
+        description: `Imported ${transactions.length} transactions from CSV`,
+      });
+      
+      fetchTransactions();
+    } catch (error) {
+      console.error('CSV upload error:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to process CSV",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingCSV(false);
+      if (csvInputRef.current) {
+        csvInputRef.current.value = '';
       }
     }
   };
@@ -757,6 +850,22 @@ export default function Transactions() {
           >
             <FileUp className="mr-2 h-4 w-4" />
             {uploadingPDF ? "Processing..." : "Upload PDF"}
+          </Button>
+          
+          <input
+            ref={csvInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleCSVUpload}
+            className="hidden"
+          />
+          <Button 
+            variant="outline" 
+            onClick={() => csvInputRef.current?.click()}
+            disabled={uploadingCSV}
+          >
+            <FileUp className="mr-2 h-4 w-4" />
+            {uploadingCSV ? "Processing..." : "Upload CSV"}
           </Button>
           
           <Button variant="outline" onClick={exportTransactions}>
