@@ -139,6 +139,43 @@ export function BankConnectionManager({ userId, onConnectionsUpdate }: BankConne
     }
   };
 
+  // Handle disconnecting all bank accounts
+  const handleDisconnectAll = async () => {
+    try {
+      const activeAccounts = bankAccounts.filter(acc => acc.is_active);
+      
+      if (activeAccounts.length === 0) {
+        toast({
+          title: "No Active Accounts",
+          description: "There are no active accounts to disconnect",
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('bank_accounts')
+        .update({ is_active: false })
+        .eq('user_id', userId)
+        .eq('is_active', true);
+
+      if (error) throw error;
+
+      toast({
+        title: "All Disconnected",
+        description: `${activeAccounts.length} account(s) have been disconnected`,
+      });
+
+      fetchBankAccounts();
+      onConnectionsUpdate?.();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to disconnect accounts",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Handle refreshing account data
   const handleRefresh = async (account: any) => {
     try {
@@ -191,8 +228,23 @@ export function BankConnectionManager({ userId, onConnectionsUpdate }: BankConne
     return <Badge>Active</Badge>;
   };
 
+  const activeAccountsCount = bankAccounts.filter(acc => acc.is_active).length;
+
   return (
     <div className="space-y-4">
+      {!loading && activeAccountsCount > 1 && (
+        <div className="flex justify-end">
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleDisconnectAll}
+          >
+            <Unlink className="h-4 w-4 mr-2" />
+            Disconnect All ({activeAccountsCount})
+          </Button>
+        </div>
+      )}
+      
       {loading ? (
         <div className="text-center py-8">Loading bank connections...</div>
       ) : bankAccounts.length === 0 ? (
@@ -253,11 +305,12 @@ export function BankConnectionManager({ userId, onConnectionsUpdate }: BankConne
                     </Button>
                   )}
                   <Button
-                    variant="ghost"
-                    size="icon"
+                    variant="destructive"
+                    size="sm"
                     onClick={() => handleDisconnect(account)}
                   >
-                    <Unlink className="h-4 w-4" />
+                    <Unlink className="h-4 w-4 mr-2" />
+                    Disconnect
                   </Button>
                 </div>
               </div>
