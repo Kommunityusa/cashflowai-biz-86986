@@ -75,6 +75,7 @@ import {
   X,
   RefreshCw,
   Settings,
+  Zap,
 } from "lucide-react";
 
 export default function Transactions() {
@@ -98,6 +99,7 @@ export default function Transactions() {
   const [selectedTransactionIds, setSelectedTransactionIds] = useState<Set<string>>(new Set());
   const [advancedFilters, setAdvancedFilters] = useState<SearchFilters | null>(null);
   const [editingDateId, setEditingDateId] = useState<string | null>(null);
+  const [isReclassifying, setIsReclassifying] = useState(false);
   const [editingDate, setEditingDate] = useState("");
   const [editingTypeId, setEditingTypeId] = useState<string | null>(null);
   const [editingType, setEditingType] = useState<'income' | 'expense'>('expense');
@@ -466,6 +468,31 @@ export default function Transactions() {
 
   const handleCancelTypeEdit = () => {
     setEditingTypeId(null);
+  };
+
+  const handleReclassifyTypes = async () => {
+    setIsReclassifying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-reclassify-types');
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: data.message || `Reclassified ${data.updated} transactions`,
+      });
+
+      fetchTransactions();
+    } catch (error) {
+      console.error('Error reclassifying transactions:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reclassify transaction types",
+        variant: "destructive",
+      });
+    } finally {
+      setIsReclassifying(false);
+    }
   };
 
   const handleDateChange = async (transactionId: string, newDate: string) => {
@@ -844,6 +871,24 @@ export default function Transactions() {
 
             {/* Action Buttons */}
             <div className="flex flex-wrap gap-2 my-6">
+              <Button 
+                onClick={handleReclassifyTypes}
+                disabled={isReclassifying}
+                variant="outline"
+              >
+                {isReclassifying ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Reclassifying...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="h-4 w-4 mr-2" />
+                    AI Fix Types
+                  </>
+                )}
+              </Button>
+              
               <Button 
                 onClick={handleBulkAICategorize}
                 disabled={isBulkCategorizing}
