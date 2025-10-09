@@ -692,24 +692,34 @@ serve(async (req) => {
         
         const { data: account } = await supabase
           .from('bank_accounts')
-          .select('plaid_access_token')
+          .select('plaid_item_id')
           .eq('id', account_id)
           .eq('user_id', user.id)
           .single();
 
-        if (account?.plaid_access_token) {
-          // Remove from Plaid
-          await fetch(`${PLAID_ENV}/item/remove`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              client_id: plaidClientId,
-              secret: plaidSecret,
-              access_token: account.plaid_access_token,
-            }),
-          });
+        if (account?.plaid_item_id) {
+          // Get access token from plaid_access_tokens table
+          const { data: tokenData } = await supabase
+            .from('plaid_access_tokens')
+            .select('access_token')
+            .eq('item_id', account.plaid_item_id)
+            .eq('user_id', user.id)
+            .single();
+            
+          if (tokenData?.access_token) {
+            // Remove from Plaid
+            await fetch(`${PLAID_ENV}/item/remove`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                client_id: plaidClientId,
+                secret: plaidSecret,
+                access_token: tokenData.access_token,
+              }),
+            });
+          }
         }
 
         // Mark as inactive in database
@@ -739,14 +749,29 @@ serve(async (req) => {
         // Get the access token for this item
         const { data: bankAccount } = await supabase
           .from('bank_accounts')
-          .select('plaid_access_token, plaid_item_id')
+          .select('plaid_item_id')
           .eq('id', account_id)
           .eq('user_id', user.id)
           .maybeSingle();
         
-        if (!bankAccount || !bankAccount.plaid_access_token) {
+        if (!bankAccount || !bankAccount.plaid_item_id) {
           return new Response(
             JSON.stringify({ error: 'Bank account not found or not connected to Plaid' }),
+            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        // Get access token from plaid_access_tokens table
+        const { data: tokenData } = await supabase
+          .from('plaid_access_tokens')
+          .select('access_token')
+          .eq('item_id', bankAccount.plaid_item_id)
+          .eq('user_id', user.id)
+          .single();
+          
+        if (!tokenData?.access_token) {
+          return new Response(
+            JSON.stringify({ error: 'Access token not found' }),
             { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
@@ -760,7 +785,7 @@ serve(async (req) => {
           body: JSON.stringify({
             client_id: plaidClientId,
             secret: plaidSecret,
-            access_token: bankAccount.plaid_access_token,
+            access_token: tokenData.access_token,
           }),
         });
         
