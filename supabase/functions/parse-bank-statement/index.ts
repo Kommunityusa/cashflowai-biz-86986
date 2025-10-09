@@ -44,8 +44,13 @@ serve(async (req) => {
     const arrayBuffer = await file.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
     
-    // Convert to base64 for PDF.co upload
-    const base64 = btoa(String.fromCharCode(...Array.from(bytes)));
+    // Convert to base64 in chunks to avoid stack overflow
+    let base64 = '';
+    const chunkSize = 10000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.slice(i, i + chunkSize);
+      base64 += btoa(String.fromCharCode(...Array.from(chunk)));
+    }
     
     console.log('[PARSE-STATEMENT] Converted to base64, length:', base64.length);
     console.log('[PARSE-STATEMENT] Uploading to PDF.co...');
