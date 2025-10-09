@@ -1,9 +1,18 @@
 import { useState, useEffect } from "react";
 import { usePlaidLink } from "react-plaid-link";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Building, Link } from "lucide-react";
+import { Building, Link, Calendar } from "lucide-react";
 import { logAuditEvent } from "@/utils/auditLogger";
 import { logPlaidEvent, logLinkSession, formatPlaidError } from "@/utils/plaidLogger";
 import { PlaidConsent } from "@/components/PlaidConsent";
@@ -20,6 +29,8 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
+  const [showDateRangeDialog, setShowDateRangeDialog] = useState(false);
+  const [selectedDateRange, setSelectedDateRange] = useState("90");
   const [shouldOpenPlaid, setShouldOpenPlaid] = useState(false);
 
   const createLinkToken = async () => {
@@ -178,6 +189,7 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
             action: "exchange_public_token",
             public_token,
             metadata,
+            dateRange: selectedDateRange, // Pass date range to backend
           },
           headers: {
             Authorization: `Bearer ${session.access_token}`,
@@ -216,6 +228,7 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
           metadata: {
             accounts_connected: data.accounts,
             institution: metadata.institution?.name,
+            date_range: selectedDateRange,
           },
         });
         
@@ -226,6 +239,7 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
             accountsConnected: data.accounts,
             item_id: data.item_id,
             request_id: data.request_id,
+            date_range: selectedDateRange,
             timestamp: new Date().toISOString() 
           }
         });
@@ -234,16 +248,18 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
         const messageToShow = data.message || 
           (data.duplicates > 0 
             ? `Connected ${data.accounts} new account(s). ${data.duplicates} account(s) were already connected.`
-            : `Connected ${data.accounts} account(s) successfully`);
+            : `Connected ${data.accounts} account(s) successfully. Importing ${selectedDateRange} days of transaction history...`);
             
         toast({
           title: "Success",
           description: messageToShow,
         });
 
-        // Sync transactions immediately
-        await supabase.functions.invoke("plaid", {
-          body: { action: "sync_transactions" },
+        // Trigger historical backfill with selected date range
+        supabase.functions.invoke("plaid-backfill", {
+          body: { 
+            dateRange: parseInt(selectedDateRange)
+          },
           headers: {
             Authorization: `Bearer ${session.access_token}`,
           },
@@ -352,6 +368,13 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
       return;
     }
     
+    // Show date range selection dialog
+    setShowDateRangeDialog(true);
+  };
+  
+  const handleDateRangeSelected = async () => {
+    setShowDateRangeDialog(false);
+    
     if (onStart) onStart();
     
     if (!linkToken) {
@@ -365,12 +388,8 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
   
   const handleConsentGranted = async () => {
     setShowConsent(false);
-    // Proceed with Plaid Link after consent
-    if (onStart) onStart();
-    
-    await createLinkToken();
-    // Set flag to open Plaid when ready
-    setShouldOpenPlaid(true);
+    // Show date range selection after consent
+    setShowDateRangeDialog(true);
   };
 
   return (
@@ -384,6 +403,69 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
         <Link className="mr-2 h-4 w-4" />
         {loading ? "Initializing..." : "Connect Bank Account"}
       </Button>
+      
+      <Dialog open={showDateRangeDialog} onOpenChange={setShowDateRangeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Choose Transaction History Range
+            </DialogTitle>
+            <DialogDescription>
+              Select how far back you'd like to import transactions from your bank account
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <RadioGroup value={selectedDateRange} onValueChange={setSelectedDateRange}>
+              <div className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer">
+                <RadioGroupItem value="30" id="30days" />
+                <Label htmlFor="30days" className="flex-1 cursor-pointer">
+                  <div className="font-medium">Last 30 Days</div>
+                  <div className="text-sm text-muted-foreground">Quick setup, recent transactions only</div>
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer bg-primary/5">
+                <RadioGroupItem value="90" id="90days" />
+                <Label htmlFor="90days" className="flex-1 cursor-pointer">
+                  <div className="font-medium">Last 90 Days <span className="text-xs text-primary">(Recommended)</span></div>
+                  <div className="text-sm text-muted-foreground">Good balance of history and speed</div>
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer">
+                <RadioGroupItem value="180" id="180days" />
+                <Label htmlFor="180days" className="flex-1 cursor-pointer">
+                  <div className="font-medium">Last 6 Months</div>
+                  <div className="text-sm text-muted-foreground">Better insights and trends</div>
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer">
+                <RadioGroupItem value="365" id="365days" />
+                <Label htmlFor="365days" className="flex-1 cursor-pointer">
+                  <div className="font-medium">Last 12 Months</div>
+                  <div className="text-sm text-muted-foreground">Complete annual view</div>
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer">
+                <RadioGroupItem value="730" id="730days" />
+                <Label htmlFor="730days" className="flex-1 cursor-pointer">
+                  <div className="font-medium">Last 2 Years</div>
+                  <div className="text-sm text-muted-foreground">Maximum historical data (may take longer)</div>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+          
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => setShowDateRangeDialog(false)} className="flex-1">
+              Cancel
+            </Button>
+            <Button onClick={handleDateRangeSelected} className="flex-1">
+              Continue
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       
       <PlaidConsent 
         isOpen={showConsent}

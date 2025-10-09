@@ -48,6 +48,9 @@ serve(async (req) => {
       );
     }
 
+    const { dateRange } = await req.json();
+    const daysBack = dateRange || 730; // Default to 2 years if not specified
+
     console.log('[Plaid Backfill] Starting historical transaction backfill for user:', user.id);
 
     // Get all active bank accounts with Plaid connections
@@ -74,15 +77,15 @@ serve(async (req) => {
     let totalImported = 0;
     const errors = [];
 
-    // Calculate date range: 24 months back from today
+    // Calculate date range based on user selection
     const endDate = new Date();
     const startDate = new Date();
-    startDate.setMonth(startDate.getMonth() - 24);
+    startDate.setDate(startDate.getDate() - daysBack);
 
     const startDateStr = startDate.toISOString().split('T')[0];
     const endDateStr = endDate.toISOString().split('T')[0];
 
-    console.log('[Plaid Backfill] Date range:', startDateStr, 'to', endDateStr);
+    console.log('[Plaid Backfill] Date range:', startDateStr, 'to', endDateStr, `(${daysBack} days)`);
 
     // Get user categories for auto-categorization
     const { data: userCategories } = await supabase
