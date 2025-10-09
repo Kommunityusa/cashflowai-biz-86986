@@ -155,6 +155,7 @@ serve(async (req) => {
                 count: 500,
                 offset: offset,
                 include_personal_finance_category: true,
+                account_ids: [account.plaid_account_id], // Filter by specific account
               }
             })
           });
@@ -172,13 +173,11 @@ serve(async (req) => {
           }
 
           const transactions = data.transactions || [];
-          console.log('[Plaid Backfill] Fetched', transactions.length, 'transactions (offset:', offset, ')');
+          console.log('[Plaid Backfill] Fetched', transactions.length, 'transactions for', account.account_name, '(offset:', offset, ')');
 
           if (transactions.length > 0) {
-            // Filter transactions for this specific account
-            const accountTxns = transactions.filter(
-              (tx: any) => tx.account_id === account.plaid_account_id
-            );
+            // All transactions are already for this account due to account_ids filter
+            const accountTxns = transactions;
 
             if (accountTxns.length > 0) {
               // Transform and insert transactions
