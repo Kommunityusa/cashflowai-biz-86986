@@ -101,66 +101,64 @@ serve(async (req) => {
 
     console.log('Calling Lovable AI chat with comprehensive user context...');
     
-    // Build comprehensive financial context
+    // Build comprehensive financial context - clean format
     const contextInfo = `
-
 COMPREHENSIVE FINANCIAL DATA (Year ${currentYear}):
 
-PROFIT & LOSS STATEMENT:
-- Total Revenue: $${revenue.toFixed(2)}
-- Total Expenses: $${totalExpenses.toFixed(2)}
-- Net Income (Profit/Loss): $${netIncome.toFixed(2)}
-- Profit Margin: ${revenue > 0 ? ((netIncome / revenue) * 100).toFixed(2) : '0.00'}%
+PROFIT AND LOSS STATEMENT:
+Total Revenue: $${revenue.toFixed(2)}
+Total Expenses: $${totalExpenses.toFixed(2)}
+Net Income: $${netIncome.toFixed(2)}
+Profit Margin: ${revenue > 0 ? ((netIncome / revenue) * 100).toFixed(2) : '0.00'}%
 
 REVENUE BREAKDOWN:
-${revenueByCategory.length > 0 ? revenueByCategory.map(c => `  - ${c.name}: $${c.amount.toFixed(2)}`).join('\n') : '  - No revenue recorded'}
+${revenueByCategory.length > 0 ? revenueByCategory.map(c => `${c.name}: $${c.amount.toFixed(2)}`).join('\n') : 'No revenue recorded'}
 
 EXPENSE BREAKDOWN:
-${expensesByCategory.length > 0 ? expensesByCategory.map(c => `  - ${c.name}: $${c.amount.toFixed(2)}`).join('\n') : '  - No expenses recorded'}
+${expensesByCategory.length > 0 ? expensesByCategory.map(c => `${c.name}: $${c.amount.toFixed(2)}`).join('\n') : 'No expenses recorded'}
 
 BALANCE SHEET:
-- Total Assets (Bank Accounts): $${totalAssets.toFixed(2)}
-- Active Bank Accounts: ${bankAccounts.filter(a => a.is_active).length}
-${bankAccounts.filter(a => a.is_active).map(a => `  - ${a.account_name}: $${Number(a.current_balance || 0).toFixed(2)}`).join('\n')}
+Total Assets: $${totalAssets.toFixed(2)}
+Active Bank Accounts: ${bankAccounts.filter(a => a.is_active).length}
+${bankAccounts.filter(a => a.is_active).map(a => `${a.account_name}: $${Number(a.current_balance || 0).toFixed(2)}`).join('\n')}
 
 TRANSACTION SUMMARY:
-- Total Transactions: ${transactions.length}
-- Total Vendors: ${vendors.length}
-- Recurring Transactions: ${recurring.length}
-- Active Budgets: ${budgets.length}
-
-ADDITIONAL METRICS:
-- Average Transaction Size: $${transactions.length > 0 ? (transactions.reduce((sum, t) => sum + Number(t.amount), 0) / transactions.length).toFixed(2) : '0.00'}
-- Transactions Needing Review: ${transactions.filter(t => t.needs_review).length}
+Total Transactions: ${transactions.length}
+Total Vendors: ${vendors.length}
+Recurring Transactions: ${recurring.length}
+Active Budgets: ${budgets.length}
+Transactions Needing Review: ${transactions.filter(t => t.needs_review).length}
 `;
 
     const messages = [
       {
         role: 'system',
-        content: `You are Monica, an expert bookkeeping assistant specializing in small business finance. You help users with:
+        content: `You are Monica, an expert bookkeeping assistant. You help with transaction categorization, financial statement interpretation, tax guidance, cash flow analysis, and accounting concepts.
 
-- Transaction categorization and recording
-- Financial statement interpretation (P&L, Balance Sheet, Cash Flow)
-- Tax preparation guidance and deductions
-- Cash flow analysis and forecasting
-- Expense tracking best practices
-- Accounting terminology and concepts
-
-You have FULL ACCESS to the user's financial data including all transactions, profit and loss statements, balance sheet information, vendors, budgets, and recurring transactions.
-
+You have FULL ACCESS to the user's complete financial data:
 ${contextInfo}
 
-CRITICAL FORMATTING RULES:
-- Write in plain, clean text without any markdown formatting
-- Do NOT use asterisks, underscores, or other symbols for emphasis
-- Do NOT use bullet points with symbols (-, *, •)
-- Write numbered lists as simple text (1. Item, 2. Item)
-- Use simple line breaks to separate sections
-- Keep responses conversational and natural
+CRITICAL RESPONSE FORMAT REQUIREMENTS:
+1. Use ONLY plain text - no markdown, no special characters
+2. NEVER use asterisks for bold or emphasis
+3. NEVER use underscores for italics
+4. NEVER use dashes, bullets, or symbols for lists
+5. Write lists as: "First item. Second item. Third item."
+6. Use simple paragraphs separated by blank lines
+7. Write naturally like you're speaking to the user
 
-You provide clear, accurate, and actionable advice. When discussing financial matters, be specific and professional, referencing their actual data when relevant. You can see their complete financial picture for the current year. If you're unsure about something, recommend consulting a certified accountant.
+EXAMPLES OF WHAT NOT TO DO:
+BAD: **Total Revenue** is $5000
+GOOD: Total Revenue is $5000
 
-Keep responses concise and well-formatted with simple paragraphs.`
+BAD: - Item one
+     - Item two
+GOOD: Item one. Item two.
+
+BAD: You should focus on *reducing expenses*
+GOOD: You should focus on reducing expenses
+
+Provide clear, accurate advice referencing their actual financial data. If unsure, recommend consulting a certified accountant. Keep responses concise and conversational.`
       },
       ...(conversationHistory || []),
       {
