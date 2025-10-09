@@ -55,7 +55,7 @@ import { TransactionRow } from "@/components/transactions/TransactionRow";
 
 import { BulkOperations } from "@/components/transactions/BulkOperations";
 import { AdvancedSearch, SearchFilters } from "@/components/transactions/AdvancedSearch";
-import { TransactionReconciliation } from "@/components/transactions/TransactionReconciliation";
+
 import { TransactionSync } from "@/components/TransactionSync";
 import { CSVImport } from "@/components/transactions/CSVImport";
 import { exportTransactionsToCSV } from "@/utils/csvExport";
@@ -153,6 +153,14 @@ export default function Transactions() {
 
           // Auto-fix transaction types in background
           supabase.functions.invoke('ai-reclassify-types', {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          });
+
+          // Run auto-reconciliation in background
+          supabase.functions.invoke('auto-reconcile', {
+            body: { user_id: user?.id },
             headers: {
               Authorization: `Bearer ${session.access_token}`,
             },
@@ -779,19 +787,11 @@ export default function Transactions() {
         {/* Transaction Statistics */}
         <TransactionStats transactions={filteredTransactions} />
 
-        {/* Tabs for Rules and Transactions */}
+        {/* Tabs for Transactions */}
         <Tabs defaultValue="transactions" className="mt-6">
           <TabsList>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
-            <TabsTrigger value="reconciliation">
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Reconciliation
-            </TabsTrigger>
           </TabsList>
-          
-          <TabsContent value="reconciliation" className="mt-4">
-            <TransactionReconciliation />
-          </TabsContent>
           
           <TabsContent value="transactions" className="mt-4 space-y-4">
             {/* Bulk Operations */}
