@@ -624,44 +624,61 @@ export default function Dashboard() {
                   <CardTitle>{t.ui.incomeByCategory}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={350}>
-                    <PieChart>
-                      <Pie
-                        data={categoryData.filter(c => c.type === 'income')}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={false}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {categoryData
-                          .filter(c => c.type === 'income')
-                          .map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                      </Pie>
-                      <Tooltip 
-                        formatter={(value: number) => formatCurrency(value)}
-                        contentStyle={{ 
-                          backgroundColor: 'hsl(var(--card))', 
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px'
-                        }}
-                      />
-                      <Legend 
-                        verticalAlign="bottom" 
-                        height={36}
-                        formatter={(value, entry: any) => {
-                          const categoryName = entry.payload.name;
-                          const categoryValue = formatCurrency(entry.payload.value);
-                          return `${categoryName}: ${categoryValue}`;
-                        }}
-                        wrapperStyle={{ fontSize: '12px' }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  {(() => {
+                    const incomeCategories = categoryData.filter(c => c.type === 'income');
+                    // Sort by value and take top 5, group rest as "Other"
+                    const sortedIncome = [...incomeCategories].sort((a, b) => b.value - a.value);
+                    const topIncome = sortedIncome.slice(0, 5);
+                    const otherIncome = sortedIncome.slice(5);
+                    const otherTotal = otherIncome.reduce((sum, cat) => sum + cat.value, 0);
+                    
+                    const displayData = otherTotal > 0 
+                      ? [...topIncome, { name: 'Other', value: otherTotal, color: '#94a3b8', type: 'income' }]
+                      : topIncome;
+                    
+                    return (
+                      <ResponsiveContainer width="100%" height={400}>
+                        <PieChart>
+                          <Pie
+                            data={displayData}
+                            cx="50%"
+                            cy="45%"
+                            labelLine={false}
+                            label={(entry) => {
+                              const total = displayData.reduce((sum, e) => sum + e.value, 0);
+                              const percent = ((entry.value / total) * 100).toFixed(0);
+                              return Number(percent) > 8 ? `${percent}%` : '';
+                            }}
+                            outerRadius={110}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {displayData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            formatter={(value: number) => formatCurrency(value)}
+                            contentStyle={{ 
+                              backgroundColor: 'hsl(var(--card))', 
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px'
+                            }}
+                          />
+                          <Legend 
+                            verticalAlign="bottom" 
+                            height={80}
+                            formatter={(value, entry: any) => {
+                              const categoryName = entry.payload.name;
+                              const categoryValue = formatCurrency(entry.payload.value);
+                              return `${categoryName}: ${categoryValue}`;
+                            }}
+                            wrapperStyle={{ fontSize: '13px', paddingTop: '10px' }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    );
+                  })()}
                 </CardContent>
               </Card>
               
@@ -670,44 +687,61 @@ export default function Dashboard() {
                   <CardTitle>{t.ui.expensesByCategory}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={350}>
-                    <PieChart>
-                      <Pie
-                        data={categoryData.filter(c => c.type === 'expense')}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={false}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {categoryData
-                          .filter(c => c.type === 'expense')
-                          .map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                      </Pie>
-                      <Tooltip 
-                        formatter={(value: number) => formatCurrency(value)}
-                        contentStyle={{ 
-                          backgroundColor: 'hsl(var(--card))', 
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px'
-                        }}
-                      />
-                      <Legend 
-                        verticalAlign="bottom" 
-                        height={36}
-                        formatter={(value, entry: any) => {
-                          const categoryName = entry.payload.name;
-                          const categoryValue = formatCurrency(entry.payload.value);
-                          return `${categoryName}: ${categoryValue}`;
-                        }}
-                        wrapperStyle={{ fontSize: '12px' }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  {(() => {
+                    const expenseCategories = categoryData.filter(c => c.type === 'expense');
+                    // Sort by value and take top 5, group rest as "Other"
+                    const sortedExpenses = [...expenseCategories].sort((a, b) => b.value - a.value);
+                    const topExpenses = sortedExpenses.slice(0, 5);
+                    const otherExpenses = sortedExpenses.slice(5);
+                    const otherTotal = otherExpenses.reduce((sum, cat) => sum + cat.value, 0);
+                    
+                    const displayData = otherTotal > 0 
+                      ? [...topExpenses, { name: 'Other', value: otherTotal, color: '#94a3b8', type: 'expense' }]
+                      : topExpenses;
+                    
+                    return (
+                      <ResponsiveContainer width="100%" height={400}>
+                        <PieChart>
+                          <Pie
+                            data={displayData}
+                            cx="50%"
+                            cy="45%"
+                            labelLine={false}
+                            label={(entry) => {
+                              const total = displayData.reduce((sum, e) => sum + e.value, 0);
+                              const percent = ((entry.value / total) * 100).toFixed(0);
+                              return Number(percent) > 8 ? `${percent}%` : '';
+                            }}
+                            outerRadius={110}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {displayData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            formatter={(value: number) => formatCurrency(value)}
+                            contentStyle={{ 
+                              backgroundColor: 'hsl(var(--card))', 
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px'
+                            }}
+                          />
+                          <Legend 
+                            verticalAlign="bottom" 
+                            height={80}
+                            formatter={(value, entry: any) => {
+                              const categoryName = entry.payload.name;
+                              const categoryValue = formatCurrency(entry.payload.value);
+                              return `${categoryName}: ${categoryValue}`;
+                            }}
+                            wrapperStyle={{ fontSize: '13px', paddingTop: '10px' }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             </div>
