@@ -262,47 +262,91 @@ export default function Reports() {
         date: endDate.toLocaleDateString(),
       });
 
-      // Process Cash Flow data
-      const operatingInflows = transactions
-        .filter(t => t.type === "income" && t.categories?.name !== "Investment Income")
-        .map(t => ({ name: t.description, amount: Number(t.amount) }));
+      // Process Cash Flow data (Indirect Method)
+      // Operating Activities - Start with Net Income and adjust
+      const depreciation = 0; // Placeholder for depreciation
+      const amortization = 0; // Placeholder for amortization
       
-      const operatingOutflows = transactions
-        .filter(t => t.type === "expense" && !["Equipment", "Property"].includes(t.categories?.name || ""))
-        .map(t => ({ name: t.description, amount: Number(t.amount) }));
+      // Changes in working capital
+      const accountsReceivableChange = -accountsReceivable; // Increase in AR is negative to cash
+      const accountsPayableChange = 0; // Increase in AP is positive to cash
+      const inventoryChange = 0;
       
-      const investingInflows = transactions
-        .filter(t => t.type === "income" && t.categories?.name === "Investment Income")
-        .map(t => ({ name: t.description, amount: Number(t.amount) }));
+      const operatingAdjustments = [
+        { name: "Depreciation and Amortization", amount: depreciation + amortization },
+      ].filter(item => item.amount !== 0);
       
-      const investingOutflows = transactions
-        .filter(t => t.type === "expense" && ["Equipment", "Property"].includes(t.categories?.name || ""))
-        .map(t => ({ name: t.description, amount: Number(t.amount) }));
+      const workingCapitalChanges = [
+        { name: "Accounts Receivable", amount: accountsReceivableChange },
+        { name: "Accounts Payable", amount: accountsPayableChange },
+        { name: "Inventory", amount: inventoryChange },
+      ].filter(item => item.amount !== 0);
       
-      const operatingNet = operatingInflows.reduce((sum, i) => sum + i.amount, 0) - 
-                          operatingOutflows.reduce((sum, o) => sum + o.amount, 0);
-      const investingNet = investingInflows.reduce((sum, i) => sum + i.amount, 0) - 
-                          investingOutflows.reduce((sum, o) => sum + o.amount, 0);
+      const operatingNet = netProfit + 
+                          operatingAdjustments.reduce((sum, a) => sum + a.amount, 0) +
+                          workingCapitalChanges.reduce((sum, w) => sum + w.amount, 0);
+      
+      // Investing Activities
+      const investingActivities = transactions
+        .filter(t => ["Equipment", "Property", "Investment"].some(cat => t.categories?.name?.includes(cat)))
+        .reduce((acc, t) => {
+          const existingIndex = acc.findIndex(a => a.name === t.categories?.name);
+          const amount = t.type === "income" ? Number(t.amount) : -Number(t.amount);
+          
+          if (existingIndex >= 0) {
+            acc[existingIndex].amount += amount;
+          } else {
+            acc.push({ 
+              name: t.type === "expense" ? `Purchase of ${t.categories?.name}` : `Sale of ${t.categories?.name}`,
+              amount 
+            });
+          }
+          return acc;
+        }, [] as Array<{ name: string; amount: number }>);
+      
+      const investingNet = investingActivities.reduce((sum, a) => sum + a.amount, 0);
+      
+      // Financing Activities
+      const financingActivities = transactions
+        .filter(t => ["Loan", "Capital", "Dividend"].some(cat => t.categories?.name?.includes(cat)))
+        .reduce((acc, t) => {
+          const existingIndex = acc.findIndex(a => a.name === t.categories?.name);
+          const amount = t.type === "income" ? Number(t.amount) : -Number(t.amount);
+          
+          if (existingIndex >= 0) {
+            acc[existingIndex].amount += amount;
+          } else {
+            acc.push({ 
+              name: t.type === "income" ? `Proceeds from ${t.categories?.name}` : `Payment of ${t.categories?.name}`,
+              amount 
+            });
+          }
+          return acc;
+        }, [] as Array<{ name: string; amount: number }>);
+      
+      const financingNet = financingActivities.reduce((sum, a) => sum + a.amount, 0);
+      
+      const netChange = operatingNet + investingNet + financingNet;
+      const beginningCash = totalCash - netChange;
       
       setCashFlowData({
         operating: {
-          inflows: operatingInflows.slice(0, 5),
-          outflows: operatingOutflows.slice(0, 5),
+          netIncome: netProfit,
+          adjustments: operatingAdjustments,
+          workingCapitalChanges: workingCapitalChanges,
           netCash: operatingNet,
         },
         investing: {
-          inflows: investingInflows,
-          outflows: investingOutflows,
+          activities: investingActivities.length > 0 ? investingActivities : [{ name: "No investing activities", amount: 0 }],
           netCash: investingNet,
         },
         financing: {
-          inflows: [],
-          outflows: [],
-          netCash: 0,
+          activities: financingActivities.length > 0 ? financingActivities : [{ name: "No financing activities", amount: 0 }],
+          netCash: financingNet,
         },
-        beginningCash: totalCash - netProfit,
+        beginningCash: beginningCash,
         endingCash: totalCash,
-        netChange: netProfit,
+        netChange: netChange,
         period: `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`,
       });
     }

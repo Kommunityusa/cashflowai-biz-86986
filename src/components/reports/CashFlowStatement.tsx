@@ -4,18 +4,17 @@ import { ArrowUpCircle, ArrowDownCircle, DollarSign } from "lucide-react";
 
 interface CashFlowData {
   operating: {
-    inflows: Array<{ name: string; amount: number }>;
-    outflows: Array<{ name: string; amount: number }>;
+    netIncome: number;
+    adjustments: Array<{ name: string; amount: number }>;
+    workingCapitalChanges: Array<{ name: string; amount: number }>;
     netCash: number;
   };
   investing: {
-    inflows: Array<{ name: string; amount: number }>;
-    outflows: Array<{ name: string; amount: number }>;
+    activities: Array<{ name: string; amount: number }>;
     netCash: number;
   };
   financing: {
-    inflows: Array<{ name: string; amount: number }>;
-    outflows: Array<{ name: string; amount: number }>;
+    activities: Array<{ name: string; amount: number }>;
     netCash: number;
   };
   beginningCash: number;
@@ -53,66 +52,112 @@ export function CashFlowStatement({ data, loading }: CashFlowStatementProps) {
     }).format(amount);
   };
 
-  const CashFlowSection = ({ 
-    title, 
-    icon, 
-    inflows, 
-    outflows, 
-    netCash 
-  }: { 
-    title: string; 
-    icon: React.ReactNode;
-    inflows: Array<{ name: string; amount: number }>;
-    outflows: Array<{ name: string; amount: number }>;
-    netCash: number;
-  }) => (
+  const OperatingActivitiesSection = () => (
     <div>
-      <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-        {icon}
-        {title}
-      </h3>
+      <h3 className="font-semibold text-lg mb-4">Cash Flows from Operating Activities</h3>
       
-      <div className="ml-4 space-y-3">
-        {inflows.length > 0 && (
-          <div>
-            <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
-              <ArrowUpCircle className="h-3 w-3 text-green-600" />
-              Cash Inflows
+      <div className="space-y-3">
+        {/* Net Income */}
+        <div className="flex justify-between items-center pl-4">
+          <span className="font-medium">Net Income</span>
+          <span className="font-medium">{formatCurrency(data.operating.netIncome)}</span>
+        </div>
+
+        {/* Adjustments to reconcile net income */}
+        {data.operating.adjustments.length > 0 && (
+          <div className="pl-4">
+            <h4 className="text-sm font-medium text-muted-foreground mb-2 mt-3">
+              Adjustments to reconcile net income to net cash:
             </h4>
-            <div className="space-y-1 ml-4">
-              {inflows.map((item, index) => (
-                <div key={index} className="flex justify-between items-center">
-                  <span className="text-sm">{item.name}</span>
-                  <span className="font-medium text-green-600">+{formatCurrency(item.amount)}</span>
+            <div className="space-y-2 pl-4">
+              {data.operating.adjustments.map((item, index) => (
+                <div key={index} className="flex justify-between items-center text-sm">
+                  <span>{item.name}</span>
+                  <span className={item.amount >= 0 ? 'text-foreground' : 'text-foreground'}>
+                    {item.amount >= 0 ? '' : '('}{formatCurrency(Math.abs(item.amount))}{item.amount >= 0 ? '' : ')'}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {outflows.length > 0 && (
-          <div>
-            <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
-              <ArrowDownCircle className="h-3 w-3 text-red-600" />
-              Cash Outflows
+        {/* Changes in working capital */}
+        {data.operating.workingCapitalChanges.length > 0 && (
+          <div className="pl-4">
+            <h4 className="text-sm font-medium text-muted-foreground mb-2 mt-3">
+              Changes in operating assets and liabilities:
             </h4>
-            <div className="space-y-1 ml-4">
-              {outflows.map((item, index) => (
-                <div key={index} className="flex justify-between items-center">
-                  <span className="text-sm">{item.name}</span>
-                  <span className="font-medium text-red-600">-{formatCurrency(Math.abs(item.amount))}</span>
+            <div className="space-y-2 pl-4">
+              {data.operating.workingCapitalChanges.map((item, index) => (
+                <div key={index} className="flex justify-between items-center text-sm">
+                  <span>{item.name}</span>
+                  <span className={item.amount >= 0 ? 'text-foreground' : 'text-foreground'}>
+                    {item.amount >= 0 ? '' : '('}{formatCurrency(Math.abs(item.amount))}{item.amount >= 0 ? '' : ')'}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
         )}
+
+        {/* Net Cash from Operating Activities */}
+        <div className="flex justify-between items-center pt-3 border-t font-semibold">
+          <span>Net Cash Provided by Operating Activities</span>
+          <span className={data.operating.netCash >= 0 ? 'text-green-600' : 'text-red-600'}>
+            {formatCurrency(data.operating.netCash)}
+          </span>
+        </div>
       </div>
+    </div>
+  );
 
-      <div className="flex justify-between items-center mt-3 pt-2 border-t">
-        <span className="font-semibold">Net Cash from {title}</span>
-        <span className={`font-bold ${netCash >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-          {netCash >= 0 ? '+' : ''}{formatCurrency(netCash)}
-        </span>
+  const InvestingActivitiesSection = () => (
+    <div>
+      <h3 className="font-semibold text-lg mb-4">Cash Flows from Investing Activities</h3>
+      
+      <div className="space-y-2 pl-4">
+        {data.investing.activities.map((item, index) => (
+          <div key={index} className="flex justify-between items-center text-sm">
+            <span>{item.name}</span>
+            <span className={item.amount >= 0 ? 'text-foreground' : 'text-foreground'}>
+              {item.amount >= 0 ? '' : '('}{formatCurrency(Math.abs(item.amount))}{item.amount >= 0 ? '' : ')'}
+            </span>
+          </div>
+        ))}
+        
+        {/* Net Cash from Investing Activities */}
+        <div className="flex justify-between items-center pt-3 border-t font-semibold">
+          <span>Net Cash Used in Investing Activities</span>
+          <span className={data.investing.netCash >= 0 ? 'text-green-600' : 'text-red-600'}>
+            {formatCurrency(data.investing.netCash)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+
+  const FinancingActivitiesSection = () => (
+    <div>
+      <h3 className="font-semibold text-lg mb-4">Cash Flows from Financing Activities</h3>
+      
+      <div className="space-y-2 pl-4">
+        {data.financing.activities.map((item, index) => (
+          <div key={index} className="flex justify-between items-center text-sm">
+            <span>{item.name}</span>
+            <span className={item.amount >= 0 ? 'text-foreground' : 'text-foreground'}>
+              {item.amount >= 0 ? '' : '('}{formatCurrency(Math.abs(item.amount))}{item.amount >= 0 ? '' : ')'}
+            </span>
+          </div>
+        ))}
+        
+        {/* Net Cash from Financing Activities */}
+        <div className="flex justify-between items-center pt-3 border-t font-semibold">
+          <span>Net Cash Provided by Financing Activities</span>
+          <span className={data.financing.netCash >= 0 ? 'text-green-600' : 'text-red-600'}>
+            {formatCurrency(data.financing.netCash)}
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -135,35 +180,17 @@ export function CashFlowStatement({ data, loading }: CashFlowStatementProps) {
         </div>
 
         {/* Operating Activities */}
-        <CashFlowSection
-          title="Operating Activities"
-          icon={<DollarSign className="h-5 w-5" />}
-          inflows={data.operating.inflows}
-          outflows={data.operating.outflows}
-          netCash={data.operating.netCash}
-        />
+        <OperatingActivitiesSection />
 
         <Separator />
 
         {/* Investing Activities */}
-        <CashFlowSection
-          title="Investing Activities"
-          icon={<DollarSign className="h-5 w-5" />}
-          inflows={data.investing.inflows}
-          outflows={data.investing.outflows}
-          netCash={data.investing.netCash}
-        />
+        <InvestingActivitiesSection />
 
         <Separator />
 
         {/* Financing Activities */}
-        <CashFlowSection
-          title="Financing Activities"
-          icon={<DollarSign className="h-5 w-5" />}
-          inflows={data.financing.inflows}
-          outflows={data.financing.outflows}
-          netCash={data.financing.netCash}
-        />
+        <FinancingActivitiesSection />
 
         <Separator />
 
