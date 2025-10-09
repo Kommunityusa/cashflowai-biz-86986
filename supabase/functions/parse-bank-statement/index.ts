@@ -197,7 +197,7 @@ Return ONLY valid JSON (no markdown, no explanations):
       description: t.description || '',
       vendor_name: t.vendor_name || t.description || '',
       amount: Math.abs(parseFloat(t.amount)),
-      type: t.type || 'expense',
+      type: (t.type || 'expense').toLowerCase(), // Convert to lowercase to match DB constraint
       transaction_date: t.date,
       status: 'completed',
       needs_review: true,
