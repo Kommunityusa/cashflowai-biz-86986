@@ -35,12 +35,13 @@ serve(async (req) => {
 
     console.log('Fetching transactions for user:', user.id);
 
-    // Fetch all transactions for the user
+    // Fetch transactions in smaller batches - only last 100 transactions to avoid timeout
     const { data: transactions, error: txError } = await supabase
       .from('transactions')
       .select('id, description, amount, type, vendor_name')
       .eq('user_id', user.id)
-      .order('transaction_date', { ascending: false });
+      .order('transaction_date', { ascending: false })
+      .limit(100);
 
     if (txError) {
       console.error('Error fetching transactions:', txError);
