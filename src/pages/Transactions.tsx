@@ -478,16 +478,20 @@ export default function Transactions() {
       if (error) throw error;
 
       toast({
-        title: "Success",
-        description: data.message || `Reclassified ${data.updated} transactions`,
+        title: "Processing Started",
+        description: "AI is analyzing your transactions in the background. This may take a few minutes.",
       });
 
-      fetchTransactions();
+      // Refresh transactions after a delay
+      setTimeout(() => {
+        fetchTransactions();
+      }, 5000);
+
     } catch (error) {
       console.error('Error reclassifying transactions:', error);
       toast({
         title: "Error",
-        description: "Failed to reclassify transaction types",
+        description: "Failed to start reclassification process",
         variant: "destructive",
       });
     } finally {

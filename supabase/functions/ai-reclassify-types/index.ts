@@ -33,38 +33,41 @@ serve(async (req) => {
       });
     }
 
-    console.log('Fetching transactions for user:', user.id);
+    console.log('Starting reclassification for user:', user.id);
 
-    // Fetch transactions in smaller batches - only last 100 transactions to avoid timeout
-    const { data: transactions, error: txError } = await supabase
-      .from('transactions')
-      .select('id, description, amount, type, vendor_name')
-      .eq('user_id', user.id)
-      .order('transaction_date', { ascending: false })
-      .limit(100);
+    // Start background processing
+    const processTransactions = async () => {
+      try {
+        // Fetch transactions in batches of 50
+        const BATCH_SIZE = 50;
+        let offset = 0;
+        let totalUpdated = 0;
 
-    if (txError) {
-      console.error('Error fetching transactions:', txError);
-      throw txError;
-    }
+        while (true) {
+          const { data: transactions, error: txError } = await supabase
+            .from('transactions')
+            .select('id, description, amount, type, vendor_name')
+            .eq('user_id', user.id)
+            .order('transaction_date', { ascending: false })
+            .range(offset, offset + BATCH_SIZE - 1);
 
-    if (!transactions || transactions.length === 0) {
-      return new Response(JSON.stringify({ 
-        message: 'No transactions to reclassify',
-        updated: 0
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
+          if (txError) {
+            console.error('Error fetching transactions:', txError);
+            break;
+          }
 
-    console.log(`Processing ${transactions.length} transactions`);
+          if (!transactions || transactions.length === 0) {
+            break;
+          }
 
-    // Prepare transactions for AI analysis
-    const transactionList = transactions.map(t => 
-      `ID: ${t.id} | Amount: ${t.amount} | Current Type: ${t.type} | Vendor: ${t.vendor_name || 'N/A'} | Description: ${t.description}`
-    ).join('\n');
+          console.log(`Processing batch: ${offset} to ${offset + transactions.length}`);
 
-    const systemPrompt = `You are a financial transaction classifier. Your job is to determine if transactions are correctly classified as "income" or "expense".
+          // Prepare transactions for AI analysis
+          const transactionList = transactions.map(t => 
+            `ID: ${t.id} | Amount: ${t.amount} | Current Type: ${t.type} | Vendor: ${t.vendor_name || 'N/A'} | Description: ${t.description}`
+          ).join('\n');
+
+          const systemPrompt = `You are a financial transaction classifier. Determine if transactions are correctly classified as "income" or "expense".
 
 Rules:
 - Positive amounts are typically income, negative amounts are typically expenses
@@ -73,7 +76,7 @@ Rules:
 - Common expenses: purchases, bills, subscriptions, transfers out
 - Return ONLY valid JSON with no markdown formatting
 
-Respond with a JSON array of objects with this exact structure:
+Respond with a JSON array:
 [
   {
     "id": "transaction-uuid",
@@ -83,102 +86,89 @@ Respond with a JSON array of objects with this exact structure:
   }
 ]`;
 
-    const userPrompt = `Analyze these transactions and determine the correct type for each:\n\n${transactionList}`;
+          const userPrompt = `Analyze these transactions and determine the correct type for each:\n\n${transactionList}`;
 
-    console.log('Calling Lovable AI for classification...');
+          console.log('Calling Lovable AI for batch...');
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-      }),
-    });
-
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI API error:', aiResponse.status, errorText);
-      throw new Error(`AI API error: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    const aiContent = aiData.choices[0].message.content;
-    
-    console.log('AI Response received');
-
-    // Parse AI response - handle potential markdown formatting
-    let classifications;
-    try {
-      const jsonMatch = aiContent.match(/\[[\s\S]*\]/);
-      const jsonStr = jsonMatch ? jsonMatch[0] : aiContent;
-      classifications = JSON.parse(jsonStr);
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', parseError, 'Content:', aiContent);
-      throw new Error('Failed to parse AI classification response');
-    }
-
-    console.log(`AI classified ${classifications.length} transactions`);
-
-    // Update transactions with corrected types
-    let updated = 0;
-    const results = [];
-
-    for (const classification of classifications) {
-      const transaction = transactions.find(t => t.id === classification.id);
-      if (!transaction) continue;
-
-      const needsUpdate = transaction.type !== classification.correct_type;
-      
-      if (needsUpdate) {
-        const { error: updateError } = await supabase
-          .from('transactions')
-          .update({ 
-            type: classification.correct_type,
-            needs_review: false
-          })
-          .eq('id', classification.id)
-          .eq('user_id', user.id);
-
-        if (updateError) {
-          console.error(`Error updating transaction ${classification.id}:`, updateError);
-          results.push({
-            id: classification.id,
-            success: false,
-            error: updateError.message
+          const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${lovableApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'google/gemini-2.5-flash',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+              ],
+            }),
           });
-        } else {
-          updated++;
-          results.push({
-            id: classification.id,
-            success: true,
-            changed: `${transaction.type} → ${classification.correct_type}`,
-            reason: classification.reason
-          });
+
+          if (!aiResponse.ok) {
+            const errorText = await aiResponse.text();
+            console.error('AI API error:', aiResponse.status, errorText);
+            break;
+          }
+
+          const aiData = await aiResponse.json();
+          const aiContent = aiData.choices[0].message.content;
+          
+          // Parse AI response
+          let classifications;
+          try {
+            const jsonMatch = aiContent.match(/\[[\s\S]*\]/);
+            const jsonStr = jsonMatch ? jsonMatch[0] : aiContent;
+            classifications = JSON.parse(jsonStr);
+          } catch (parseError) {
+            console.error('Failed to parse AI response:', parseError);
+            break;
+          }
+
+          // Update transactions
+          for (const classification of classifications) {
+            const transaction = transactions.find(t => t.id === classification.id);
+            if (!transaction) continue;
+
+            const needsUpdate = transaction.type !== classification.correct_type;
+            
+            if (needsUpdate) {
+              const { error: updateError } = await supabase
+                .from('transactions')
+                .update({ 
+                  type: classification.correct_type,
+                  needs_review: false
+                })
+                .eq('id', classification.id)
+                .eq('user_id', user.id);
+
+              if (!updateError) {
+                totalUpdated++;
+              }
+            }
+          }
+
+          offset += BATCH_SIZE;
+
+          // Prevent infinite loop
+          if (transactions.length < BATCH_SIZE) {
+            break;
+          }
         }
-      } else {
-        results.push({
-          id: classification.id,
-          success: true,
-          changed: null,
-          reason: 'Already correct'
-        });
+
+        console.log(`Reclassification complete. Total updated: ${totalUpdated}`);
+      } catch (error) {
+        console.error('Background processing error:', error);
       }
-    }
+    };
 
-    console.log(`Reclassification complete. Updated ${updated} transactions.`);
+    // Run in background
+    processTransactions();
 
+    // Return immediately
     return new Response(JSON.stringify({
-      message: `Successfully reclassified ${updated} transactions`,
-      total_analyzed: transactions.length,
-      updated,
-      results
+      message: 'Transaction reclassification started in background',
+      status: 'processing'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
