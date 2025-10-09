@@ -57,6 +57,8 @@ import { BulkOperations } from "@/components/transactions/BulkOperations";
 import { AdvancedSearch, SearchFilters } from "@/components/transactions/AdvancedSearch";
 import { TransactionReconciliation } from "@/components/transactions/TransactionReconciliation";
 import { TransactionSync } from "@/components/TransactionSync";
+import { CSVImport } from "@/components/transactions/CSVImport";
+import { exportTransactionsToCSV } from "@/utils/csvExport";
 import {
   Plus,
   Download,
@@ -858,25 +860,15 @@ export default function Transactions() {
             {uploadingPDF ? "Processing..." : "Upload PDF"}
           </Button>
           
-          <input
-            ref={csvInputRef}
-            type="file"
-            accept=".csv"
-            onChange={handleCSVUpload}
-            className="hidden"
-          />
+          <CSVImport onImportComplete={fetchTransactions} />
+          
           <Button 
             variant="outline" 
-            onClick={() => csvInputRef.current?.click()}
-            disabled={uploadingCSV}
+            onClick={() => exportTransactionsToCSV(transactions)}
+            disabled={!transactions || transactions.length === 0}
           >
-            <FileUp className="mr-2 h-4 w-4" />
-            {uploadingCSV ? "Processing..." : "Upload CSV"}
-          </Button>
-          
-          <Button variant="outline" onClick={exportTransactions}>
             <Download className="mr-2 h-4 w-4" />
-            Export
+            Export CSV
           </Button>
           
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>

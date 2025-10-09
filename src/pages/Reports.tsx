@@ -26,6 +26,7 @@ import {
 import { ProfitLossStatement } from "@/components/reports/ProfitLossStatement";
 import { BalanceSheet } from "@/components/reports/BalanceSheet";
 import { CashFlowStatement } from "@/components/reports/CashFlowStatement";
+import { exportReportToCSV } from "@/utils/csvExport";
 
 export default function Reports() {
   const { user } = useAuth();
@@ -477,20 +478,64 @@ export default function Reports() {
 
         {/* Financial Statements Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="profit-loss" className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Profit & Loss
-            </TabsTrigger>
-            <TabsTrigger value="balance-sheet" className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Balance Sheet
-            </TabsTrigger>
-            <TabsTrigger value="cash-flow" className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4" />
-              Cash Flow
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex justify-between items-center mb-4">
+            <TabsList className="grid w-fit grid-cols-3">
+              <TabsTrigger value="profit-loss" className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                Profit & Loss
+              </TabsTrigger>
+              <TabsTrigger value="balance-sheet" className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Balance Sheet
+              </TabsTrigger>
+              <TabsTrigger value="cash-flow" className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4" />
+                Cash Flow
+              </TabsTrigger>
+            </TabsList>
+            
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (activeTab === "profit-loss") {
+                  const data = [
+                    { Section: "Revenue", Category: "", Amount: "" },
+                    ...profitLossData.revenue.breakdown.map((i: any) => ({ 
+                      Section: "", Category: i.category, Amount: i.amount 
+                    })),
+                    { Section: "", Category: "Total Revenue", Amount: profitLossData.revenue.total },
+                    { Section: "Expenses", Category: "", Amount: "" },
+                    ...profitLossData.expenses.breakdown.map((i: any) => ({ 
+                      Section: "", Category: i.category, Amount: i.amount 
+                    })),
+                    { Section: "", Category: "Total Expenses", Amount: profitLossData.expenses.total },
+                    { Section: "", Category: "Net Profit", Amount: profitLossData.netProfit },
+                  ];
+                  exportReportToCSV(data, "profit-loss-statement");
+                } else if (activeTab === "balance-sheet") {
+                  const data = [
+                    { Section: "Assets - Current", Item: "", Amount: "" },
+                    ...balanceSheetData.assets.current.map((i: any) => ({ 
+                      Section: "", Item: i.name, Amount: i.amount 
+                    })),
+                    { Section: "", Item: "Total Current Assets", Amount: balanceSheetData.assets.totalCurrent },
+                  ];
+                  exportReportToCSV(data, "balance-sheet");
+                } else {
+                  const data = [
+                    { Section: "Operating Activities", Item: "Net Income", Amount: cashFlowData.operating.netIncome },
+                    ...cashFlowData.operating.adjustments?.map((i: any) => ({ 
+                      Section: "", Item: i.name, Amount: i.amount 
+                    })) || [],
+                  ];
+                  exportReportToCSV(data, "cash-flow-statement");
+                }
+              }}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Export CSV
+            </Button>
+          </div>
 
           <TabsContent value="profit-loss" className="mt-6">
             <ProfitLossStatement data={profitLossData} loading={loading} />
