@@ -88,13 +88,26 @@ serve(async (req) => {
     const extractData = await extractResponse.json();
     console.log('[PARSE-STATEMENT] PDF.co extraction response:', JSON.stringify(extractData).substring(0, 500));
     
-    const pdfText = extractData.body || '';
+    // PDF.co returns a URL to the extracted text, fetch it
+    const textUrl = extractData.url;
+    if (!textUrl) {
+      console.error('[PARSE-STATEMENT] No URL in PDF.co response:', JSON.stringify(extractData));
+      throw new Error('PDF.co did not return a text URL');
+    }
+
+    console.log('[PARSE-STATEMENT] Fetching extracted text from:', textUrl);
+    const textResponse = await fetch(textUrl);
+    if (!textResponse.ok) {
+      throw new Error('Failed to fetch extracted text from PDF.co');
+    }
+    
+    const pdfText = await textResponse.text();
 
     console.log('[PARSE-STATEMENT] Extracted text length:', pdfText.length);
     console.log('[PARSE-STATEMENT] Text preview:', pdfText.substring(0, 500));
     
     if (!pdfText || pdfText.trim().length === 0) {
-      console.error('[PARSE-STATEMENT] PDF.co returned empty text. Full response:', JSON.stringify(extractData));
+      console.error('[PARSE-STATEMENT] PDF.co returned empty text');
       throw new Error('No text could be extracted from the PDF. The PDF might be image-based or encrypted.');
     }
 
