@@ -1,6 +1,5 @@
 import { 
   Brain, 
-  Link2, 
   FileText, 
   Shield, 
   Zap, 
@@ -14,11 +13,6 @@ const features = [
     icon: Brain,
     title: "AI-Powered Insights",
     description: "Get intelligent insights about your finances with advanced machine learning analysis."
-  },
-  {
-    icon: Link2,
-    title: "Bank Account Sync",
-    description: "Connect all your business accounts securely with Plaid integration."
   },
   {
     icon: FileText,
