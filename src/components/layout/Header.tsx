@@ -13,7 +13,8 @@ import {
   BarChart3,
   CreditCard,
   Shield,
-  X
+  X,
+  Calculator
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -50,6 +51,7 @@ export function Header() {
     { href: "/dashboard", label: t.nav.dashboard, icon: Home },
     { href: "/transactions", label: t.nav.transactions, icon: FileText },
     { href: "/reports", label: t.nav.reports, icon: BarChart3 },
+    { href: "/tax-center", label: "Tax Center", icon: Calculator },
     { href: "/settings", label: t.nav.settings, icon: Settings },
   ];
 
