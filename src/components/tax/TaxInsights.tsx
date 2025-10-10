@@ -282,7 +282,7 @@ export function TaxInsights() {
                 onChange={(e) => setTaxYear(Number(e.target.value))}
                 className="border rounded px-3 py-1 text-sm"
               >
-                {[2024, 2023, 2022, 2021, 2020].map((year) => (
+                {Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i).map((year) => (
                   <option key={year} value={year}>
                     {year}
                   </option>
