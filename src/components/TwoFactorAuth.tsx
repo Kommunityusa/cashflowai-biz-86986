@@ -58,69 +58,19 @@ export function TwoFactorAuth() {
   const enrollTwoFactor = async () => {
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error("No user found");
+      const { data, error } = await supabase.functions.invoke('enroll-2fa');
+
+      if (error) throw error;
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to enroll 2FA');
       }
 
-      // Check if email is verified
-      if (!user.email_confirmed_at) {
-        throw new Error("Please verify your email address before enabling 2FA. Check your inbox for the verification email.");
-      }
-
-      // Clean up ALL existing unverified factors first
-      const { data: existingFactors } = await supabase.auth.mfa.listFactors();
-      if (existingFactors?.totp) {
-        for (const factor of existingFactors.totp) {
-          if (factor.status !== 'verified') {
-            console.log('Removing unverified factor:', factor.id);
-            await supabase.auth.mfa.unenroll({ factorId: factor.id });
-          }
-        }
-      }
-
-      // Wait a moment to ensure cleanup is complete
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Now enroll a new TOTP factor
-      const { data, error } = await supabase.auth.mfa.enroll({
-        factorType: 'totp',
-        friendlyName: 'Cash Flow AI'
-      });
-
-      if (error) {
-        // Provide more specific error messages
-        if (error.message.includes('Email not confirmed')) {
-          throw new Error("Please verify your email address before enabling 2FA. Check your inbox for the verification email.");
-        }
-        if (error.message.includes('name_conflict')) {
-          // Try with a random suffix if there's still a conflict
-          const randomSuffix = Math.random().toString(36).substring(7);
-          const retryData = await supabase.auth.mfa.enroll({
-            factorType: 'totp',
-            friendlyName: `CashFlowAI-${randomSuffix}`
-          });
-          if (retryData.error) throw retryData.error;
-          if (retryData.data) {
-            const qrCodeUrl = await QRCode.toDataURL(retryData.data.totp.qr_code);
-            setQrCode(qrCodeUrl);
-            setSecret(retryData.data.totp.secret);
-            setFactorId(retryData.data.id);
-            setShowEnrollDialog(true);
-            return;
-          }
-        }
-        throw error;
-      }
-
-      if (data) {
-        // Generate QR code from the URI
-        const qrCodeUrl = await QRCode.toDataURL(data.totp.qr_code);
-        setQrCode(qrCodeUrl);
-        setSecret(data.totp.secret);
-        setFactorId(data.id);
-        setShowEnrollDialog(true);
-      }
+      // Generate QR code from the URI
+      const qrCodeUrl = await QRCode.toDataURL(data.qrCode);
+      setQrCode(qrCodeUrl);
+      setSecret(data.secret);
+      setFactorId(data.factorId);
+      setShowEnrollDialog(true);
     } catch (error: any) {
       toast({
         title: "Error",
