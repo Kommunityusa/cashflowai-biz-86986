@@ -11,15 +11,20 @@ serve(async (req) => {
   }
 
   try {
-    const { message, transactionData } = await req.json();
+    const { message, transactionData, language } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Determine response language
+    const responseLanguage = language === 'es' ? 'Spanish' : 'English';
+
     // Build context from IRS Publication 334
     const systemPrompt = `You are John, a friendly and knowledgeable tax advisor with expertise in IRS Publication 334 - Tax Guide for Small Business.
+
+CRITICAL: You MUST respond in ${responseLanguage}. All of your responses should be written entirely in ${responseLanguage}.
 
 Key areas of expertise:
 - Schedule C deductions for sole proprietors

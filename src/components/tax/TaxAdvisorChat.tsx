@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import { MessageCircle, Send, User } from "lucide-react";
 import johnAvatar from "@/assets/john-avatar.jpg";
@@ -17,6 +18,7 @@ interface Message {
 
 export function TaxAdvisorChat() {
   const { user } = useAuth();
+  const { language } = useLanguage();
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -91,7 +93,8 @@ export function TaxAdvisorChat() {
       const { data, error } = await supabase.functions.invoke("tax-advisor", {
         body: { 
           message: userMessage,
-          transactionData: transactionData 
+          transactionData: transactionData,
+          language: language, // Pass selected language
         },
       });
 

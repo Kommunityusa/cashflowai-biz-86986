@@ -8,6 +8,7 @@ import { Send, User, Loader2, X, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
 import monicaAvatar from "@/assets/monica-avatar.jpg";
 
@@ -33,6 +34,7 @@ export const AIChatBubble = () => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { language } = useLanguage();
 
   useEffect(() => {
     // Scroll to bottom when messages change
@@ -78,6 +80,7 @@ export const AIChatBubble = () => {
         body: { 
           message: input,
           conversationHistory,
+          language: language, // Pass selected language
         }
       });
 

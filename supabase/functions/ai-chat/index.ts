@@ -30,7 +30,7 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { message, conversationHistory } = await req.json();
+    const { message, conversationHistory, language } = await req.json();
     
     if (!message) {
       return new Response(
@@ -130,6 +130,9 @@ Active Budgets: ${budgets.length}
 Transactions Needing Review: ${transactions.filter(t => t.needs_review).length}
 `;
 
+    // Determine response language
+    const responseLanguage = language === 'es' ? 'Spanish' : 'English';
+    
     const messages = [
       {
         role: 'system',
@@ -139,6 +142,8 @@ Transactions Needing Review: ${transactions.filter(t => t.needs_review).length}
 - IRS Publication 334 (Tax Guide for Small Business)
 - Best practices from the AICPA (American Institute of CPAs)
 - Small business bookkeeping guidelines
+
+CRITICAL: You MUST respond in ${responseLanguage}. All of your responses should be written entirely in ${responseLanguage}.
 
 You help with financial analysis, cash flow insights, tax guidance, and accounting concepts.
 
