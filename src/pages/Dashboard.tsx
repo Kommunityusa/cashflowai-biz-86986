@@ -119,12 +119,15 @@ export default function Dashboard() {
       }
 
       if (transactions) {
-        // Calculate stats (including internal transfers to match bank balance)
-        const revenue = transactions
+        // Filter out internal transfers - they don't affect business profit/loss
+        const financialTransactions = transactions.filter(t => !t.is_internal_transfer);
+        
+        // Calculate stats (excluding internal transfers for accurate business metrics)
+        const revenue = financialTransactions
           .filter(t => t.type === 'income')
           .reduce((sum, t) => sum + Number(t.amount), 0);
         
-        const expenses = transactions
+        const expenses = financialTransactions
           .filter(t => t.type === 'expense')
           .reduce((sum, t) => sum + Number(t.amount), 0);
 
@@ -132,11 +135,11 @@ export default function Dashboard() {
         const currentMonth = new Date().getMonth();
         const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
         
-        const currentMonthRevenue = transactions
+        const currentMonthRevenue = financialTransactions
           .filter(t => t.type === 'income' && new Date(t.transaction_date).getMonth() === currentMonth)
           .reduce((sum, t) => sum + Number(t.amount), 0);
         
-        const lastMonthRevenue = transactions
+        const lastMonthRevenue = financialTransactions
           .filter(t => t.type === 'income' && new Date(t.transaction_date).getMonth() === lastMonth)
           .reduce((sum, t) => sum + Number(t.amount), 0);
         
@@ -148,7 +151,7 @@ export default function Dashboard() {
           totalRevenue: revenue,
           totalExpenses: expenses,
           netProfit: revenue - expenses,
-          transactionCount: transactions.length,
+          transactionCount: financialTransactions.length,
           monthlyGrowth: monthlyGrowth,
         });
 
@@ -160,7 +163,7 @@ export default function Dashboard() {
         }).reverse();
 
         const chartPoints = last30Days.map(date => {
-          const dayTransactions = transactions.filter(
+          const dayTransactions = financialTransactions.filter(
             t => t.transaction_date === date
           );
           const revenue = dayTransactions
@@ -180,9 +183,9 @@ export default function Dashboard() {
 
         setChartData(chartPoints);
 
-        // Prepare category data
+        // Prepare category data (exclude internal transfers)
         const categoryMap = new Map();
-        transactions.forEach(t => {
+        financialTransactions.forEach(t => {
           if (t.categories) {
             const key = t.categories.name;
             if (!categoryMap.has(key)) {
@@ -216,7 +219,7 @@ export default function Dashboard() {
           monthlyMap.set(key, { month, income: 0, expense: 0 });
         });
 
-        transactions.forEach(t => {
+        financialTransactions.forEach(t => {
           const date = new Date(t.transaction_date);
           const key = `${date.getFullYear()}-${date.getMonth()}`;
           if (monthlyMap.has(key)) {
