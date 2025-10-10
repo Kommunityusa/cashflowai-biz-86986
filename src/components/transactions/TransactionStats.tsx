@@ -1,6 +1,5 @@
 import { Card } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, DollarSign, PieChart } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+import { TrendingUp, TrendingDown, DollarSign } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useMemo } from "react";
 
@@ -46,12 +45,6 @@ export function TransactionStats({ transactions }: TransactionStatsProps) {
   const monthlyAvgIncome = totalIncome / monthCount;
   const monthlyAvgExpenses = totalExpenses / monthCount;
 
-  // Get categorized vs uncategorized
-  const categorizedCount = transactions.filter(t => t.category_id).length;
-  const categorizedPercentage = transactions.length > 0 
-    ? (categorizedCount / transactions.length) * 100 
-    : 0;
-  
   return (
     <div className="space-y-4 mb-6">
       {/* Year Selector */}
@@ -122,23 +115,6 @@ export function TransactionStats({ transactions }: TransactionStatsProps) {
           </div>
         </Card>
       </div>
-      
-      {/* Categorization Progress */}
-      <Card className="p-4">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <PieChart className="h-5 w-5 text-primary" />
-            <span className="text-sm font-medium">Categorization Progress</span>
-          </div>
-          <span className="text-sm text-muted-foreground">
-            {categorizedCount} of {transactions.length} transactions
-          </span>
-        </div>
-        <Progress value={categorizedPercentage} className="h-2" />
-        <p className="text-xs text-muted-foreground mt-2">
-          {categorizedPercentage.toFixed(0)}% of transactions have been categorized
-        </p>
-      </Card>
     </div>
   );
 }

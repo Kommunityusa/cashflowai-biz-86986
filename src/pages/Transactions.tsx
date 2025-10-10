@@ -69,7 +69,7 @@ import {
   Search,
   Edit,
   Trash2,
-  Sparkles,
+  
   Lock,
   FileUp,
   Check,
@@ -114,7 +114,7 @@ export default function Transactions() {
     transaction_date: new Date().toISOString().split('T')[0],
     notes: "",
   });
-  const [isAICategorizing, setIsAICategorizing] = useState(false);
+  
 
   useEffect(() => {
     if (user) {
@@ -122,52 +122,6 @@ export default function Transactions() {
       fetchTransactions();
     }
   }, [user]);
-
-  // Auto-categorize and fix types when transactions load
-  useEffect(() => {
-    if (transactions.length > 0 && user) {
-      const runAutoML = async () => {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) return;
-
-          // Run both operations in parallel
-          const uncategorizedTransactions = transactions.filter(t => !t.category_id);
-          
-          if (uncategorizedTransactions.length > 0) {
-            // Auto-categorize uncategorized transactions in background
-            supabase.functions.invoke('ai-categorize-transactions', {
-              body: {
-                transactions: uncategorizedTransactions.map(t => ({
-                  id: t.id,
-                  description: t.description,
-                  vendor_name: t.vendor_name,
-                  amount: t.amount,
-                  transaction_date: t.transaction_date,
-                }))
-              },
-              headers: {
-                Authorization: `Bearer ${session.access_token}`,
-              },
-            });
-          }
-
-
-          // Run auto-reconciliation in background
-          supabase.functions.invoke('auto-reconcile', {
-            body: { user_id: user?.id },
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
-          });
-        } catch (error) {
-          console.error('Background ML error:', error);
-        }
-      };
-
-      runAutoML();
-    }
-  }, [transactions.length, user]);
 
   const fetchCategories = async () => {
     const { data, error } = await supabase
@@ -201,67 +155,6 @@ export default function Transactions() {
     setLoading(false);
   };
 
-  const handleAICategorize = async () => {
-    if (!newTransaction.description) {
-      toast({
-        title: "Error",
-        description: "Please enter a description first",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsAICategorizing(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error("Not authenticated");
-      }
-
-      const { data, error } = await supabase.functions.invoke('ai-categorize-transactions', {
-        body: {
-          transactions: [{
-            description: newTransaction.description,
-            amount: newTransaction.amount || 0,
-            type: newTransaction.type,
-          }]
-        },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (error) throw error;
-
-      if (data?.results?.[0]?.success) {
-        const result = data.results[0];
-        const category = categories.find(c => 
-          c.name === result.category && c.type === result.type
-        );
-        
-        if (category) {
-          setNewTransaction(prev => ({
-            ...prev,
-            category_id: category.id,
-            type: result.type,
-          }));
-          
-          toast({
-            title: "Success",
-            description: `Categorized as ${result.category}`,
-          });
-        }
-      }
-    } catch (error) {
-      console.error('AI categorization error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to categorize transaction",
-        variant: "destructive",
-      });
-    }
-    setIsAICategorizing(false);
-  };
 
 
   const handleAddTransaction = async () => {
@@ -559,12 +452,6 @@ export default function Transactions() {
       const data = await response.json();
 
       if (data?.transactions && data.transactions.length > 0) {
-        // Auto-categorize the imported transactions
-        await supabase.functions.invoke('ai-categorize-transactions', {
-          body: { transactions: data.transactions },
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-
         toast({
           title: "Success",
           description: `Imported ${data.transactions.length} transactions from PDF`,
@@ -668,14 +555,6 @@ export default function Transactions() {
         .select();
 
       if (insertError) throw insertError;
-
-      // Auto-categorize
-      if (inserted && inserted.length > 0) {
-        await supabase.functions.invoke('ai-categorize-transactions', {
-          body: { transactions: inserted },
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-      }
 
       toast({
         title: "Success",

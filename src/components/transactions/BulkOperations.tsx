@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Tag, FileText, MoreHorizontal, ArrowLeftRight } from "lucide-react";
+import { Trash2, Tag, FileText, MoreHorizontal } from "lucide-react";
 
 interface BulkOperationsProps {
   transactions: any[];
@@ -187,42 +187,6 @@ export function BulkOperations({
     window.URL.revokeObjectURL(url);
   };
 
-  const handleDetectTransfers = async () => {
-    setIsProcessing(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      toast({
-        title: "Detecting transfers...",
-        description: "This may take a moment",
-      });
-
-      const { data, error } = await supabase.functions.invoke('auto-reconcile', {
-        body: { user_id: user.id }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: `Found ${data.transfersFound || 0} transfer pairs and ${data.duplicatesFound || 0} duplicates`,
-      });
-
-      onRefresh();
-    } catch (error) {
-      console.error('Detect transfers error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to detect transfers",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-
   return (
     <div className="space-y-4">
       {/* Selection Controls */}
@@ -239,18 +203,6 @@ export function BulkOperations({
           </span>
         </div>
         
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={handleDetectTransfers}
-            disabled={isProcessing}
-            size="sm"
-            variant="outline"
-          >
-            <ArrowLeftRight className="mr-2 h-4 w-4" />
-            Detect Transfers
-          </Button>
-        </div>
-
         {selectedIds.size > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
             <Select value={bulkType} onValueChange={setBulkType}>
