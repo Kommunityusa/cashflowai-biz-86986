@@ -51,14 +51,15 @@ export const CSVImport = ({ onImportComplete }: { onImportComplete?: () => void 
               parsedDate = `${year}-${month}-${day}`;
             }
             
-            // Parse amount - Mercury uses negative for outgoing, positive for incoming
+            // Parse amount - Mercury format: POSITIVE = income (received), NEGATIVE = expense (sent)
             const rawAmount = parseFloat(row.Amount || row.amount || "0");
             const amount = Math.abs(rawAmount);
             
-            // Determine transaction type
+            // Determine transaction type based on Mercury's sign convention
             let type = row.type || row.Type;
             if (!type) {
-              type = rawAmount < 0 ? "expense" : "income";
+              // In Mercury CSV: positive amount = money IN (income), negative = money OUT (expense)
+              type = rawAmount > 0 ? "income" : "expense";
             }
             
             // Get description from Mercury columns
