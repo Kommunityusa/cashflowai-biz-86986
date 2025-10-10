@@ -145,7 +145,7 @@ export const AIChatBubble = () => {
           <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary/10 to-primary/5">
             <div className="flex items-center space-x-3">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={monicaAvatar} alt="Monica - Bookkeeping Assistant" />
+                <AvatarImage src={monicaAvatar} alt="Monica - Bookkeeping Assistant" className="object-cover" />
                 <AvatarFallback>MB</AvatarFallback>
               </Avatar>
               <div>
@@ -176,7 +176,7 @@ export const AIChatBubble = () => {
                 >
                   {message.role === 'assistant' ? (
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={monicaAvatar} alt="Monica" />
+                      <AvatarImage src={monicaAvatar} alt="Monica" className="object-cover" />
                       <AvatarFallback>MB</AvatarFallback>
                     </Avatar>
                   ) : (
@@ -207,7 +207,7 @@ export const AIChatBubble = () => {
               {isLoading && (
                 <div className="flex items-start gap-2">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={monicaAvatar} alt="Monica" />
+                    <AvatarImage src={monicaAvatar} alt="Monica" className="object-cover" />
                     <AvatarFallback>MB</AvatarFallback>
                   </Avatar>
                   <div className="bg-muted rounded-lg px-3 py-2">

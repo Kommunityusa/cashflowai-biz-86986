@@ -121,7 +121,7 @@ export function TaxAdvisorChat() {
       <CardHeader>
         <CardTitle className="flex items-center gap-3">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={johnAvatar} alt="John - Tax Advisor" />
+            <AvatarImage src={johnAvatar} alt="John - Tax Advisor" className="object-cover" />
             <AvatarFallback>JT</AvatarFallback>
           </Avatar>
           <div>
@@ -147,7 +147,7 @@ export function TaxAdvisorChat() {
               >
                 {message.role === "assistant" && (
                   <Avatar className="h-8 w-8 flex-shrink-0">
-                    <AvatarImage src={johnAvatar} alt="John" />
+                    <AvatarImage src={johnAvatar} alt="John" className="object-cover" />
                     <AvatarFallback>JT</AvatarFallback>
                   </Avatar>
                 )}
@@ -170,7 +170,7 @@ export function TaxAdvisorChat() {
             {loading && (
               <div className="flex gap-3 justify-start">
                 <Avatar className="h-8 w-8 flex-shrink-0">
-                  <AvatarImage src={johnAvatar} alt="John" />
+                  <AvatarImage src={johnAvatar} alt="John" className="object-cover" />
                   <AvatarFallback>JT</AvatarFallback>
                 </Avatar>
                 <div className="rounded-lg p-3 bg-muted">
