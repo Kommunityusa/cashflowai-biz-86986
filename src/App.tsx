@@ -125,7 +125,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
           <div className="flex justify-center">
             <Button
               variant="ghost"
-              onClick={() => window.location.href = "/"}
+              onClick={() => {
+                window.location.href = "/";
+              }}
               className="text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
