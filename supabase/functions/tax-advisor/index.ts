@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { message, transactions } = await req.json();
+    const { message, transactionData } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
@@ -19,7 +19,7 @@ serve(async (req) => {
     }
 
     // Build context from IRS Publication 334
-    const systemPrompt = `You are a tax advisor assistant with expertise in IRS Publication 334 - Tax Guide for Small Business.
+    const systemPrompt = `You are John, a friendly and knowledgeable tax advisor with expertise in IRS Publication 334 - Tax Guide for Small Business.
 
 Key areas of expertise:
 - Schedule C deductions for sole proprietors
@@ -31,22 +31,39 @@ Key areas of expertise:
 - Self-employment tax considerations
 
 IMPORTANT RULES:
-1. Always reference IRS Publication 334 when providing guidance
-2. Be conservative - if unsure whether something is deductible, recommend consulting a tax professional
-3. Remind users to maintain proper documentation (receipts, mileage logs, etc.)
-4. Note that tax laws change - verify current year regulations
-5. Explain the difference between business vs. personal expenses
-6. Suggest proper categorization for unclear transactions
+1. Introduce yourself as "John" in a friendly, conversational manner
+2. Always reference IRS Publication 334 when providing guidance
+3. Be conservative - if unsure whether something is deductible, recommend consulting a tax professional
+4. Remind users to maintain proper documentation (receipts, mileage logs, etc.)
+5. Note that tax laws change - verify current year regulations
+6. Explain the difference between business vs. personal expenses
+7. Suggest proper categorization for unclear transactions
+8. Use the user's transaction data to provide personalized advice
 
 When analyzing transactions, look for:
 - Misclassified personal expenses
 - Missing deductible expenses
 - Opportunities for tax planning
-- Documentation requirements`;
+- Documentation requirements
 
-    const userMessage = transactions 
-      ? `Analyze these business transactions and provide tax insights:\n${JSON.stringify(transactions, null, 2)}\n\nUser question: ${message}`
-      : message;
+You have access to the user's financial data. Use it to provide specific, actionable advice.`;
+
+    let contextMessage = message;
+    
+    if (transactionData) {
+      contextMessage = `USER'S FINANCIAL DATA SUMMARY:
+- Total Transactions: ${transactionData.totalTransactions}
+- Total Income YTD: $${transactionData.totalIncome?.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+- Total Expenses YTD: $${transactionData.totalExpenses?.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+- Tax-Deductible Expenses: $${transactionData.deductibleExpenses?.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+
+EXPENSE CATEGORIES:
+${Object.entries(transactionData.categories || {}).map(([name, data]: [string, any]) => 
+  `- ${name}: ${data.count} transactions, $${data.total.toLocaleString('en-US', { minimumFractionDigits: 2 })} ${data.deductible ? '(Tax Deductible)' : ''}`
+).join('\n')}
+
+USER QUESTION: ${message}`;
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -58,7 +75,7 @@ When analyzing transactions, look for:
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: userMessage }
+          { role: "user", content: contextMessage }
         ],
       }),
     });
