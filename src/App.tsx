@@ -69,9 +69,29 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
             setHasSubscription(true); // Admins get free access
           } else {
             setIsAdmin(false);
-            // Check subscription status via edge function
-            const { data: subData } = await supabase.functions.invoke("check-subscription");
-            setHasSubscription(subData?.subscribed === true);
+            
+            // Check profile subscription_plan field directly first
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('subscription_plan')
+              .eq('user_id', session.user.id)
+              .maybeSingle();
+            
+            if (!profileError && profileData?.subscription_plan) {
+              const plan = profileData.subscription_plan;
+              // Allow access for professional, business, or pro plans
+              if (plan === 'professional' || plan === 'business' || plan === 'pro') {
+                setHasSubscription(true);
+              } else {
+                // Fallback to PayPal subscription check
+                const { data: subData } = await supabase.functions.invoke("check-subscription");
+                setHasSubscription(subData?.subscribed === true);
+              }
+            } else {
+              // Fallback to PayPal subscription check
+              const { data: subData } = await supabase.functions.invoke("check-subscription");
+              setHasSubscription(subData?.subscribed === true);
+            }
           }
         } else {
           setAuthenticated(false);

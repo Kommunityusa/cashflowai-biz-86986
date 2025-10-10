@@ -40,7 +40,24 @@ export function useAuth(requireAuth: boolean = true) {
       
       setIsAdmin(false);
       
-      // Set a timeout for the function call
+      // Check profile subscription_plan field directly first
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('subscription_plan')
+        .eq('user_id', userSession.user.id)
+        .maybeSingle();
+      
+      if (!profileError && profileData?.subscription_plan) {
+        const plan = profileData.subscription_plan;
+        // Map subscription plans to pro/free
+        if (plan === 'professional' || plan === 'business' || plan === 'pro') {
+          setSubscriptionPlan('pro');
+          setSubscriptionLoading(false);
+          return;
+        }
+      }
+      
+      // Fallback to PayPal subscription check
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('Subscription check timeout')), 5000)
       );
