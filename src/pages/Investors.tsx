@@ -365,21 +365,10 @@ export default function Investors() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="max-w-2xl mx-auto">
-                <div className="bg-card p-6 rounded-lg border">
-                  <div className="flex items-start gap-4">
-                    <div className="w-20 h-20 bg-gradient-primary rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0">
-                      AA
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold mb-1">Amaury Abreu</h3>
-                      <p className="text-primary font-semibold mb-2">Founder & CEO</p>
-                      <p className="text-muted-foreground">
-                        Loan Officer at Impact Loan Fund
-                      </p>
-                    </div>
-                  </div>
-                </div>
+              <div className="max-w-2xl mx-auto text-center">
+                <p className="text-muted-foreground">
+                  Building the future of small business finance with experienced leadership in fintech, banking, and AI technology.
+                </p>
               </div>
             </CardContent>
           </Card>
