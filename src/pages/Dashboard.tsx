@@ -119,27 +119,24 @@ export default function Dashboard() {
       }
 
       if (transactions) {
-        // Exclude internal transfers from income/expense calculations
-        const financialTransactions = transactions.filter(t => !t.is_internal_transfer);
-        
-        // Calculate stats
-        const revenue = financialTransactions
+        // Calculate stats (including internal transfers to match bank balance)
+        const revenue = transactions
           .filter(t => t.type === 'income')
           .reduce((sum, t) => sum + Number(t.amount), 0);
         
-        const expenses = financialTransactions
+        const expenses = transactions
           .filter(t => t.type === 'expense')
           .reduce((sum, t) => sum + Number(t.amount), 0);
 
-        // Calculate monthly growth (excluding internal transfers)
+        // Calculate monthly growth
         const currentMonth = new Date().getMonth();
         const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
         
-        const currentMonthRevenue = financialTransactions
+        const currentMonthRevenue = transactions
           .filter(t => t.type === 'income' && new Date(t.transaction_date).getMonth() === currentMonth)
           .reduce((sum, t) => sum + Number(t.amount), 0);
         
-        const lastMonthRevenue = financialTransactions
+        const lastMonthRevenue = transactions
           .filter(t => t.type === 'income' && new Date(t.transaction_date).getMonth() === lastMonth)
           .reduce((sum, t) => sum + Number(t.amount), 0);
         
