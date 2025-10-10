@@ -24,7 +24,7 @@ export const AIChatBubble = () => {
     {
       id: '1',
       role: 'assistant',
-      content: "Hi! I'm Monica, your AI bookkeeping assistant. I'm trained on publicly available information from reliable sources including GAAP (Generally Accepted Accounting Principles), FASB standards, and best bookkeeping practices.\n\nI can help you with:\n\n• Recording and categorizing transactions\n• Understanding financial statements\n• Tax preparation guidance\n• Cash flow analysis\n• Expense tracking best practices\n\nWhat bookkeeping task can I assist you with today?\n\n_Note: I'm an AI assistant. For complex tax or legal matters, please consult a certified professional._",
+      content: "Hi! I'm Monica, your AI bookkeeping assistant. I'm trained on publicly available information from reliable sources including GAAP (Generally Accepted Accounting Principles), FASB standards, and best bookkeeping practices.\n\nI can help you with:\n\n• Understanding financial statements\n• Tax preparation guidance\n• Cash flow analysis\n• Expense tracking best practices\n• Financial insights and reporting\n\nWhat bookkeeping question can I help you with today?\n\n_Note: I'm an AI assistant and cannot record or categorize transactions. For complex tax or legal matters, please consult a certified professional._",
       timestamp: new Date(),
     }
   ]);
