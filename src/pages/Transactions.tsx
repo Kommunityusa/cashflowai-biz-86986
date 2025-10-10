@@ -586,7 +586,8 @@ export default function Transactions() {
     // Basic filters
     const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === "all" || transaction.type === filterType;
-    const matchesCategory = filterCategory === "all" || transaction.category_id === filterCategory;
+    const matchesCategory = filterCategory === "all" || 
+      (filterCategory === "uncategorized" ? !transaction.category_id : transaction.category_id === filterCategory);
     
     // Advanced filters
     if (advancedFilters) {

@@ -61,6 +61,7 @@ export function TransactionFilters({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
+            <SelectItem value="uncategorized">Uncategorized</SelectItem>
             {categories.map(cat => (
               <SelectItem key={cat.id} value={cat.id}>
                 {cat.name}
