@@ -57,13 +57,24 @@ export function TwoFactorAuth() {
         throw new Error("No user found");
       }
 
+      // Check if email is verified
+      if (!user.email_confirmed_at) {
+        throw new Error("Please verify your email address before enabling 2FA. Check your inbox for the verification email.");
+      }
+
       // Enroll a new TOTP factor
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: 'totp',
         friendlyName: user.email || 'Cash Flow AI Account'
       });
 
-      if (error) throw error;
+      if (error) {
+        // Provide more specific error messages
+        if (error.message.includes('Email not confirmed')) {
+          throw new Error("Please verify your email address before enabling 2FA. Check your inbox for the verification email.");
+        }
+        throw error;
+      }
 
       if (data) {
         // Generate QR code from the URI
