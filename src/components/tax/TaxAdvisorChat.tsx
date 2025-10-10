@@ -3,10 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { MessageCircle, Send, Bot, User } from "lucide-react";
+import { MessageCircle, Send, User } from "lucide-react";
+import johnAvatar from "@/assets/john-avatar.jpg";
 
 interface Message {
   role: "user" | "assistant";
@@ -117,12 +119,20 @@ export function TaxAdvisorChat() {
   return (
     <Card className="h-[600px] flex flex-col">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Bot className="h-5 w-5 text-primary" />
-          Chat with John
+        <CardTitle className="flex items-center gap-3">
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={johnAvatar} alt="John - Tax Advisor" />
+            <AvatarFallback>JT</AvatarFallback>
+          </Avatar>
+          <div>
+            <div className="font-semibold">Chat with John</div>
+            <p className="text-sm font-normal text-muted-foreground">
+              Your AI tax advisor
+            </p>
+          </div>
         </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Your AI tax advisor with access to your {transactionData?.totalTransactions || 0} transactions
+        <p className="text-sm text-muted-foreground mt-2">
+          Access to your {transactionData?.totalTransactions || 0} transactions for personalized advice
         </p>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col gap-4 p-4">
@@ -136,9 +146,10 @@ export function TaxAdvisorChat() {
                 }`}
               >
                 {message.role === "assistant" && (
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <Bot className="h-5 w-5 text-primary" />
-                  </div>
+                  <Avatar className="h-8 w-8 flex-shrink-0">
+                    <AvatarImage src={johnAvatar} alt="John" />
+                    <AvatarFallback>JT</AvatarFallback>
+                  </Avatar>
                 )}
                 <div
                   className={`rounded-lg p-3 max-w-[80%] ${
@@ -158,9 +169,10 @@ export function TaxAdvisorChat() {
             ))}
             {loading && (
               <div className="flex gap-3 justify-start">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Bot className="h-5 w-5 text-primary animate-pulse" />
-                </div>
+                <Avatar className="h-8 w-8 flex-shrink-0">
+                  <AvatarImage src={johnAvatar} alt="John" />
+                  <AvatarFallback>JT</AvatarFallback>
+                </Avatar>
                 <div className="rounded-lg p-3 bg-muted">
                   <p className="text-sm text-muted-foreground">Thinking...</p>
                 </div>
