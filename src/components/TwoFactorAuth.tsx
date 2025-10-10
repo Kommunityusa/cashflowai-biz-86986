@@ -62,7 +62,7 @@ export function TwoFactorAuth() {
         throw new Error("Please verify your email address before enabling 2FA. Check your inbox for the verification email.");
       }
 
-      // Check for any existing unverified factors and remove them
+      // Check for any existing factors and remove them to prevent conflicts
       const { data: existingFactors } = await supabase.auth.mfa.listFactors();
       if (existingFactors?.totp) {
         for (const factor of existingFactors.totp) {
@@ -73,10 +73,11 @@ export function TwoFactorAuth() {
         }
       }
 
-      // Enroll a new TOTP factor
+      // Enroll a new TOTP factor with a unique timestamp-based name
+      const uniqueName = `${user.email || 'Cash Flow AI'} - ${new Date().getTime()}`;
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: 'totp',
-        friendlyName: user.email || 'Cash Flow AI Account'
+        friendlyName: uniqueName
       });
 
       if (error) {

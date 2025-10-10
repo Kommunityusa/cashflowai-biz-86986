@@ -76,6 +76,7 @@ const Settings = () => {
   useEffect(() => {
     if (user) {
       fetchProfile();
+      fetchPreferences();
       // Initialize data retention scheduler
       scheduleDataRetention(user.id);
     }
@@ -118,6 +119,49 @@ const Settings = () => {
       console.error('Error fetching profile');
       toast({
         title: "Failed to load profile data",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const fetchPreferences = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_preferences')
+        .select('*')
+        .eq('user_id', user?.id)
+        .maybeSingle();
+      
+      if (data) {
+        setPreferences({
+          emailNotifications: data.email_notifications ?? true,
+          weeklyReports: data.weekly_reports ?? true,
+          transactionAlerts: data.transaction_alerts ?? false,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching preferences');
+    }
+  };
+
+  const savePreferences = async (newPreferences: typeof preferences) => {
+    try {
+      const { error } = await supabase
+        .from('user_preferences')
+        .upsert({
+          user_id: user?.id,
+          email_notifications: newPreferences.emailNotifications,
+          weekly_reports: newPreferences.weeklyReports,
+          transaction_alerts: newPreferences.transactionAlerts,
+          updated_at: new Date().toISOString(),
+        });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error saving preferences:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save preferences",
         variant: "destructive"
       });
     }
@@ -494,8 +538,10 @@ const Settings = () => {
                   </div>
                   <Switch 
                     checked={preferences.emailNotifications}
-                    onCheckedChange={(checked) => {
-                      setPreferences({ ...preferences, emailNotifications: checked });
+                    onCheckedChange={async (checked) => {
+                      const newPrefs = { ...preferences, emailNotifications: checked };
+                      setPreferences(newPrefs);
+                      await savePreferences(newPrefs);
                       toast({
                         title: "Preference Updated",
                         description: `Email notifications ${checked ? 'enabled' : 'disabled'}`,
@@ -511,8 +557,10 @@ const Settings = () => {
                   </div>
                   <Switch 
                     checked={preferences.weeklyReports}
-                    onCheckedChange={(checked) => {
-                      setPreferences({ ...preferences, weeklyReports: checked });
+                    onCheckedChange={async (checked) => {
+                      const newPrefs = { ...preferences, weeklyReports: checked };
+                      setPreferences(newPrefs);
+                      await savePreferences(newPrefs);
                       toast({
                         title: "Preference Updated",
                         description: `Weekly reports ${checked ? 'enabled' : 'disabled'}`,
@@ -528,8 +576,10 @@ const Settings = () => {
                   </div>
                   <Switch 
                     checked={preferences.transactionAlerts}
-                    onCheckedChange={(checked) => {
-                      setPreferences({ ...preferences, transactionAlerts: checked });
+                    onCheckedChange={async (checked) => {
+                      const newPrefs = { ...preferences, transactionAlerts: checked };
+                      setPreferences(newPrefs);
+                      await savePreferences(newPrefs);
                       toast({
                         title: "Preference Updated",
                         description: `Transaction alerts ${checked ? 'enabled' : 'disabled'}`,
