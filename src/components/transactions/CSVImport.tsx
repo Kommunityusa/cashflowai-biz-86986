@@ -66,10 +66,12 @@ export const CSVImport = ({ onImportComplete }: { onImportComplete?: () => void 
                               row["Bank Description"] || "Imported transaction";
             
             // Detect internal transfers
-            const isInternalTransfer = 
+            const isInternalTransfer = Boolean(
               description.includes("Transfer from Mercury to another bank account") ||
               description.includes("Transfer to Mercury from another bank account") ||
-              (row.Reference && row.Reference.includes("Transfer"));
+              description.includes("Send Money transaction initiated on Mercury") ||
+              (row.Reference && row.Reference.includes("Transfer"))
+            );
             
             // Get category from Mercury's Category column
             const mercuryCategory = row.Category || row.category;
