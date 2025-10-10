@@ -42,8 +42,8 @@ const features = [
   },
   {
     icon: CreditCard,
-    title: "Expense Tracking",
-    description: "Track and manage business expenses with receipt scanning and categorization."
+    title: "Transaction Management",
+    description: "Track and categorize business transactions with manual uploads and custom categories."
   },
   {
     icon: Clock,
