@@ -62,6 +62,17 @@ export function TwoFactorAuth() {
         throw new Error("Please verify your email address before enabling 2FA. Check your inbox for the verification email.");
       }
 
+      // Check for any existing unverified factors and remove them
+      const { data: existingFactors } = await supabase.auth.mfa.listFactors();
+      if (existingFactors?.totp) {
+        for (const factor of existingFactors.totp) {
+          if (factor.status !== 'verified') {
+            // Remove unverified factor to allow fresh enrollment
+            await supabase.auth.mfa.unenroll({ factorId: factor.id });
+          }
+        }
+      }
+
       // Enroll a new TOTP factor
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: 'totp',
