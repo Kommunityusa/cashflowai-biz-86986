@@ -31,6 +31,7 @@ interface Category {
   color: string;
   icon: string;
   is_default: boolean;
+  irs_category_code?: string;
   created_at?: string;
   updated_at?: string;
   user_id?: string;
@@ -217,96 +218,11 @@ export function CategoryManager() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Category Management</CardTitle>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Category
-            </Button>
-          </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Category</DialogTitle>
-                <DialogDescription>
-                  Create a new category for organizing your transactions.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Name</Label>
-                  <Input
-                    id="name"
-                    value={newCategory.name}
-                    onChange={(e) => setNewCategory(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="e.g., Groceries"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="type">Type</Label>
-                  <Select
-                    value={newCategory.type}
-                    onValueChange={(value: "income" | "expense") => 
-                      setNewCategory(prev => ({ ...prev, type: value }))
-                    }
-                  >
-                    <SelectTrigger id="type">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="income">Income</SelectItem>
-                      <SelectItem value="expense">Expense</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="icon">Icon</Label>
-                  <Select
-                    value={newCategory.icon}
-                    onValueChange={(value) => setNewCategory(prev => ({ ...prev, icon: value }))}
-                  >
-                    <SelectTrigger id="icon">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {iconOptions.map(icon => (
-                        <SelectItem key={icon} value={icon}>
-                          <div className="flex items-center gap-2">
-                            {getIconComponent(icon)}
-                            <span>{icon}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="color">Color</Label>
-                  <div className="flex gap-2 flex-wrap">
-                    {colorOptions.map(color => (
-                      <button
-                        key={color}
-                        className={`w-10 h-10 rounded-lg border-2 ${
-                          newCategory.color === color ? 'border-primary' : 'border-transparent'
-                        }`}
-                        style={{ backgroundColor: color }}
-                        onClick={() => setNewCategory(prev => ({ ...prev, color }))}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="flex justify-end gap-3">
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleAddCategory}>
-                  Add Category
-                </Button>
-              </div>
-          </DialogContent>
-        </Dialog>
+      <CardHeader>
+        <CardTitle>IRS-Approved Categories</CardTitle>
+        <p className="text-sm text-muted-foreground mt-2">
+          Categories are based on IRS Publication 334 tax guidelines and cannot be modified.
+        </p>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -321,38 +237,18 @@ export function CategoryManager() {
                     key={category.id}
                     className="flex items-center justify-between p-3 rounded-lg border"
                   >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center"
-                        style={{ backgroundColor: `${category.color}20`, color: category.color }}
-                      >
-                        {getIconComponent(category.icon)}
-                      </div>
-                      <span className="font-medium">{category.name}</span>
-                      {category.is_default && (
-                        <span className="text-xs bg-secondary px-2 py-1 rounded">Default</span>
-                      )}
-                    </div>
-                    {!category.is_default && (
-                      <div className="flex gap-1">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8"
-                          onClick={() => setEditingCategory(category)}
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 rounded-lg flex items-center justify-center"
+                          style={{ backgroundColor: `${category.color}20`, color: category.color }}
                         >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 hover:bg-destructive/10"
-                          onClick={() => handleDeleteCategory(category.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                          {getIconComponent(category.icon)}
+                        </div>
+                        <span className="font-medium">{category.name}</span>
+                        {category.irs_category_code && (
+                          <span className="text-xs bg-secondary px-2 py-1 rounded">IRS Approved</span>
+                        )}
                       </div>
-                    )}
                   </div>
                 ))}
               </div>
@@ -366,38 +262,18 @@ export function CategoryManager() {
                     key={category.id}
                     className="flex items-center justify-between p-3 rounded-lg border"
                   >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center"
-                        style={{ backgroundColor: `${category.color}20`, color: category.color }}
-                      >
-                        {getIconComponent(category.icon)}
-                      </div>
-                      <span className="font-medium">{category.name}</span>
-                      {category.is_default && (
-                        <span className="text-xs bg-secondary px-2 py-1 rounded">Default</span>
-                      )}
-                    </div>
-                    {!category.is_default && (
-                      <div className="flex gap-1">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8"
-                          onClick={() => setEditingCategory(category)}
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 rounded-lg flex items-center justify-center"
+                          style={{ backgroundColor: `${category.color}20`, color: category.color }}
                         >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 hover:bg-destructive/10"
-                          onClick={() => handleDeleteCategory(category.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                          {getIconComponent(category.icon)}
+                        </div>
+                        <span className="font-medium">{category.name}</span>
+                        {category.irs_category_code && (
+                          <span className="text-xs bg-secondary px-2 py-1 rounded">IRS Approved</span>
+                        )}
                       </div>
-                    )}
                   </div>
                 ))}
               </div>
@@ -405,80 +281,6 @@ export function CategoryManager() {
           </div>
         )}
       </CardContent>
-
-      {/* Edit Dialog */}
-      <Dialog open={!!editingCategory} onOpenChange={() => setEditingCategory(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Category</DialogTitle>
-            <DialogDescription>
-              Update the category details.
-            </DialogDescription>
-          </DialogHeader>
-          {editingCategory && (
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-name">Name</Label>
-                <Input
-                  id="edit-name"
-                  value={editingCategory.name}
-                  onChange={(e) => setEditingCategory(prev => 
-                    prev ? { ...prev, name: e.target.value } : null
-                  )}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-icon">Icon</Label>
-                <Select
-                  value={editingCategory.icon}
-                  onValueChange={(value) => setEditingCategory(prev => 
-                    prev ? { ...prev, icon: value } : null
-                  )}
-                >
-                  <SelectTrigger id="edit-icon">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {iconOptions.map(icon => (
-                      <SelectItem key={icon} value={icon}>
-                        <div className="flex items-center gap-2">
-                          {getIconComponent(icon)}
-                          <span>{icon}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-color">Color</Label>
-                <div className="flex gap-2 flex-wrap">
-                  {colorOptions.map(color => (
-                    <button
-                      key={color}
-                      className={`w-10 h-10 rounded-lg border-2 ${
-                        editingCategory.color === color ? 'border-primary' : 'border-transparent'
-                      }`}
-                      style={{ backgroundColor: color }}
-                      onClick={() => setEditingCategory(prev => 
-                        prev ? { ...prev, color } : null
-                      )}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setEditingCategory(null)}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdateCategory}>
-              Update Category
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </Card>
   );
 }
