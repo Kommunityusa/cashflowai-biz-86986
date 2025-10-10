@@ -7,10 +7,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 
 interface CSVTransaction {
-  date: string;
-  description: string;
-  amount: string;
+  "Date (UTC)"?: string;
+  date?: string;
+  Date?: string;
+  Description?: string;
+  description?: string;
+  Amount?: string;
+  amount?: string;
+  Category?: string;
+  category?: string;
   type?: string;
+  Type?: string;
+  "Bank Description"?: string;
+  Reference?: string;
 }
 
 export const CSVImport = ({ onImportComplete }: { onImportComplete?: () => void }) => {
@@ -31,17 +40,50 @@ export const CSVImport = ({ onImportComplete }: { onImportComplete?: () => void 
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) throw new Error("Not authenticated");
 
-          const transactions = results.data.map((row: any) => {
-            const amount = Math.abs(parseFloat(row.amount || row.Amount || "0"));
-            const type = row.type || row.Type || (parseFloat(row.amount || row.Amount || "0") < 0 ? "expense" : "income");
+          const transactions = results.data.map((row: CSVTransaction) => {
+            // Parse date from Mercury format (MM-DD-YYYY) or standard formats
+            const dateStr = row["Date (UTC)"] || row.date || row.Date || new Date().toISOString().split('T')[0];
+            let parsedDate = dateStr;
+            
+            // Convert MM-DD-YYYY to YYYY-MM-DD
+            if (dateStr.match(/^\d{2}-\d{2}-\d{4}$/)) {
+              const [month, day, year] = dateStr.split('-');
+              parsedDate = `${year}-${month}-${day}`;
+            }
+            
+            // Parse amount - Mercury uses negative for outgoing, positive for incoming
+            const rawAmount = parseFloat(row.Amount || row.amount || "0");
+            const amount = Math.abs(rawAmount);
+            
+            // Determine transaction type
+            let type = row.type || row.Type;
+            if (!type) {
+              type = rawAmount < 0 ? "expense" : "income";
+            }
+            
+            // Get description from Mercury columns
+            const description = row.Description || row.description || 
+                              row["Bank Description"] || "Imported transaction";
+            
+            // Detect internal transfers
+            const isInternalTransfer = 
+              description.includes("Transfer from Mercury to another bank account") ||
+              description.includes("Transfer to Mercury from another bank account") ||
+              (row.Reference && row.Reference.includes("Transfer"));
+            
+            // Get category from Mercury's Category column
+            const mercuryCategory = row.Category || row.category;
             
             return {
               user_id: user.id,
-              transaction_date: row.date || row.Date || new Date().toISOString().split('T')[0],
-              description: row.description || row.Description || "Imported transaction",
+              transaction_date: parsedDate,
+              description,
               amount,
               type,
-              status: "completed"
+              status: "completed",
+              is_internal_transfer: isInternalTransfer,
+              vendor_name: row.Description || null,
+              notes: mercuryCategory ? `Mercury Category: ${mercuryCategory}` : null
             };
           });
 
