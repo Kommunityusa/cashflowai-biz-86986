@@ -26,25 +26,16 @@ export function NewsletterSignup({ compact = false }: NewsletterSignupProps) {
 
     try {
       // First add to MailerLite
-      const { data, error } = await supabase.functions.invoke("mailerlite/subscribe", {
+      const { data, error } = await supabase.functions.invoke("mailerlite-subscribe", {
         body: {
           email,
           fields: {
             company: "Cash Flow AI User",
           },
-          resubscribe: true,
         },
       });
 
       if (error) throw error;
-
-      // Then add to our email sequence
-      await supabase.functions.invoke("email-sequence/add-to-sequence", {
-        body: {
-          email,
-          source: "newsletter",
-        },
-      });
 
       console.log("Subscription successful:", data);
       setSubscribed(true);
