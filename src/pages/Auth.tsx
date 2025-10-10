@@ -14,6 +14,7 @@ import { validatePassword } from "@/utils/passwordValidation";
 import { Progress } from "@/components/ui/progress";
 import { checkRateLimit, logLoginAttempt, logAuditEvent } from "@/utils/auditLogger";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { TwoFactorVerification } from "@/components/TwoFactorVerification";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -29,6 +30,8 @@ export default function Auth() {
   const [passwordStrength, setPasswordStrength] = useState(validatePassword(""));
   const [showCheckoutMessage, setShowCheckoutMessage] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
+  const [show2FA, setShow2FA] = useState(false);
+  const [pendingSession, setPendingSession] = useState<any>(null);
 
   useEffect(() => {
     // Check for checkout completion redirect
@@ -140,7 +143,7 @@ export default function Auth() {
     
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -156,13 +159,41 @@ export default function Auth() {
       
       // Log failed login attempt
       await logLoginAttempt(email, false, errorMessage);
+      setLoading(false);
+      return;
+    }
+
+    // Check if 2FA is enabled for this user
+    const { data: factors } = await supabase.auth.mfa.listFactors();
+    
+    if (factors?.totp && factors.totp.length > 0) {
+      // 2FA is enabled, show verification screen
+      setPendingSession(data);
+      setShow2FA(true);
+      setLoading(false);
     } else {
-      // Log successful login
+      // No 2FA, log successful login and redirect
       await logLoginAttempt(email, true);
       await logAuditEvent({ action: 'LOGIN' });
+      setLoading(false);
+      // onAuthStateChange will handle redirect
     }
-    
-    setLoading(false);
+  };
+
+  const handle2FAVerified = async () => {
+    setShow2FA(false);
+    await logLoginAttempt(email, true);
+    await logAuditEvent({ action: 'LOGIN_2FA' });
+    // Session is already set, onAuthStateChange will redirect
+  };
+
+  const handle2FACancel = async () => {
+    setShow2FA(false);
+    setPendingSession(null);
+    // Sign out the pending session
+    await supabase.auth.signOut();
+    setEmail("");
+    setPassword("");
   };
 
   const handleGoogleSignIn = async () => {
@@ -212,6 +243,17 @@ export default function Auth() {
     
     setLoading(false);
   };
+
+  if (show2FA) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
+        <TwoFactorVerification
+          onVerified={handle2FAVerified}
+          onCancel={handle2FACancel}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">

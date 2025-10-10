@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type AuditAction = 
   | 'LOGIN'
+  | 'LOGIN_2FA'
   | 'LOGOUT'
   | 'GOOGLE_LOGIN'
   | 'VIEW_DASHBOARD'
@@ -30,7 +31,9 @@ export type AuditAction =
   | 'PLAID_SYNC_COMPLETED'
   | 'AI_CATEGORIZATION_COMPLETED'
   | 'DETECT_RECURRING'
-  | 'GENERATE_TAX_REPORT';
+  | 'GENERATE_TAX_REPORT'
+  | 'ENABLE_2FA'
+  | 'DISABLE_2FA';
 
 interface AuditLogData {
   action: AuditAction;

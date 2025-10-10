@@ -23,6 +23,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { SubscriptionStatus } from "@/components/SubscriptionStatus";
 import { CategoryManager } from "@/components/CategoryManager";
+import { TwoFactorAuth } from "@/components/TwoFactorAuth";
 import { scheduleDataRetention, exportUserData } from "@/utils/dataRetention";
 import { validateProfileAccess, validateProfileUpdate, encryptProfileField, decryptProfileField } from "@/utils/profileSecurity";
 import {
@@ -538,6 +539,8 @@ const Settings = () => {
                 </div>
               </div>
             </Card>
+
+            <TwoFactorAuth />
 
             <Card className="p-6">
               <div className="flex items-center mb-6">
