@@ -769,6 +769,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_profile_safe: {
+        Args: { profile_id: string }
+        Returns: Json
+      }
       get_user_roles: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"][]
@@ -778,6 +782,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_own_profile: {
+        Args: { _auth_uid: string; _user_id: string }
         Returns: boolean
       }
     }

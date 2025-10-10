@@ -24,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SubscriptionStatus } from "@/components/SubscriptionStatus";
 import { CategoryManager } from "@/components/CategoryManager";
 import { scheduleDataRetention, exportUserData } from "@/utils/dataRetention";
+import { validateProfileAccess, validateProfileUpdate, encryptProfileField, decryptProfileField } from "@/utils/profileSecurity";
 import {
   Dialog,
   DialogContent,
@@ -81,6 +82,15 @@ const Settings = () => {
 
   const fetchProfile = async () => {
     try {
+      // Validate user can access this profile
+      if (!validateProfileAccess(user?.id || '', user?.id)) {
+        toast({
+          title: "Unauthorized access",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -88,46 +98,73 @@ const Settings = () => {
         .maybeSingle();
       
       if (data) {
+        // Decrypt sensitive fields
+        const decryptedTaxId = data.tax_id 
+          ? await decryptProfileField(user!.id, data.tax_id)
+          : '';
+
         setProfileData({
           firstName: (data as any).first_name || "",
           lastName: (data as any).last_name || "",
           email: user?.email || "",
-          phone: data.phone || "",
-          businessName: data.business_name || "",
-          taxId: data.tax_id || "",
-          address: data.address || "",
+          phone: (data as any).phone || "",
+          businessName: (data as any).business_name || "",
+          taxId: decryptedTaxId,
+          address: (data as any).address || "",
         });
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error fetching profile');
+      toast({
+        title: "Failed to load profile data",
+        variant: "destructive"
+      });
     }
   };
 
   const savePersonalInfo = async () => {
     setLoading(true);
     try {
+      // Validate user can update this profile
+      if (!validateProfileAccess(user?.id || '', user?.id)) {
+        toast({
+          title: "Unauthorized access",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const updates = {
+        user_id: user?.id,
+        first_name: profileData.firstName,
+        last_name: profileData.lastName,
+        phone: profileData.phone,
+        updated_at: new Date().toISOString(),
+      };
+
+      // Validate updates contain only allowed fields
+      if (!validateProfileUpdate(updates)) {
+        toast({
+          title: "Invalid profile data",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('profiles')
-        .upsert({
-          user_id: user?.id,
-          first_name: profileData.firstName,
-          last_name: profileData.lastName,
-          phone: profileData.phone,
-          updated_at: new Date().toISOString(),
-        });
+        .upsert(updates);
 
       if (error) throw error;
 
       toast({
-        title: "Success",
-        description: "Personal information updated successfully",
+        title: "Profile updated successfully"
       });
-    } catch (error) {
-      console.error('Error saving personal info:', error);
+    } catch (error: any) {
+      console.error('Error saving profile');
       toast({
-        title: "Error",
-        description: "Failed to update personal information",
-        variant: "destructive",
+        title: error.message || "Failed to update profile",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
@@ -137,28 +174,51 @@ const Settings = () => {
   const saveBusinessInfo = async () => {
     setLoading(true);
     try {
+      // Validate user can update this profile
+      if (!validateProfileAccess(user?.id || '', user?.id)) {
+        toast({
+          title: "Unauthorized access",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Encrypt tax_id before saving
+      const encryptedTaxId = profileData.taxId 
+        ? await encryptProfileField(user!.id, profileData.taxId)
+        : null;
+
+      const updates = {
+        user_id: user?.id,
+        business_name: profileData.businessName,
+        tax_id: encryptedTaxId,
+        address: profileData.address,
+        updated_at: new Date().toISOString(),
+      };
+
+      // Validate updates contain only allowed fields
+      if (!validateProfileUpdate(updates)) {
+        toast({
+          title: "Invalid profile data",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('profiles')
-        .upsert({
-          user_id: user?.id,
-          business_name: profileData.businessName,
-          tax_id: profileData.taxId,
-          address: profileData.address,
-          updated_at: new Date().toISOString(),
-        });
+        .upsert(updates);
 
       if (error) throw error;
 
       toast({
-        title: "Success",
-        description: "Business information updated successfully",
+        title: "Profile updated successfully"
       });
-    } catch (error) {
-      console.error('Error saving business info:', error);
+    } catch (error: any) {
+      console.error('Error saving business info');
       toast({
-        title: "Error",
-        description: "Failed to update business information",
-        variant: "destructive",
+        title: error.message || "Failed to update profile",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
