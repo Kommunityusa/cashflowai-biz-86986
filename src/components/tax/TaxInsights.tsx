@@ -34,6 +34,13 @@ export function TaxInsights() {
     }
   }, [user, taxYear]);
 
+  useEffect(() => {
+    // Auto-generate AI insights after deductions are loaded
+    if (!loading && deductibleExpenses.length > 0 && !aiInsights && !aiLoading) {
+      generateAIInsights();
+    }
+  }, [loading, deductibleExpenses]);
+
   const fetchTaxInsights = async () => {
     try {
       setLoading(true);
@@ -190,40 +197,48 @@ export function TaxInsights() {
           {aiInsights ? (
             <div className="space-y-4">
               {summary && (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                  <Card className="bg-primary/5 border-primary/20">
-                    <CardContent className="pt-6">
-                      <p className="text-sm text-muted-foreground">Total Income</p>
-                      <p className="text-xl font-bold text-primary">
-                        ${summary.totalIncome.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                      </p>
-                    </CardContent>
-                  </Card>
-                  <Card className="bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:border-orange-900">
-                    <CardContent className="pt-6">
-                      <p className="text-sm text-muted-foreground">Total Expenses</p>
-                      <p className="text-xl font-bold text-orange-600 dark:text-orange-400">
-                        ${summary.totalExpenses.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                      </p>
-                    </CardContent>
-                  </Card>
-                  <Card className="bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-900">
-                    <CardContent className="pt-6">
-                      <p className="text-sm text-muted-foreground">Deductible</p>
-                      <p className="text-xl font-bold text-green-600 dark:text-green-400">
-                        ${summary.deductibleExpenses.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                      </p>
-                    </CardContent>
-                  </Card>
-                  <Card className="bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-900">
-                    <CardContent className="pt-6">
-                      <p className="text-sm text-muted-foreground">Est. Savings</p>
-                      <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                        ${summary.potentialSavings.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                      </p>
-                    </CardContent>
-                  </Card>
-                </div>
+                <>
+                  <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-900">
+                    <AlertDescription className="text-sm">
+                      <strong>Data Analysis:</strong> Based on {summary.transactionCount} transactions through {new Date(summary.dataThrough).toLocaleDateString()}
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <Card className="bg-primary/5 border-primary/20">
+                      <CardContent className="pt-6">
+                        <p className="text-sm text-muted-foreground">Total Income YTD</p>
+                        <p className="text-xl font-bold text-primary">
+                          ${summary.totalIncome.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        </p>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:border-orange-900">
+                      <CardContent className="pt-6">
+                        <p className="text-sm text-muted-foreground">Total Expenses YTD</p>
+                        <p className="text-xl font-bold text-orange-600 dark:text-orange-400">
+                          ${summary.totalExpenses.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        </p>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-900">
+                      <CardContent className="pt-6">
+                        <p className="text-sm text-muted-foreground">Deductible</p>
+                        <p className="text-xl font-bold text-green-600 dark:text-green-400">
+                          ${summary.deductibleExpenses.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        </p>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-900">
+                      <CardContent className="pt-6">
+                        <p className="text-sm text-muted-foreground">Est. Tax Savings</p>
+                        <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                          ${summary.potentialSavings.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </>
               )}
               
               <Alert>
@@ -233,12 +248,20 @@ export function TaxInsights() {
                 </AlertDescription>
               </Alert>
             </div>
+          ) : aiLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mb-4" />
+              <p className="text-lg font-medium mb-2">Analyzing Your Financial Data</p>
+              <p className="text-sm text-muted-foreground">
+                Using AI to generate personalized tax insights based on IRS Publication 334...
+              </p>
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Lightbulb className="h-16 w-16 text-muted-foreground mb-4 opacity-50" />
-              <p className="text-lg font-medium mb-2">No insights generated yet</p>
+              <p className="text-lg font-medium mb-2">Ready to Analyze</p>
               <p className="text-sm text-muted-foreground mb-4 max-w-md">
-                Click "Generate Insights" to get AI-powered tax advice based on your financial data and IRS Publication 334
+                Click "Generate Insights" to get AI-powered tax advice based on your latest financial data and IRS Publication 334
               </p>
             </div>
           )}
