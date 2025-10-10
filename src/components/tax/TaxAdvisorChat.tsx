@@ -21,7 +21,7 @@ export function TaxAdvisorChat() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Hi! I'm John, your AI tax advisor. I'm trained on IRS Publication 334 and have access to your transaction data. I can help you understand business deductions, categorize expenses, and answer tax-related questions. How can I help you today?",
+      content: "Hi! I'm John, your AI tax advisor. I have access to your account's transaction data and I'm trained on IRS Publication 334. I'll use your actual financial information to provide personalized tax advice based on your spending patterns and business activities.\n\nHow can I help you today?\n\n_Note: I'm an AI assistant. For complex tax situations, please consult a licensed tax professional._",
     },
   ]);
   const [input, setInput] = useState("");
