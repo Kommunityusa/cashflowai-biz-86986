@@ -68,18 +68,21 @@ export function TwoFactorAuth() {
         throw new Error("Please verify your email address before enabling 2FA. Check your inbox for the verification email.");
       }
 
-      // Check for any existing factors and remove them to prevent conflicts
+      // Clean up ALL existing unverified factors first
       const { data: existingFactors } = await supabase.auth.mfa.listFactors();
       if (existingFactors?.totp) {
         for (const factor of existingFactors.totp) {
           if (factor.status !== 'verified') {
-            // Remove unverified factor to allow fresh enrollment
+            console.log('Removing unverified factor:', factor.id);
             await supabase.auth.mfa.unenroll({ factorId: factor.id });
           }
         }
       }
 
-      // Enroll a new TOTP factor with a simple short name
+      // Wait a moment to ensure cleanup is complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Now enroll a new TOTP factor
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: 'totp',
         friendlyName: 'Cash Flow AI'
@@ -89,6 +92,23 @@ export function TwoFactorAuth() {
         // Provide more specific error messages
         if (error.message.includes('Email not confirmed')) {
           throw new Error("Please verify your email address before enabling 2FA. Check your inbox for the verification email.");
+        }
+        if (error.message.includes('name_conflict')) {
+          // Try with a random suffix if there's still a conflict
+          const randomSuffix = Math.random().toString(36).substring(7);
+          const retryData = await supabase.auth.mfa.enroll({
+            factorType: 'totp',
+            friendlyName: `CashFlowAI-${randomSuffix}`
+          });
+          if (retryData.error) throw retryData.error;
+          if (retryData.data) {
+            const qrCodeUrl = await QRCode.toDataURL(retryData.data.totp.qr_code);
+            setQrCode(qrCodeUrl);
+            setSecret(retryData.data.totp.secret);
+            setFactorId(retryData.data.id);
+            setShowEnrollDialog(true);
+            return;
+          }
         }
         throw error;
       }
