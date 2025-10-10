@@ -67,13 +67,20 @@ export function BulkOperations({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { error } = await supabase
-        .from('transactions')
-        .delete()
-        .in('id', Array.from(selectedIds))
-        .eq('user_id', user.id);
+      const idsArray = Array.from(selectedIds);
+      const chunkSize = 50;
+      
+      // Delete in batches to avoid URL length limits
+      for (let i = 0; i < idsArray.length; i += chunkSize) {
+        const chunk = idsArray.slice(i, i + chunkSize);
+        const { error } = await supabase
+          .from('transactions')
+          .delete()
+          .in('id', chunk)
+          .eq('user_id', user.id);
 
-      if (error) throw error;
+        if (error) throw error;
+      }
 
       toast({
         title: "Success",
