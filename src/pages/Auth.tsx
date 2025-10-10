@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrendingUp, AlertCircle, Check, X, Eye, EyeOff } from "lucide-react";
+import { TrendingUp, AlertCircle, Check, X, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Session, User } from "@supabase/supabase-js";
@@ -258,6 +258,17 @@ export default function Auth() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
+        <div className="flex justify-center mb-4">
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/")}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Home
+          </Button>
+        </div>
+        
         <Link to="/" className="flex items-center justify-center space-x-2 mb-8">
           <div className="p-2 bg-gradient-primary rounded-lg">
             <TrendingUp className="h-8 w-8 text-primary-foreground" />
