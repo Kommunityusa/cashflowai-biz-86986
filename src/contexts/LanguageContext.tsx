@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { translateObject } from '@/utils/aiTranslation';
 
 type Language = 'en' | 'es';
 
@@ -1021,12 +1022,13 @@ interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   t: Translations;
+  isLoadingTranslations: boolean;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState<Language>(() => {
+  const [language, setLanguageState] = useState<Language>(() => {
     try {
       const saved = localStorage.getItem('language');
       return (saved as Language) || 'en';
@@ -1035,20 +1037,54 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   });
 
+  const [dynamicTranslations, setDynamicTranslations] = useState<Translations | null>(null);
+  const [isLoadingTranslations, setIsLoadingTranslations] = useState(false);
+
+  useEffect(() => {
+    // If Spanish is selected and we don't have AI translations yet, fetch them
+    if (language === 'es' && !dynamicTranslations) {
+      loadAITranslations();
+    }
+  }, [language]);
+
+  const loadAITranslations = async () => {
+    setIsLoadingTranslations(true);
+    try {
+      // Translate the entire English object to Spanish using AI
+      const translated = await translateObject(translations.en, 'es', 'en');
+      setDynamicTranslations(translated);
+    } catch (error) {
+      console.error('Failed to load AI translations, falling back to manual:', error);
+      setDynamicTranslations(null);
+    } finally {
+      setIsLoadingTranslations(false);
+    }
+  };
+
   const handleSetLanguage = (lang: Language) => {
-    setLanguage(lang);
+    setLanguageState(lang);
     try {
       localStorage.setItem('language', lang);
+      // Clear dynamic translations when changing language to trigger reload
+      if (lang === 'es') {
+        setDynamicTranslations(null);
+      }
     } catch (error) {
       console.error('Failed to save language preference:', error);
     }
   };
 
+  // Use AI translations if available and language is Spanish, otherwise use manual translations
+  const currentTranslations = language === 'es' && dynamicTranslations 
+    ? dynamicTranslations 
+    : translations[language];
+
   return (
     <LanguageContext.Provider value={{ 
       language, 
       setLanguage: handleSetLanguage, 
-      t: translations[language] 
+      t: currentTranslations,
+      isLoadingTranslations
     }}>
       {children}
     </LanguageContext.Provider>

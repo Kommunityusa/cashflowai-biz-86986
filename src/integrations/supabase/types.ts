@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_translations: {
+        Row: {
+          created_at: string | null
+          id: string
+          source_language: string
+          source_text: string
+          target_language: string
+          translated_text: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          source_language?: string
+          source_text: string
+          target_language: string
+          translated_text: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          source_language?: string
+          source_text?: string
+          target_language?: string
+          translated_text?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
