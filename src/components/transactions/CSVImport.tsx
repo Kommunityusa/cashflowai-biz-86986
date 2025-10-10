@@ -89,15 +89,41 @@ export const CSVImport = ({ onImportComplete }: { onImportComplete?: () => void 
             };
           });
 
+          // Check for duplicates before inserting
+          const { data: existingTransactions } = await supabase
+            .from("transactions")
+            .select("transaction_date, description, amount")
+            .eq("user_id", user.id);
+
+          // Filter out duplicates
+          const uniqueTransactions = transactions.filter(newTx => {
+            return !existingTransactions?.some(existing => 
+              existing.transaction_date === newTx.transaction_date &&
+              existing.description === newTx.description &&
+              Math.abs(Number(existing.amount) - newTx.amount) < 0.01
+            );
+          });
+
+          if (uniqueTransactions.length === 0) {
+            toast({
+              title: "No new transactions",
+              description: "All transactions in the CSV already exist.",
+            });
+            onImportComplete?.();
+            return;
+          }
+
           const { error } = await supabase
             .from("transactions")
-            .insert(transactions);
+            .insert(uniqueTransactions);
 
           if (error) throw error;
 
+          const skippedCount = transactions.length - uniqueTransactions.length;
+          
           toast({
             title: "Success",
-            description: `Imported ${transactions.length} transactions`,
+            description: `Imported ${uniqueTransactions.length} transactions${skippedCount > 0 ? `, skipped ${skippedCount} duplicates` : ''}`,
           });
 
           onImportComplete?.();
