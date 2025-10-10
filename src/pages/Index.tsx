@@ -15,20 +15,7 @@ import { SEO } from "@/components/SEO";
 const Index = () => {
   const { user, loading } = useAuth(false); // Don't require auth on landing
   const navigate = useNavigate();
-  const [redirecting, setRedirecting] = useState(false);
   const { t } = useLanguage();
-
-  useEffect(() => {
-    // If user is logged in and not loading, redirect to dashboard
-    if (!loading && user) {
-      setRedirecting(true);
-      // Small delay to show the redirect message
-      const timer = setTimeout(() => {
-        navigate("/dashboard", { replace: true });
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [user, loading, navigate]);
 
   // Show loading state while checking auth
   if (loading) {
@@ -41,39 +28,8 @@ const Index = () => {
       </div>
     );
   }
-  
-  // If user is logged in, show redirect message with manual button
-  if (user || redirecting) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-6">
-          <div className="space-y-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <h2 className="text-2xl font-semibold">{t.dashboard.welcome}!</h2>
-            <p className="text-muted-foreground">Redirecting to your dashboard...</p>
-          </div>
-          
-          <div className="pt-4">
-            <Button 
-              size="lg"
-              onClick={() => navigate("/dashboard", { replace: true })}
-              className="group"
-            >
-              <TrendingUp className="mr-2 h-5 w-5" />
-              {t.nav.dashboard}
-              <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </div>
-          
-          <p className="text-sm text-muted-foreground">
-            If you're not redirected automatically, click the button above
-          </p>
-        </div>
-      </div>
-    );
-  }
 
-  // Show landing page for non-authenticated users
+  // Show landing page for all users (authenticated or not)
   return (
     <>
       <SEO
