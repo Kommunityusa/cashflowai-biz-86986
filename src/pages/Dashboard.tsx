@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { BankAccounts } from "@/components/BankAccounts";
-import { TaxPreparation } from "@/components/TaxPreparation";
+
 import { NewsletterBanner } from "@/components/NewsletterBanner";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -648,10 +648,6 @@ export default function Dashboard() {
             {/* Bank Accounts */}
             <BankAccounts />
 
-            {/* Tax Preparation Section */}
-            <div className="mt-8">
-              <TaxPreparation />
-            </div>
       </>
         )}
       </main>
