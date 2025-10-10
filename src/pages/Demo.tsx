@@ -5,7 +5,6 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
 import { 
   PlayCircle, 
-  CreditCard, 
   TrendingUp, 
   Shield, 
   Brain,
@@ -18,7 +17,6 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import step1Screenshot from "@/assets/demo-screenshots/step-1-signup.jpg";
-import step2Screenshot from "@/assets/demo-screenshots/step-2-bank-connect.jpg";
 import step3Screenshot from "@/assets/demo-screenshots/step-3-ai-categorization.jpg";
 import step4Screenshot from "@/assets/demo-screenshots/step-4-insights.jpg";
 import step5Screenshot from "@/assets/demo-screenshots/step-5-reports.jpg";
@@ -32,7 +30,7 @@ const Demo = () => {
       title: "Create Your Account",
       description: "Sign up in seconds with just your email. Get started today.",
       features: [
-        "Secure authentication with Supabase",
+        "Secure authentication",
         "Email verification for security",
         "Choose your subscription plan"
       ],
@@ -42,19 +40,6 @@ const Demo = () => {
     },
     {
       number: "02",
-      title: "Connect Your Bank",
-      description: "Securely link your bank accounts through Plaid. We support over 12,000 financial institutions.",
-      features: [
-        "256-bit encryption",
-        "Read-only access",
-        "Automatic transaction sync"
-      ],
-      icon: CreditCard,
-      color: "from-secondary/20 to-secondary/10",
-      screenshot: step2Screenshot
-    },
-    {
-      number: "03",
       title: "AI Insights",
       description: "Our AI provides intelligent insights about your transactions and identifies patterns in your spending.",
       features: [
@@ -67,7 +52,7 @@ const Demo = () => {
       screenshot: step3Screenshot
     },
     {
-      number: "04",
+      number: "03",
       title: "Financial Insights",
       description: "Get personalized insights and recommendations to improve your financial health.",
       features: [
@@ -80,7 +65,7 @@ const Demo = () => {
       screenshot: step4Screenshot
     },
     {
-      number: "05",
+      number: "04",
       title: "Generate Reports",
       description: "Create professional financial reports for taxes, investors, or your own records.",
       features: [

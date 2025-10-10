@@ -21,7 +21,6 @@ export function Pricing() {
       description: "Complete bookkeeping solution for small businesses",
       popular: true,
       features: [
-        { text: "Unlimited bank connections", included: true },
         { text: "AI-powered financial insights", included: true },
         { text: "Real-time reports & analytics", included: true },
         { text: "Unlimited transactions", included: true },
@@ -29,6 +28,7 @@ export function Pricing() {
         { text: "Custom categories & rules", included: true },
         { text: "Bank statement uploads (CSV)", included: true },
         { text: "P&L, Balance Sheet & Cash Flow", included: true },
+        { text: "Email support", included: true },
       ],
       cta: "Subscribe Now",
       variant: "gradient" as const,
