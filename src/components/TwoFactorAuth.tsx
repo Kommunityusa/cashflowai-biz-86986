@@ -79,11 +79,10 @@ export function TwoFactorAuth() {
         }
       }
 
-      // Enroll a new TOTP factor with a unique timestamp-based name
-      const uniqueName = `${user.email || 'Cash Flow AI'} - ${new Date().getTime()}`;
+      // Enroll a new TOTP factor with a simple short name
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: 'totp',
-        friendlyName: uniqueName
+        friendlyName: 'Cash Flow AI'
       });
 
       if (error) {
