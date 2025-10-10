@@ -556,58 +556,72 @@ serve(async (req) => {
 
               // Process added transactions
               if (data.added && data.added.length > 0) {
-                const newTransactions = data.added.map((transaction: any) => {
-                  const txType = transaction.amount > 0 ? 'expense' : 'income';
-                  const categoryName = transaction.personal_finance_category?.primary?.toLowerCase() || 
-                                       transaction.category?.[0]?.toLowerCase() || 'other';
-                  const matchingCategory = userCategories?.find(cat => 
-                    cat.type === txType && 
-                    cat.name.toLowerCase().includes(categoryName)
-                  );
-                  
-                  return {
-                    user_id: user.id,
-                    bank_account_id: account.id,
-                    plaid_transaction_id: transaction.transaction_id,
-                    description: transaction.name || transaction.merchant_name || 'Unknown',
-                    vendor_name: transaction.merchant_name,
-                    amount: Math.abs(transaction.amount),
-                    type: txType,
-                    transaction_date: transaction.date,
-                    plaid_category: transaction.personal_finance_category || transaction.category,
-                    category_id: matchingCategory?.id || null,
-                    status: 'completed',
-                    notes: transaction.payment_channel ? `Payment via ${transaction.payment_channel}` : null,
-                  };
-                });
-
-                // Batch upsert transactions - update if exists, insert if new
-                const CHUNK_SIZE = 100;
-                let successCount = 0;
-                for (let i = 0; i < newTransactions.length; i += CHUNK_SIZE) {
-                  const chunk = newTransactions.slice(i, i + CHUNK_SIZE);
-                  const { data: inserted, error: insertError } = await supabase
-                    .from('transactions')
-                    .upsert(chunk, {
-                      onConflict: 'plaid_transaction_id'
-                    })
-                    .select();
-                  
-                  if (insertError) {
-                    console.error(`[Plaid Function] Error upserting transactions batch:`, {
-                      error: insertError.message,
-                      code: insertError.code,
-                      details: insertError.details,
-                    });
-                    // Continue processing other batches
-                  } else {
-                    successCount += inserted?.length || 0;
-                  }
-                }
+                // Check for existing transactions to avoid duplicates
+                const plaidIds = data.added.map((t: any) => t.transaction_id);
+                const { data: existingTxns } = await supabase
+                  .from('transactions')
+                  .select('plaid_transaction_id')
+                  .in('plaid_transaction_id', plaidIds);
                 
-                console.log(`[Plaid Function] Processed ${successCount} transactions for account ${account.id}`);
-                accountSynced += successCount;
-                totalSynced += successCount;
+                const existingIds = new Set(existingTxns?.map(t => t.plaid_transaction_id) || []);
+                
+                // Filter out transactions that already exist
+                const newTxnsData = data.added.filter((t: any) => !existingIds.has(t.transaction_id));
+                
+                console.log(`[Plaid Function] Found ${newTxnsData.length} new transactions out of ${data.added.length} total`);
+                
+                if (newTxnsData.length > 0) {
+                  const newTransactions = newTxnsData.map((transaction: any) => {
+                    const txType = transaction.amount > 0 ? 'expense' : 'income';
+                    const categoryName = transaction.personal_finance_category?.primary?.toLowerCase() || 
+                                         transaction.category?.[0]?.toLowerCase() || 'other';
+                    const matchingCategory = userCategories?.find(cat => 
+                      cat.type === txType && 
+                      cat.name.toLowerCase().includes(categoryName)
+                    );
+                    
+                    return {
+                      user_id: user.id,
+                      bank_account_id: account.id,
+                      plaid_transaction_id: transaction.transaction_id,
+                      description: transaction.name || transaction.merchant_name || 'Unknown',
+                      vendor_name: transaction.merchant_name,
+                      amount: Math.abs(transaction.amount),
+                      type: txType,
+                      transaction_date: transaction.date,
+                      plaid_category: transaction.personal_finance_category || transaction.category,
+                      category_id: matchingCategory?.id || null,
+                      status: 'completed',
+                      notes: transaction.payment_channel ? `Payment via ${transaction.payment_channel}` : null,
+                    };
+                  });
+
+                  // Batch insert transactions (not upsert, since we already filtered duplicates)
+                  const CHUNK_SIZE = 100;
+                  let successCount = 0;
+                  for (let i = 0; i < newTransactions.length; i += CHUNK_SIZE) {
+                    const chunk = newTransactions.slice(i, i + CHUNK_SIZE);
+                    const { data: inserted, error: insertError } = await supabase
+                      .from('transactions')
+                      .insert(chunk)
+                      .select();
+                    
+                    if (insertError) {
+                      console.error(`[Plaid Function] Error inserting transactions batch:`, {
+                        error: insertError.message,
+                        code: insertError.code,
+                        details: insertError.details,
+                      });
+                      // Continue processing other batches
+                    } else {
+                      successCount += inserted?.length || 0;
+                    }
+                  }
+                  
+                  console.log(`[Plaid Function] Inserted ${successCount} new transactions for account ${account.id}`);
+                  accountSynced += successCount;
+                  totalSynced += successCount;
+                }
               }
 
               // Process modified transactions

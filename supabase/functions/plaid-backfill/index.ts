@@ -190,59 +190,72 @@ serve(async (req) => {
             const accountTxns = transactions;
 
             if (accountTxns.length > 0) {
-              // Transform and insert transactions
-              const txnsToInsert = accountTxns.map((transaction: any) => {
-                const txType = transaction.amount > 0 ? 'expense' : 'income';
+              // Check for existing transactions to avoid duplicates
+              const plaidIds = accountTxns.map((t: any) => t.transaction_id);
+              const { data: existingTxns } = await supabase
+                .from('transactions')
+                .select('plaid_transaction_id')
+                .in('plaid_transaction_id', plaidIds);
+              
+              const existingIds = new Set(existingTxns?.map(t => t.plaid_transaction_id) || []);
+              
+              // Filter out transactions that already exist
+              const newTxns = accountTxns.filter((t: any) => !existingIds.has(t.transaction_id));
+              
+              console.log('[Plaid Backfill] Found', newTxns.length, 'new transactions out of', accountTxns.length, 'total');
+              
+              if (newTxns.length > 0) {
+                // Transform and insert only new transactions
+                const txnsToInsert = newTxns.map((transaction: any) => {
+                  const txType = transaction.amount > 0 ? 'expense' : 'income';
 
-                return {
-                  user_id: user.id,
-                  bank_account_id: account.id,
-                  plaid_transaction_id: transaction.transaction_id,
-                  description: transaction.name || transaction.merchant_name || 'Unknown',
-                  vendor_name: transaction.merchant_name,
-                  amount: Math.abs(transaction.amount),
-                  type: txType,
-                  transaction_date: transaction.date,
-                  plaid_category: transaction.personal_finance_category || transaction.category,
-                  category_id: null, // Will be set by AI
-                  status: 'completed',
-                  notes: transaction.payment_channel ? `Payment via ${transaction.payment_channel}` : null,
-                };
-              });
+                  return {
+                    user_id: user.id,
+                    bank_account_id: account.id,
+                    plaid_transaction_id: transaction.transaction_id,
+                    description: transaction.name || transaction.merchant_name || 'Unknown',
+                    vendor_name: transaction.merchant_name,
+                    amount: Math.abs(transaction.amount),
+                    type: txType,
+                    transaction_date: transaction.date,
+                    plaid_category: transaction.personal_finance_category || transaction.category,
+                    category_id: null, // Will be set by AI
+                    status: 'completed',
+                    notes: transaction.payment_channel ? `Payment via ${transaction.payment_channel}` : null,
+                  };
+                });
 
-              // Insert in batches
-              const BATCH_SIZE = 100;
-              for (let i = 0; i < txnsToInsert.length; i += BATCH_SIZE) {
-                const batch = txnsToInsert.slice(i, i + BATCH_SIZE);
-                const { data: inserted, error: insertError } = await supabase
-                  .from('transactions')
-                  .upsert(batch, {
-                    onConflict: 'plaid_transaction_id',
-                    ignoreDuplicates: true
-                  })
-                  .select();
+                // Insert in batches
+                const BATCH_SIZE = 100;
+                for (let i = 0; i < txnsToInsert.length; i += BATCH_SIZE) {
+                  const batch = txnsToInsert.slice(i, i + BATCH_SIZE);
+                  const { data: inserted, error: insertError } = await supabase
+                    .from('transactions')
+                    .insert(batch)
+                    .select();
 
-                if (insertError) {
-                  console.error('[Plaid Backfill] Insert error:', insertError);
-                  throw insertError;
-                }
-                
-                // Track new transactions for AI categorization
-                if (inserted) {
-                  for (const tx of inserted) {
-                    newTransactions.push({
-                      id: tx.id,
-                      description: tx.description,
-                      vendor_name: tx.vendor_name,
-                      amount: tx.amount,
-                      transaction_date: tx.transaction_date,
-                    });
+                  if (insertError) {
+                    console.error('[Plaid Backfill] Insert error:', insertError);
+                    throw insertError;
+                  }
+                  
+                  // Track new transactions for AI categorization
+                  if (inserted) {
+                    for (const tx of inserted) {
+                      newTransactions.push({
+                        id: tx.id,
+                        description: tx.description,
+                        vendor_name: tx.vendor_name,
+                        amount: tx.amount,
+                        transaction_date: tx.transaction_date,
+                      });
+                    }
                   }
                 }
-              }
 
-              accountTransactions += txnsToInsert.length;
-              totalImported += txnsToInsert.length;
+                accountTransactions += txnsToInsert.length;
+                totalImported += txnsToInsert.length;
+              }
             }
           }
 
