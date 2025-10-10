@@ -26,13 +26,13 @@ export function TransactionStats({ transactions }: TransactionStatsProps) {
       new Date(t.transaction_date).getFullYear().toString() === selectedYear
     );
   }, [transactions, selectedYear]);
-  // Calculate total income and expenses for selected year
+  // Calculate total income and expenses for selected year (excluding transfers)
   const totalIncome = yearTransactions
-    .filter(t => t.type === 'income')
+    .filter(t => t.type === 'income' && !t.is_internal_transfer)
     .reduce((sum, t) => sum + Number(t.amount), 0);
     
   const totalExpenses = yearTransactions
-    .filter(t => t.type === 'expense')
+    .filter(t => t.type === 'expense' && !t.is_internal_transfer)
     .reduce((sum, t) => sum + Number(t.amount), 0);
     
   const netProfit = totalIncome - totalExpenses;
