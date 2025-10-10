@@ -67,12 +67,15 @@ export const CSVImport = ({ onImportComplete }: { onImportComplete?: () => void 
               const description = row.Description || row.description || 
                                 row["Bank Description"] || "Imported transaction";
               
-              // Detect internal transfers
+              // Enhanced internal transfer detection
               const isInternalTransfer = Boolean(
-                description.includes("Transfer from Mercury to another bank account") ||
-                description.includes("Transfer to Mercury from another bank account") ||
-                description.includes("Send Money transaction initiated on Mercury") ||
-                (row.Reference && row.Reference.includes("Transfer"))
+                description.toLowerCase().includes("transfer from mercury") ||
+                description.toLowerCase().includes("transfer to mercury") ||
+                description.toLowerCase().includes("send money transaction") ||
+                description.toLowerCase().includes("transfer between accounts") ||
+                description.toLowerCase().includes("internal transfer") ||
+                description.toLowerCase().includes("account transfer") ||
+                (row.Reference && row.Reference.toLowerCase().includes("transfer"))
               );
               
               // Get category from Mercury's Category column
@@ -125,6 +128,17 @@ export const CSVImport = ({ onImportComplete }: { onImportComplete?: () => void 
             .insert(uniqueTransactions);
 
           if (error) throw error;
+
+          // After import, run auto-reconcile to detect transfers between accounts
+          console.log('Running auto-reconcile to detect transfers...');
+          const { error: reconcileError } = await supabase.functions.invoke('auto-reconcile', {
+            body: { user_id: user.id }
+          });
+          
+          if (reconcileError) {
+            console.warn('Auto-reconcile warning:', reconcileError);
+            // Don't fail the import if reconcile has issues
+          }
 
           const skippedCount = transactions.length - uniqueTransactions.length;
           

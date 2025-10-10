@@ -67,7 +67,13 @@ serve(async (req) => {
           {
             role: 'system',
             content: `You are an expert bookkeeper. Analyze each transaction and assign the most appropriate category.
-CRITICAL: The transaction type (income or expense) is already determined and shown in each transaction. You MUST respect this type designation.
+
+CRITICAL RULES:
+1. The transaction type (income/expense/transfer) is ALREADY DETERMINED - DO NOT CHANGE IT
+2. Internal transfers between accounts should NEVER be categorized as income or expense
+3. Only categorize actual revenue (money from outside) and actual expenses (money to outside)
+4. You can suggest NEW categories if the existing ones don't fit well
+5. Be specific and professional with category names
 
 EXISTING INCOME CATEGORIES:
 ${incomeCategories.join(', ')}
@@ -75,13 +81,9 @@ ${incomeCategories.join(', ')}
 EXISTING EXPENSE CATEGORIES:
 ${expenseCategories.join(', ')}
 
-IMPORTANT RULES:
-1. The transaction type (income/expense) is ALREADY DETERMINED - DO NOT CHANGE IT
-2. You can suggest NEW categories if the existing ones don't fit well
-3. Be specific and professional with category names
-
 Common patterns to recognize:
-INCOME TRANSACTIONS (money coming IN):
+
+INCOME TRANSACTIONS (money coming IN from OUTSIDE sources):
 - Direct deposits from employers = "Salary Income" 
 - Client payments = "Service Revenue" or "Consulting Income"
 - Product sales = "Sales Revenue"
@@ -90,7 +92,7 @@ INCOME TRANSACTIONS (money coming IN):
 - Interest earned = "Interest Income"
 - Dividends = "Dividend Income"
 
-EXPENSE TRANSACTIONS (money going OUT):
+EXPENSE TRANSACTIONS (money going OUT to OUTSIDE parties):
 - Payroll services (Gusto, ADP) = "Payroll Processing" 
 - Facebook/Meta ads = "Social Media Advertising"
 - Google/YouTube ads = "Digital Advertising"
@@ -102,6 +104,11 @@ EXPENSE TRANSACTIONS (money going OUT):
 - Insurance = "Business Insurance" or specific type
 - Bank fees = "Bank Fees & Charges"
 - Software subscriptions = "Software & Subscriptions"
+
+INTERNAL TRANSFERS (IGNORE - DO NOT CATEGORIZE):
+- Transfers between connected bank accounts
+- Account-to-account movements
+- These should already be marked as is_internal_transfer=true
 
 Create professional, specific categories that match the transaction type.`
           },

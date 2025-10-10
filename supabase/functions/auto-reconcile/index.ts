@@ -57,6 +57,10 @@ serve(async (req) => {
 
 1. DUPLICATE TRANSACTIONS: Same amount, same date (or within 2 days), same description
 2. INTERNAL TRANSFERS: Matching positive and negative amounts on same/similar dates between different accounts
+   - Look for matching amounts with opposite signs (one positive, one negative)
+   - Same or adjacent dates (within 1-2 business days)
+   - Descriptions that indicate transfers, account movements, or internal movements
+   - CRITICAL: These should be marked as is_internal_transfer=true because they are NOT revenue or expenses
 
 For each match found, return JSON with this structure:
 {
@@ -70,12 +74,13 @@ For each match found, return JSON with this structure:
   "internal_transfers": [
     {
       "transaction_ids": ["id1", "id2"],
-      "reason": "Matching transfer amounts between accounts",
+      "reason": "Matching transfer amounts between accounts - one debit, one credit",
       "confidence": "high"
     }
   ]
 }
 
+IMPORTANT: Internal transfers represent money moving BETWEEN accounts owned by the same user, NOT revenue or expenses.
 Only flag transactions with "high" confidence. Be conservative to avoid false positives.`;
 
     const userPrompt = `Analyze these transactions and identify duplicates and internal transfers:
