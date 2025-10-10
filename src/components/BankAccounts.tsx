@@ -21,10 +21,6 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { PlaidLinkButton } from "@/components/PlaidLinkButton";
-import { PlaidOnboarding } from "@/components/PlaidOnboarding";
-import { BankAccountRemoval } from "@/components/BankAccountRemoval";
-import { BankConnectionManager } from "@/components/BankConnectionManager";
 import {
   Building,
   Plus,
@@ -191,189 +187,6 @@ export function BankAccounts() {
     }
   };
 
-  const [isSyncing, setIsSyncing] = useState(false);
-
-  useEffect(() => {
-    console.log('[BankAccounts] Accounts updated:', accounts.length);
-    console.log('[BankAccounts] Plaid accounts:', accounts.filter(a => a.plaid_account_id).length);
-    console.log('[BankAccounts] isSyncing:', isSyncing);
-  }, [accounts, isSyncing]);
-
-  const syncTransactions = async () => {
-    try {
-      console.log('[Sync] === SYNC BUTTON CLICKED ===');
-      
-      if (isSyncing) {
-        console.log('[Sync] Already syncing, returning');
-        return;
-      }
-
-      setIsSyncing(true);
-      console.log('[Sync] isSyncing set to true');
-
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('[Sync] Session:', !!session);
-      
-      if (!session) {
-        console.log('[Sync] No session');
-        toast({
-          title: "Error",
-          description: "Please sign in to sync transactions",
-          variant: "destructive",
-        });
-        setIsSyncing(false);
-        return;
-      }
-
-      const hasPlaidAccounts = accounts.some(a => a.plaid_account_id);
-      console.log('[Sync] Has Plaid accounts:', hasPlaidAccounts, 'Total accounts:', accounts.length);
-      
-      if (!hasPlaidAccounts) {
-        console.log('[Sync] No Plaid accounts');
-        toast({
-          title: "No Connected Accounts",
-          description: "Please connect a bank account first to sync transactions.",
-          variant: "destructive",
-        });
-        setIsSyncing(false);
-        return;
-      }
-
-      toast({
-        title: "Syncing Transactions",
-        description: "Importing transactions from the last 12 months (365 days). This may take a few minutes...",
-      });
-
-      console.log('[Sync] About to call plaid-backfill');
-      
-      // Retry logic for edge function calls
-      let retries = 3;
-      let lastError = null;
-      
-      for (let i = 0; i < retries; i++) {
-        try {
-          console.log(`[Sync] Attempt ${i + 1}/${retries} - calling plaid-backfill`);
-          
-          const { data: backfillData, error: backfillError } = await supabase.functions.invoke("plaid-backfill", {
-            body: {},
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
-          });
-
-          console.log('[Sync] Backfill response:', { backfillData, backfillError });
-
-          if (backfillError) {
-            console.error('[Sync] Backfill error:', backfillError);
-            lastError = backfillError;
-            
-            // If it's a network error, wait and retry
-            if (backfillError.message?.includes('Failed to fetch') && i < retries - 1) {
-              console.log(`[Sync] Network error, waiting 2s before retry...`);
-              await new Promise(resolve => setTimeout(resolve, 2000));
-              continue;
-            }
-            throw backfillError;
-          }
-
-          // Handle the new response format
-          if (backfillData?.success !== undefined) {
-            const transactionsImported = backfillData.transactions_imported || 0;
-            const accountsProcessed = backfillData.accounts_processed || 0;
-            const errors = backfillData.errors || [];
-            const successfulAccounts = accountsProcessed - errors.length;
-            
-            let description = `Successfully synced ${transactionsImported} transactions from ${successfulAccounts} account(s).`;
-            if (errors.length > 0) {
-              description += ` ${errors.length} account(s) need to be reconnected.`;
-            }
-            
-            toast({
-              title: "Sync Complete!",
-              description,
-              variant: errors.length > 0 ? "default" : "default",
-            });
-            
-            // Log errors for debugging
-            if (errors.length > 0) {
-              console.log('[Sync] Accounts with errors:', errors);
-            }
-            
-            await fetchAccounts();
-            return; // Success - exit the retry loop
-          } else if (backfillData?.summary) {
-            // Handle old response format for backwards compatibility
-            const { total_new_transactions, successful, errors, total_accounts } = backfillData.summary;
-            
-            let description = `Successfully synced ${total_new_transactions} transactions from ${successful} account(s).`;
-            if (errors > 0) {
-              description += ` ${errors} account(s) had errors.`;
-            }
-            
-            toast({
-              title: "Sync Complete!",
-              description,
-              variant: errors > 0 ? "default" : "default",
-            });
-            
-            await fetchAccounts();
-            return;
-          } else if (backfillData?.error) {
-            console.error('[Sync] Backfill returned error:', backfillData.error, backfillData.details);
-            throw new Error(backfillData.details || backfillData.error);
-          } else {
-            console.warn('[Sync] Unexpected response format:', backfillData);
-            toast({
-              title: "Sync Status Unknown",
-              description: "The sync may have completed but the response was unexpected. Please check your transactions.",
-            });
-            await fetchAccounts();
-            return;
-          }
-        } catch (error) {
-          lastError = error;
-          if (i === retries - 1) {
-            // Last retry failed, throw the error
-            throw error;
-          }
-          console.log(`[Sync] Attempt ${i + 1} failed, retrying...`);
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-      }
-      
-      // If we get here, all retries failed
-      if (lastError) {
-        throw lastError;
-      }
-    } catch (error) {
-      console.error("[Sync] Error:", error);
-      
-      let errorMessage = "Failed to sync transactions. Please try again.";
-      if (error instanceof Error) {
-        errorMessage = error.message;
-        
-        // Provide more helpful messages for common errors
-        if (error.message.includes('Failed to fetch')) {
-          errorMessage = "Network connection issue. Please check your internet connection and try again.";
-        } else if (error.message.includes('Invalid user authentication')) {
-          errorMessage = "Authentication expired. Please refresh the page and try again.";
-        } else if (error.message.includes('ITEM_LOGIN_REQUIRED')) {
-          errorMessage = "Bank connection requires re-authentication. Please reconnect your bank account.";
-        } else if (error.message.includes('PLAID')) {
-          errorMessage = "Bank connection issue. Please try reconnecting your bank account.";
-        }
-      }
-      
-      toast({
-        title: "Sync Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      console.log('[Sync] Finally block - resetting isSyncing');
-      setIsSyncing(false);
-    }
-  };
 
   const handleRemoveAccount = async (id: string, hasPlaid: boolean) => {
     // This will be handled by the BankAccountRemoval component
@@ -396,7 +209,6 @@ export function BankAccounts() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <PlaidLinkButton onSuccess={fetchAccounts} />
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" variant="outline">
@@ -512,7 +324,9 @@ export function BankAccounts() {
         {loading ? (
           <div className="text-center py-4">Loading accounts...</div>
         ) : accounts.length === 0 ? (
-          <PlaidOnboarding onSuccess={fetchAccounts} />
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">No bank accounts added yet. Add one above to get started.</p>
+          </div>
         ) : (
           <div className="space-y-4">
             <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4 mb-4">
@@ -524,17 +338,6 @@ export function BankAccounts() {
                   ${totalBalance.toFixed(2)}
                 </span>
               </div>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-2 mb-6">
-              <Button 
-                variant="outline" 
-                onClick={syncTransactions}
-                disabled={isSyncing || accounts.filter(a => a.plaid_account_id).length === 0}
-              >
-                <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                {isSyncing ? t.bankAccounts.importing : t.bankAccounts.syncAll}
-              </Button>
             </div>
             
             <div className="space-y-3">
@@ -553,14 +356,8 @@ export function BankAccounts() {
                       <div>
                         <p className="font-medium">{account.account_name}</p>
                         <p className="text-sm text-muted-foreground">
-                      {account.bank_name} • ****{account.account_number_last4 || "----"}
-                      {account.plaid_account_id && (
-                        <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                          <Link className="inline h-3 w-3 mr-1" />
-                          {t.bankAccounts.connected}
-                        </span>
-                      )}
-                    </p>
+                          {account.bank_name} • ****{account.account_number_last4 || "----"}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -579,10 +376,13 @@ export function BankAccounts() {
                       >
                         <RefreshCw className="h-4 w-4" />
                       </Button>
-                      <BankAccountRemoval 
-                        account={account} 
-                        onRemovalComplete={fetchAccounts} 
-                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteAccount(account.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                   {account.last_synced_at && (

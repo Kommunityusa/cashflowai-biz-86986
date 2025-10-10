@@ -57,7 +57,7 @@ import { TransactionRow } from "@/components/transactions/TransactionRow";
 import { BulkOperations } from "@/components/transactions/BulkOperations";
 import { AdvancedSearch, SearchFilters } from "@/components/transactions/AdvancedSearch";
 
-import { TransactionSync } from "@/components/TransactionSync";
+
 import { CSVImport } from "@/components/transactions/CSVImport";
 import { exportTransactionsToCSV } from "@/utils/csvExport";
 

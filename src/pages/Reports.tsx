@@ -35,7 +35,6 @@ export default function Reports() {
   const [year, setYear] = useState(new Date().getFullYear().toString());
   const [month, setMonth] = useState((new Date().getMonth() + 1).toString());
   const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState("profit-loss");
   
@@ -100,41 +99,6 @@ export default function Reports() {
     }
   };
 
-  const syncTransactions = async () => {
-    setSyncing(true);
-    try {
-      // Call the plaid-auto-sync edge function to sync latest transactions
-      const { error } = await supabase.functions.invoke('plaid-auto-sync', {
-        body: { autoSync: true }
-      });
-      
-      if (error) throw error;
-      
-      // Update last sync time
-      await supabase
-        .from("profiles")
-        .update({ last_report_sync: new Date().toISOString() })
-        .eq("user_id", user?.id);
-      
-      toast({
-        title: "Success",
-        description: "Transactions synced successfully",
-      });
-      
-      // Regenerate report with fresh data
-      await generateReport();
-      checkLastSync();
-    } catch (error) {
-      console.error("Sync error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to sync transactions",
-        variant: "destructive",
-      });
-    } finally {
-      setSyncing(false);
-    }
-  };
 
   const generateReport = async () => {
     setLoading(true);
@@ -413,10 +377,6 @@ export default function Reports() {
             )}
           </div>
           <div className="flex gap-2">
-            <Button onClick={syncTransactions} variant="outline" disabled={syncing}>
-              <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-              Sync Data
-            </Button>
             <Button onClick={exportCSV}>
               <Download className="mr-2 h-4 w-4" />
               Export CSV

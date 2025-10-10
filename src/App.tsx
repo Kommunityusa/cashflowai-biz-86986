@@ -20,7 +20,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Terms from "./pages/Terms";
 import Security from "./pages/Security";
 
-import PlaidOAuthCallback from "./pages/PlaidOAuthCallback";
+
 import Blog from "./pages/Blog";
 import About from "./pages/About";
 import SmallBusinessBookkeepingGuide from "./pages/blog/SmallBusinessBookkeepingGuide";
@@ -182,7 +182,7 @@ const App = () => (
                 <Security />
               </ProtectedRoute>
             } />
-            <Route path="/auth/callback" element={<PlaidOAuthCallback />} />
+            
             <Route path="/blog" element={<Blog />} />
             <Route path="/about" element={<About />} />
             <Route path="/blog/small-business-bookkeeping-guide" element={<SmallBusinessBookkeepingGuide />} />
