@@ -40,55 +40,61 @@ export const CSVImport = ({ onImportComplete }: { onImportComplete?: () => void 
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) throw new Error("Not authenticated");
 
-          const transactions = results.data.map((row: CSVTransaction) => {
-            // Parse date from Mercury format (MM-DD-YYYY) or standard formats
-            const dateStr = row["Date (UTC)"] || row.date || row.Date || new Date().toISOString().split('T')[0];
-            let parsedDate = dateStr;
-            
-            // Convert MM-DD-YYYY to YYYY-MM-DD
-            if (dateStr.match(/^\d{2}-\d{2}-\d{4}$/)) {
-              const [month, day, year] = dateStr.split('-');
-              parsedDate = `${year}-${month}-${day}`;
-            }
-            
-            // Parse amount - Mercury format: POSITIVE = income (received), NEGATIVE = expense (sent)
-            const rawAmount = parseFloat(row.Amount || row.amount || "0");
-            const amount = Math.abs(rawAmount);
-            
-            // Determine transaction type based on Mercury's sign convention
-            let type = row.type || row.Type;
-            if (!type) {
-              // In Mercury CSV: positive amount = money IN (income), negative = money OUT (expense)
-              type = rawAmount > 0 ? "income" : "expense";
-            }
-            
-            // Get description from Mercury columns
-            const description = row.Description || row.description || 
-                              row["Bank Description"] || "Imported transaction";
-            
-            // Detect internal transfers
-            const isInternalTransfer = Boolean(
-              description.includes("Transfer from Mercury to another bank account") ||
-              description.includes("Transfer to Mercury from another bank account") ||
-              description.includes("Send Money transaction initiated on Mercury") ||
-              (row.Reference && row.Reference.includes("Transfer"))
-            );
-            
-            // Get category from Mercury's Category column
-            const mercuryCategory = row.Category || row.category;
-            
-            return {
-              user_id: user.id,
-              transaction_date: parsedDate,
-              description,
-              amount,
-              type,
-              status: "completed",
-              is_internal_transfer: isInternalTransfer,
-              vendor_name: row.Description || null,
-              notes: mercuryCategory ? `Mercury Category: ${mercuryCategory}` : null
-            };
-          });
+          const transactions = results.data
+            .map((row: CSVTransaction) => {
+              // Parse date from Mercury format (MM-DD-YYYY) or standard formats
+              const dateStr = row["Date (UTC)"] || row.date || row.Date || new Date().toISOString().split('T')[0];
+              let parsedDate = dateStr;
+              
+              // Convert MM-DD-YYYY to YYYY-MM-DD
+              if (dateStr.match(/^\d{2}-\d{2}-\d{4}$/)) {
+                const [month, day, year] = dateStr.split('-');
+                parsedDate = `${year}-${month}-${day}`;
+              }
+              
+              // Parse amount - Mercury format: POSITIVE = income (received), NEGATIVE = expense (sent)
+              const rawAmount = parseFloat(row.Amount || row.amount || "0");
+              const amount = Math.abs(rawAmount);
+              
+              // Determine transaction type based on Mercury's sign convention
+              let type = row.type || row.Type;
+              if (!type) {
+                // In Mercury CSV: positive amount = money IN (income), negative = money OUT (expense)
+                type = rawAmount > 0 ? "income" : "expense";
+              }
+              
+              // Get description from Mercury columns
+              const description = row.Description || row.description || 
+                                row["Bank Description"] || "Imported transaction";
+              
+              // Detect internal transfers
+              const isInternalTransfer = Boolean(
+                description.includes("Transfer from Mercury to another bank account") ||
+                description.includes("Transfer to Mercury from another bank account") ||
+                description.includes("Send Money transaction initiated on Mercury") ||
+                (row.Reference && row.Reference.includes("Transfer"))
+              );
+              
+              // Get category from Mercury's Category column
+              const mercuryCategory = row.Category || row.category;
+              
+              return {
+                user_id: user.id,
+                transaction_date: parsedDate,
+                description,
+                amount,
+                type,
+                status: "completed",
+                is_internal_transfer: isInternalTransfer,
+                vendor_name: row.Description || null,
+                notes: mercuryCategory ? `Mercury Category: ${mercuryCategory}` : null
+              };
+            })
+            // Filter to only include 2025 transactions
+            .filter(tx => {
+              const year = new Date(tx.transaction_date).getFullYear();
+              return year === 2025;
+            });
 
           // Check for duplicates before inserting
           const { data: existingTransactions } = await supabase
