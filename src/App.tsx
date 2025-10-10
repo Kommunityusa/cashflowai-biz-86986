@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AIChatBubble } from "@/components/AIChatBubble";
@@ -38,6 +38,7 @@ const queryClient = new QueryClient();
 
 // Protected Route component with AI Chat Bubble and Subscription Check
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
   const [hasSubscription, setHasSubscription] = useState(false);
@@ -125,9 +126,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
           <div className="flex justify-center">
             <Button
               variant="ghost"
-              onClick={() => {
-                window.location.href = "/";
-              }}
+              onClick={() => navigate("/")}
               className="text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -141,7 +140,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
               Subscribe to Cash Flow AI Pro to access the dashboard and all features.
             </p>
             <Button 
-              onClick={() => window.location.href = "/checkout"}
+              onClick={() => navigate("/checkout")}
               variant="gradient"
               size="lg"
             >
