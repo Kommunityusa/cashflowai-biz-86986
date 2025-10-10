@@ -470,6 +470,8 @@ export type Database = {
           stripe_subscription_id: string | null
           subscription_plan: string | null
           tax_id: string | null
+          two_factor_enabled: boolean | null
+          two_factor_phone: string | null
           updated_at: string | null
           user_id: string
           zip: string | null
@@ -496,6 +498,8 @@ export type Database = {
           stripe_subscription_id?: string | null
           subscription_plan?: string | null
           tax_id?: string | null
+          two_factor_enabled?: boolean | null
+          two_factor_phone?: string | null
           updated_at?: string | null
           user_id: string
           zip?: string | null
@@ -522,6 +526,8 @@ export type Database = {
           stripe_subscription_id?: string | null
           subscription_plan?: string | null
           tax_id?: string | null
+          two_factor_enabled?: boolean | null
+          two_factor_phone?: string | null
           updated_at?: string | null
           user_id?: string
           zip?: string | null

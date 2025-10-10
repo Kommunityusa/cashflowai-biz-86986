@@ -6,9 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, ShieldCheck, ShieldOff, Copy, Check } from "lucide-react";
-import QRCode from "qrcode";
-import { logAuditEvent } from "@/utils/auditLogger";
+import { ShieldCheck, ShieldOff } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -23,11 +21,10 @@ export function TwoFactorAuth() {
   const [loading, setLoading] = useState(false);
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
   const [showEnrollDialog, setShowEnrollDialog] = useState(false);
-  const [qrCode, setQrCode] = useState("");
-  const [secret, setSecret] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
-  const [factorId, setFactorId] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [serviceSid, setServiceSid] = useState<string | null>(null);
+  const [verificationSent, setVerificationSent] = useState(false);
 
   useEffect(() => {
     checkTwoFactorStatus();
@@ -38,43 +35,46 @@ export function TwoFactorAuth() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: factors } = await supabase.auth.mfa.listFactors();
-      
-      // Only consider verified factors as enabled
-      const verifiedFactors = factors?.totp?.filter(f => f.status === 'verified') || [];
-      
-      if (verifiedFactors.length > 0) {
-        setIs2FAEnabled(true);
-        setFactorId(verifiedFactors[0].id);
-      } else {
-        setIs2FAEnabled(false);
-        setFactorId(null);
-      }
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('two_factor_enabled')
+        .eq('user_id', user.id)
+        .single();
+
+      setIs2FAEnabled(profile?.two_factor_enabled || false);
     } catch (error) {
       console.error('Error checking 2FA status:', error);
     }
   };
 
   const enrollTwoFactor = async () => {
+    if (!phoneNumber) {
+      toast({
+        title: "Error",
+        description: "Please enter a phone number",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('enroll-2fa');
+      const { data, error } = await supabase.functions.invoke('twilio-2fa-enroll', {
+        body: { phoneNumber }
+      });
 
       if (error) throw error;
-      if (!data?.success) {
-        throw new Error(data?.error || 'Failed to enroll 2FA');
-      }
 
-      // Generate QR code from the URI
-      const qrCodeUrl = await QRCode.toDataURL(data.qrCode);
-      setQrCode(qrCodeUrl);
-      setSecret(data.secret);
-      setFactorId(data.factorId);
-      setShowEnrollDialog(true);
+      setServiceSid(data.serviceSid);
+      setVerificationSent(true);
+      toast({
+        title: "Success",
+        description: "Verification code sent to your phone!"
+      });
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to enroll 2FA",
+        description: error.message || "Failed to send verification code",
         variant: "destructive"
       });
     } finally {
@@ -83,32 +83,68 @@ export function TwoFactorAuth() {
   };
 
   const verifyAndEnable = async () => {
-    if (!verificationCode || !factorId) return;
+    if (!verificationCode || verificationCode.length !== 6) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid 6-digit code",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!serviceSid) {
+      toast({
+        title: "Error",
+        description: "No verification service found",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.mfa.challengeAndVerify({
-        factorId: factorId,
-        code: verificationCode
+      const { data, error } = await supabase.functions.invoke('twilio-2fa-verify', {
+        body: { 
+          phoneNumber, 
+          code: verificationCode,
+          serviceSid 
+        }
       });
 
       if (error) throw error;
 
-      setIs2FAEnabled(true);
-      setShowEnrollDialog(false);
-      setVerificationCode("");
-      
-      // Log 2FA enablement
-      await logAuditEvent({ action: 'ENABLE_2FA' });
-      
-      toast({
-        title: "2FA Enabled!",
-        description: "Two-factor authentication has been successfully enabled for your account."
-      });
+      if (data.verified) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase
+            .from('profiles')
+            .update({ 
+              two_factor_enabled: true,
+              two_factor_phone: phoneNumber 
+            })
+            .eq('user_id', user.id);
+        }
+
+        setIs2FAEnabled(true);
+        setShowEnrollDialog(false);
+        setVerificationCode("");
+        setPhoneNumber("");
+        setVerificationSent(false);
+        toast({
+          title: "Success",
+          description: "Two-factor authentication enabled successfully!"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Invalid verification code",
+          variant: "destructive"
+        });
+      }
     } catch (error: any) {
       toast({
-        title: "Verification Failed",
-        description: error.message || "Invalid verification code. Please try again.",
+        title: "Error",
+        description: error.message || "Failed to verify code",
         variant: "destructive"
       });
     } finally {
@@ -117,30 +153,28 @@ export function TwoFactorAuth() {
   };
 
   const disableTwoFactor = async () => {
-    if (!factorId) return;
-
     setLoading(true);
     try {
-      const { error } = await supabase.auth.mfa.unenroll({
-        factorId: factorId
-      });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-      if (error) throw error;
+      await supabase
+        .from('profiles')
+        .update({ 
+          two_factor_enabled: false,
+          two_factor_phone: null 
+        })
+        .eq('user_id', user.id);
 
       setIs2FAEnabled(false);
-      setFactorId(null);
-      
-      // Log 2FA disablement
-      await logAuditEvent({ action: 'DISABLE_2FA' });
-      
       toast({
-        title: "2FA Disabled",
-        description: "Two-factor authentication has been disabled for your account."
+        title: "Success",
+        description: "Two-factor authentication disabled"
       });
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to disable 2FA",
+        description: error.message || "Failed to disable two-factor authentication",
         variant: "destructive"
       });
     } finally {
@@ -148,26 +182,20 @@ export function TwoFactorAuth() {
     }
   };
 
-  const copySecret = () => {
-    navigator.clipboard.writeText(secret);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-    toast({
-      title: "Copied!",
-      description: "Secret key copied to clipboard"
-    });
+  const startEnrollment = () => {
+    setShowEnrollDialog(true);
+    setVerificationSent(false);
+    setPhoneNumber("");
+    setVerificationCode("");
   };
 
   return (
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" />
-            <CardTitle>Two-Factor Authentication (2FA)</CardTitle>
-          </div>
+          <CardTitle>Two-Factor Authentication (2FA)</CardTitle>
           <CardDescription>
-            Add an extra layer of security to your account using an authenticator app
+            Add an extra layer of security to your account using SMS verification
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -189,7 +217,7 @@ export function TwoFactorAuth() {
 
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">
-              Use an authenticator app like Google Authenticator, Authy, or Microsoft Authenticator to scan the QR code.
+              Receive verification codes via SMS to your phone when signing in.
             </p>
           </div>
 
@@ -204,91 +232,80 @@ export function TwoFactorAuth() {
           ) : (
             <Button
               variant="gradient"
-              onClick={enrollTwoFactor}
+              onClick={startEnrollment}
               disabled={loading}
             >
-              {loading ? "Setting up..." : "Enable 2FA"}
+              Enable 2FA
             </Button>
           )}
         </CardContent>
       </Card>
 
       <Dialog open={showEnrollDialog} onOpenChange={setShowEnrollDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Set Up Two-Factor Authentication</DialogTitle>
+            <DialogTitle>Enable Two-Factor Authentication</DialogTitle>
             <DialogDescription>
-              Scan this QR code with your authenticator app
+              Enter your phone number to receive a verification code via SMS.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
-            {qrCode && (
-              <div className="flex flex-col items-center space-y-4">
-                <div className="bg-white p-4 rounded-lg">
-                  <img src={qrCode} alt="QR Code" className="w-48 h-48" />
+            {!verificationSent ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="phone-number">Phone Number</Label>
+                  <Input
+                    id="phone-number"
+                    type="tel"
+                    placeholder="+1234567890"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Include country code (e.g., +1 for US)
+                  </p>
                 </div>
 
-                <div className="w-full">
-                  <Label className="text-sm text-muted-foreground mb-2 block">
-                    Or enter this secret key manually:
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={secret}
-                      readOnly
-                      className="font-mono text-sm"
-                    />
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      onClick={copySecret}
-                    >
-                      {copied ? (
-                        <Check className="h-4 w-4 text-green-500" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
+                <Button
+                  onClick={enrollTwoFactor}
+                  disabled={loading || !phoneNumber}
+                  className="w-full"
+                >
+                  {loading ? "Sending..." : "Send Verification Code"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Alert>
+                  <AlertDescription>
+                    Verification code sent to {phoneNumber}
+                  </AlertDescription>
+                </Alert>
+
+                <div className="space-y-2">
+                  <Label htmlFor="verification-code">Verification Code</Label>
+                  <Input
+                    id="verification-code"
+                    type="text"
+                    placeholder="Enter 6-digit code"
+                    maxLength={6}
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+                    className="text-center text-2xl tracking-widest font-mono"
+                  />
                 </div>
-              </div>
+
+                <Button
+                  onClick={verifyAndEnable}
+                  disabled={loading || verificationCode.length !== 6}
+                  className="w-full"
+                >
+                  {loading ? "Verifying..." : "Verify and Enable"}
+                </Button>
+              </>
             )}
-
-            <div className="space-y-2">
-              <Label htmlFor="verification-code">
-                Enter the 6-digit code from your authenticator app
-              </Label>
-              <Input
-                id="verification-code"
-                type="text"
-                placeholder="000000"
-                maxLength={6}
-                value={verificationCode}
-                onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-                className="text-center text-2xl tracking-widest"
-              />
-            </div>
           </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowEnrollDialog(false);
-                setVerificationCode("");
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="gradient"
-              onClick={verifyAndEnable}
-              disabled={loading || verificationCode.length !== 6}
-            >
-              {loading ? "Verifying..." : "Verify and Enable"}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
