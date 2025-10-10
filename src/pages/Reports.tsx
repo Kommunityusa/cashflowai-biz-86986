@@ -447,7 +447,7 @@ export default function Reports() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {[2024, 2023, 2022].map((y) => (
+                  {[2025, 2024, 2023, 2022].map((y) => (
                     <SelectItem key={y} value={y.toString()}>
                       {y}
                     </SelectItem>
