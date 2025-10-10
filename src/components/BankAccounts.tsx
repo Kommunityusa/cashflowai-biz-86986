@@ -44,18 +44,46 @@ export function BankAccounts() {
   };
 
   const handlePDFUpload = async (file: File) => {
-    const { data, error } = await supabase.functions.invoke("parse-bank-statement", {
-      body: { file: await fileToBase64(file) },
-    });
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error("Not authenticated");
 
-    if (error) {
-      throw error;
+    // Create FormData and send directly to edge function URL
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-bank-statement`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: formData,
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to process PDF');
     }
 
-    toast({
-      title: "Success",
-      description: `Imported ${data?.count || 0} transactions from PDF`,
-    });
+    const data = await response.json();
+
+    if (data?.transactions && data.transactions.length > 0) {
+      toast({
+        title: "Success",
+        description: `Imported ${data.transactions.length} transactions from PDF`,
+      });
+      
+      // Refresh the page to show new transactions
+      window.location.reload();
+    } else {
+      toast({
+        title: "Warning",
+        description: "No transactions found in PDF",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCSVUpload = async (file: File) => {
@@ -97,14 +125,6 @@ export function BankAccounts() {
     });
   };
 
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-    });
-  };
 
   return (
     <Card>
