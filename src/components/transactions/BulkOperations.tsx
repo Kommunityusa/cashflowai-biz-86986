@@ -64,10 +64,14 @@ export function BulkOperations({
     
     setIsProcessing(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
       const { error } = await supabase
         .from('transactions')
         .delete()
-        .in('id', Array.from(selectedIds));
+        .in('id', Array.from(selectedIds))
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
