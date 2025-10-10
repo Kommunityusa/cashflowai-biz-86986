@@ -151,12 +151,6 @@ export default function Transactions() {
             });
           }
 
-          // Auto-fix transaction types in background
-          supabase.functions.invoke('ai-reclassify-types', {
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
-          });
 
           // Run auto-reconciliation in background
           supabase.functions.invoke('auto-reconcile', {
