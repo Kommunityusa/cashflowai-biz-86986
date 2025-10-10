@@ -19,7 +19,7 @@ export const TrustedBy = () => {
           {logos.map((logo) => (
             <div
               key={logo.name}
-              className="grayscale hover:grayscale-0 transition-all duration-300 opacity-60 hover:opacity-100"
+              className="transition-all duration-300 hover:scale-110"
             >
               <img
                 src={logo.src}
