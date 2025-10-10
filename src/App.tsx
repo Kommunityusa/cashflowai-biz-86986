@@ -207,6 +207,11 @@ const App = () => (
             <Route path="/demo" element={<Demo />} />
             <Route path="/investors" element={<Investors />} />
             <Route path="/checkout" element={<Checkout />} />
+            <Route path="/tax-center" element={
+              <ProtectedRoute>
+                <TaxCenter />
+              </ProtectedRoute>
+            } />
             <Route path="/admin/blog" element={
               <ProtectedRoute>
                 <AdminBlog />
