@@ -122,14 +122,16 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
         <div className="max-w-md w-full space-y-6">
           {/* Back to Home Button */}
-          <Button
-            variant="ghost"
-            onClick={() => window.location.href = "/"}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Home
-          </Button>
+          <div className="flex justify-center">
+            <Button
+              variant="ghost"
+              onClick={() => window.location.href = "/"}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Home
+            </Button>
+          </div>
           
           <div className="text-center space-y-6">
             <h2 className="text-2xl font-bold">Subscription Required</h2>
