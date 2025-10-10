@@ -3,11 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Bot, User, Loader2, X, MessageCircle } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Send, User, Loader2, X, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+import monicaAvatar from "@/assets/monica-avatar.jpg";
 
 interface Message {
   id: string;
@@ -141,10 +143,11 @@ export const AIChatBubble = () => {
         <Card className="w-full h-full flex flex-col shadow-2xl border-border/50 bg-background">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary/10 to-primary/5">
-            <div className="flex items-center space-x-2">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <Bot className="h-6 w-6 text-primary" />
-              </div>
+            <div className="flex items-center space-x-3">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={monicaAvatar} alt="Monica - Bookkeeping Assistant" />
+                <AvatarFallback>MB</AvatarFallback>
+              </Avatar>
               <div>
                 <h3 className="font-semibold text-foreground">Monica</h3>
                 <p className="text-xs text-muted-foreground">AI Bookkeeping Assistant</p>
@@ -171,18 +174,16 @@ export const AIChatBubble = () => {
                     message.role === 'user' && "flex-row-reverse"
                   )}
                 >
-                  <div className={cn(
-                    "h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0",
-                    message.role === 'assistant' 
-                      ? "bg-primary/10 text-primary" 
-                      : "bg-secondary text-secondary-foreground"
-                  )}>
-                    {message.role === 'assistant' ? (
-                      <Bot className="h-5 w-5" />
-                    ) : (
+                  {message.role === 'assistant' ? (
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={monicaAvatar} alt="Monica" />
+                      <AvatarFallback>MB</AvatarFallback>
+                    </Avatar>
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center">
                       <User className="h-5 w-5" />
-                    )}
-                  </div>
+                    </div>
+                  )}
                   <div
                     className={cn(
                       "max-w-[80%] rounded-lg px-3 py-2",
@@ -205,9 +206,10 @@ export const AIChatBubble = () => {
               ))}
               {isLoading && (
                 <div className="flex items-start gap-2">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Bot className="h-5 w-5 text-primary" />
-                  </div>
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={monicaAvatar} alt="Monica" />
+                    <AvatarFallback>MB</AvatarFallback>
+                  </Avatar>
                   <div className="bg-muted rounded-lg px-3 py-2">
                     <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                   </div>
