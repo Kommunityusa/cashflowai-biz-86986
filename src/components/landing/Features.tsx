@@ -5,7 +5,8 @@ import {
   Zap, 
   BarChart3,
   CreditCard,
-  Clock
+  Clock,
+  Download
 } from "lucide-react";
 
 const features = [
@@ -43,6 +44,11 @@ const features = [
     icon: Clock,
     title: "Save 10+ Hours Weekly",
     description: "Automate repetitive tasks and focus on what matters most."
+  },
+  {
+    icon: Download,
+    title: "Easy Data Export",
+    description: "Export your financial data to CSV, PDF, or Excel anytime you need."
   }
 ];
 
