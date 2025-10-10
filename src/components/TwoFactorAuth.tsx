@@ -40,12 +40,18 @@ export function TwoFactorAuth() {
 
       const { data: factors } = await supabase.auth.mfa.listFactors();
       
-      if (factors?.totp && factors.totp.length > 0) {
+      // Only consider verified factors as enabled
+      const verifiedFactors = factors?.totp?.filter(f => f.status === 'verified') || [];
+      
+      if (verifiedFactors.length > 0) {
         setIs2FAEnabled(true);
-        setFactorId(factors.totp[0].id);
+        setFactorId(verifiedFactors[0].id);
+      } else {
+        setIs2FAEnabled(false);
+        setFactorId(null);
       }
     } catch (error) {
-      console.error('Error checking 2FA status');
+      console.error('Error checking 2FA status:', error);
     }
   };
 
