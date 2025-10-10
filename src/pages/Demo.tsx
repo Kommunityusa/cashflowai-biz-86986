@@ -55,8 +55,8 @@ const Demo = () => {
     },
     {
       number: "03",
-      title: "AI Categorization",
-      description: "Our AI automatically categorizes your transactions and identifies patterns in your spending.",
+      title: "AI Insights",
+      description: "Our AI provides intelligent insights about your transactions and identifies patterns in your spending.",
       features: [
         "Smart categorization",
         "Recurring transaction detection",

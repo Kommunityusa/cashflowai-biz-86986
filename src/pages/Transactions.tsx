@@ -52,6 +52,7 @@ import { SecureStorage } from "@/utils/encryption";
 import { TransactionFilters } from "@/components/transactions/TransactionFilters";
 import { TransactionStats } from "@/components/transactions/TransactionStats";
 import { TransactionRow } from "@/components/transactions/TransactionRow";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 
 import { BulkOperations } from "@/components/transactions/BulkOperations";
@@ -81,6 +82,7 @@ import {
 export default function Transactions() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -653,9 +655,9 @@ export default function Transactions() {
       
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Transactions</h1>
+          <h1 className="text-3xl font-bold mb-2">{t.transactions.title}</h1>
           <p className="text-muted-foreground">
-            Manage your income and expenses with AI-powered categorization
+            {t.transactions.subtitle}
           </p>
         </div>
 
@@ -665,7 +667,7 @@ export default function Transactions() {
         {/* Tabs for Transactions */}
         <Tabs defaultValue="transactions" className="mt-6">
           <TabsList>
-            <TabsTrigger value="transactions">Transactions</TabsTrigger>
+            <TabsTrigger value="transactions">{t.transactions.title}</TabsTrigger>
           </TabsList>
           
           <TabsContent value="transactions" className="mt-4 space-y-4">
@@ -704,7 +706,7 @@ export default function Transactions() {
             disabled={loading}
           >
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+            {t.transactions.refresh}
           </Button>
           
           <input
@@ -720,7 +722,7 @@ export default function Transactions() {
             disabled={uploadingPDF}
           >
             <FileUp className="mr-2 h-4 w-4" />
-            {uploadingPDF ? "Processing..." : "Upload PDF"}
+            {uploadingPDF ? t.transactions.processing : t.transactions.uploadPDF}
           </Button>
           
           <CSVImport onImportComplete={fetchTransactions} />
@@ -731,21 +733,21 @@ export default function Transactions() {
             disabled={!transactions || transactions.length === 0}
           >
             <Download className="mr-2 h-4 w-4" />
-            Export CSV
+            {t.transactions.exportCSV}
           </Button>
           
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="default">
                 <Plus className="mr-2 h-4 w-4" />
-                Add Transaction
+                {t.transactions.addTransaction}
               </Button>
             </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Add New Transaction</DialogTitle>
+                  <DialogTitle>{t.transactions.addNewTransaction}</DialogTitle>
                   <DialogDescription>
-                    Add a new income or expense transaction to your records.
+                    {t.transactions.addNewTransactionDesc}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">

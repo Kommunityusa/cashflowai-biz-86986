@@ -109,7 +109,7 @@ export default function Investors() {
                     <div>
                       <h4 className="font-semibold">Automated Bank Reconciliation</h4>
                       <p className="text-sm text-muted-foreground">
-                        Real-time transaction syncing with AI categorization achieving 95% accuracy
+                        Real-time transaction syncing with AI-powered insights achieving 95% accuracy
                       </p>
                     </div>
                   </div>
@@ -410,7 +410,7 @@ export default function Investors() {
                   </thead>
                   <tbody>
                     <tr className="border-b">
-                      <td className="py-3 px-2">AI-Powered Categorization</td>
+                      <td className="py-3 px-2">AI-Powered Insights</td>
                       <td className="text-center"><CheckCircle className="h-5 w-5 text-success mx-auto" /></td>
                       <td className="text-center text-muted-foreground">Limited</td>
                       <td className="text-center text-muted-foreground">Basic</td>

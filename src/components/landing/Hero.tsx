@@ -58,15 +58,15 @@ export function Hero() {
             <div className="pt-4 space-y-3">
               <div className="flex items-center text-muted-foreground">
                 <CheckCircle className="h-5 w-5 text-success mr-3" />
-                Secure bank-level encryption
+                {t.features.secureEncryption}
               </div>
               <div className="flex items-center text-muted-foreground">
                 <CheckCircle className="h-5 w-5 text-success mr-3" />
-                AI-powered insights
+                {t.features.aiInsights}
               </div>
               <div className="flex items-center text-muted-foreground">
                 <CheckCircle className="h-5 w-5 text-success mr-3" />
-                Cancel anytime
+                {t.features.cancelAnytime}
               </div>
             </div>
           </div>

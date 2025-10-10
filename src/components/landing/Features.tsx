@@ -12,8 +12,8 @@ import {
 const features = [
   {
     icon: Brain,
-    title: "AI-Powered Categorization",
-    description: "Automatically categorize transactions with 99% accuracy using advanced machine learning."
+    title: "AI-Powered Insights",
+    description: "Get intelligent insights about your finances with advanced machine learning analysis."
   },
   {
     icon: Link2,

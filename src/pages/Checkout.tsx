@@ -181,7 +181,7 @@ export default function Checkout() {
 
   const features = [
     "Unlimited bank connections",
-    "Advanced AI categorization",
+    "Advanced AI-powered insights",
     "Real-time reports & analytics",
     "Unlimited transactions",
     "Email support",

@@ -176,6 +176,7 @@ interface Translations {
   // Transactions
   transactions: {
     title: string;
+    subtitle: string;
     allTransactions: string;
     filterBy: string;
     sortBy: string;
@@ -196,6 +197,21 @@ interface Translations {
     bulkActions: string;
     categorize: string;
     reconcile: string;
+    refresh: string;
+    uploadPDF: string;
+    importCSV: string;
+    exportCSV: string;
+    addTransaction: string;
+    processing: string;
+    addNewTransaction: string;
+    addNewTransactionDesc: string;
+    enterDescription: string;
+    selectType: string;
+    selectCategory: string;
+    selectDate: string;
+    enterAmount: string;
+    notes: string;
+    addNotes: string;
   };
   
   // Reports
@@ -244,6 +260,17 @@ interface Translations {
       emailSupport: string;
       taxReports: string;
       customCategories: string;
+      aiInsights: string;
+      bankSync: string;
+      smartReports: string;
+      secureData: string;
+      realTimeUpdates: string;
+      visualAnalytics: string;
+      expenseTracking: string;
+      saveTime: string;
+      automaticInsights: string;
+      secureEncryption: string;
+      cancelAnytime: string;
     };
   
   // Bank Accounts & Plaid
@@ -491,6 +518,7 @@ const translations: Record<Language, Translations> = {
     },
     transactions: {
       title: "Transactions",
+      subtitle: "Manage your income and expenses with AI-powered insights",
       allTransactions: "All Transactions",
       filterBy: "Filter by",
       sortBy: "Sort by",
@@ -510,7 +538,22 @@ const translations: Record<Language, Translations> = {
       addManually: "Add Manually",
       bulkActions: "Bulk Actions",
       categorize: "Categorize",
-      reconcile: "Reconcile"
+      reconcile: "Reconcile",
+      refresh: "Refresh",
+      uploadPDF: "Upload PDF",
+      importCSV: "Import CSV",
+      exportCSV: "Export CSV",
+      addTransaction: "Add Transaction",
+      processing: "Processing...",
+      addNewTransaction: "Add New Transaction",
+      addNewTransactionDesc: "Add a new income or expense transaction to your records",
+      enterDescription: "Enter transaction description",
+      selectType: "Select transaction type",
+      selectCategory: "Select category",
+      selectDate: "Select date",
+      enterAmount: "Enter amount",
+      notes: "Notes",
+      addNotes: "Add notes (optional)",
     },
     reports: {
       title: "Reports",
@@ -547,8 +590,19 @@ const translations: Record<Language, Translations> = {
     },
     features: {
       unlimitedBanks: "Unlimited bank connections",
-      advancedAI: "Advanced AI categorization",
+      advancedAI: "Advanced AI-powered insights",
       realtimeReports: "Real-time reports & analytics",
+      aiInsights: "AI-powered insights",
+      bankSync: "Bank statement uploads",
+      smartReports: "Smart Reports",
+      secureData: "Bank-Level Security",
+      realTimeUpdates: "Real-Time Updates",
+      visualAnalytics: "Visual Analytics",
+      expenseTracking: "Expense Tracking",
+      saveTime: "Save 10+ Hours Weekly",
+      automaticInsights: "Automatically get insights with AI",
+      secureEncryption: "Secure bank-level encryption",
+      cancelAnytime: "Cancel anytime",
       unlimitedTransactions: "Unlimited transactions",
       emailSupport: "Email support",
       taxReports: "Tax preparation reports",
@@ -792,6 +846,7 @@ const translations: Record<Language, Translations> = {
     },
     transactions: {
       title: "Transacciones",
+      subtitle: "Gestiona tus ingresos y gastos con información impulsada por IA",
       allTransactions: "Todas las transacciones",
       filterBy: "Filtrar por",
       sortBy: "Ordenar por",
@@ -811,7 +866,22 @@ const translations: Record<Language, Translations> = {
       addManually: "Agregar manualmente",
       bulkActions: "Acciones masivas",
       categorize: "Categorizar",
-      reconcile: "Conciliar"
+      reconcile: "Conciliar",
+      refresh: "Actualizar",
+      uploadPDF: "Cargar PDF",
+      importCSV: "Importar CSV",
+      exportCSV: "Exportar CSV",
+      addTransaction: "Agregar Transacción",
+      processing: "Procesando...",
+      addNewTransaction: "Agregar Nueva Transacción",
+      addNewTransactionDesc: "Agrega una nueva transacción de ingreso o gasto a tus registros",
+      enterDescription: "Ingresa descripción de la transacción",
+      selectType: "Selecciona tipo de transacción",
+      selectCategory: "Selecciona categoría",
+      selectDate: "Selecciona fecha",
+      enterAmount: "Ingresa monto",
+      notes: "Notas",
+      addNotes: "Agregar notas (opcional)",
     },
     reports: {
       title: "Informes",
@@ -848,12 +918,23 @@ const translations: Record<Language, Translations> = {
     },
     features: {
       unlimitedBanks: "Conexiones bancarias ilimitadas",
-      advancedAI: "Categorización avanzada con IA",
+      advancedAI: "Información avanzada impulsada por IA",
       realtimeReports: "Informes y análisis en tiempo real",
       unlimitedTransactions: "Transacciones ilimitadas",
       emailSupport: "Soporte por correo electrónico",
       taxReports: "Informes de preparación de impuestos",
       customCategories: "Categorías personalizadas",
+      aiInsights: "Información impulsada por IA",
+      bankSync: "Cargas de estados de cuenta bancarios",
+      smartReports: "Reportes Inteligentes",
+      secureData: "Seguridad de Nivel Bancario",
+      realTimeUpdates: "Actualizaciones en Tiempo Real",
+      visualAnalytics: "Análisis Visual",
+      expenseTracking: "Seguimiento de Gastos",
+      saveTime: "Ahorra más de 10 horas semanales",
+      automaticInsights: "Obtén información automáticamente con IA",
+      secureEncryption: "Encriptación segura de nivel bancario",
+      cancelAnytime: "Cancela en cualquier momento",
     },
     bankAccounts: {
       title: "Cuentas bancarias",
