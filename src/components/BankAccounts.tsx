@@ -386,10 +386,15 @@ export function BankAccounts() {
     <Card>
       <CardHeader>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <CardTitle className="flex items-center gap-2">
-            <Building className="h-5 w-5" />
-            {t.bankAccounts.title}
-          </CardTitle>
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Building className="h-5 w-5" />
+              Bank Account
+            </CardTitle>
+            <p className="text-sm text-muted-foreground mt-2">
+              Only one bank account connection allowed
+            </p>
+          </div>
           <div className="flex flex-wrap gap-2">
             <PlaidLinkButton onSuccess={fetchAccounts} />
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>

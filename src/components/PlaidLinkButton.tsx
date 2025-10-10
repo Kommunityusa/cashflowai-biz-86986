@@ -356,6 +356,22 @@ export function PlaidLinkButton({ onSuccess, onStart, size = "default", classNam
       });
       return;
     }
+
+    // Check if user already has a bank account
+    const { data: existingAccounts } = await supabase
+      .from('bank_accounts')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('is_active', true);
+
+    if (existingAccounts && existingAccounts.length > 0) {
+      toast({
+        title: "Account limit reached",
+        description: "You can only connect one bank account. Please disconnect your existing account first.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     const { data: profile } = await supabase
       .from('profiles')

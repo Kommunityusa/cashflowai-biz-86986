@@ -232,18 +232,11 @@ export function BankConnectionManager({ userId, onConnectionsUpdate }: BankConne
 
   return (
     <div className="space-y-4">
-      {!loading && activeAccountsCount > 1 && (
-        <div className="flex justify-end">
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleDisconnectAll}
-          >
-            <Unlink className="h-4 w-4 mr-2" />
-            Disconnect All ({activeAccountsCount})
-          </Button>
-        </div>
-      )}
+      <div className="bg-muted/50 border border-border rounded-lg p-4">
+        <p className="text-sm text-muted-foreground">
+          <strong>Note:</strong> Only one bank account connection is allowed per user.
+        </p>
+      </div>
       
       {loading ? (
         <div className="text-center py-8">Loading bank connections...</div>
