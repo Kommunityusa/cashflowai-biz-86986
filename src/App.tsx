@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -119,18 +120,30 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (!hasSubscription) {
     return (
       <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
-        <div className="max-w-md w-full text-center space-y-6">
-          <h2 className="text-2xl font-bold">Subscription Required</h2>
-          <p className="text-muted-foreground">
-            Subscribe to Cash Flow AI Pro to access the dashboard and all features.
-          </p>
-          <Button 
-            onClick={() => window.location.href = "/checkout"}
-            variant="gradient"
-            size="lg"
+        <div className="max-w-md w-full space-y-6">
+          {/* Back to Home Button */}
+          <Button
+            variant="ghost"
+            onClick={() => window.location.href = "/"}
+            className="text-muted-foreground hover:text-foreground"
           >
-            Subscribe Now
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Home
           </Button>
+          
+          <div className="text-center space-y-6">
+            <h2 className="text-2xl font-bold">Subscription Required</h2>
+            <p className="text-muted-foreground">
+              Subscribe to Cash Flow AI Pro to access the dashboard and all features.
+            </p>
+            <Button 
+              onClick={() => window.location.href = "/checkout"}
+              variant="gradient"
+              size="lg"
+            >
+              Subscribe Now
+            </Button>
+          </div>
         </div>
       </div>
     );
