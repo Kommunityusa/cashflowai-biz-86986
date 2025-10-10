@@ -20,7 +20,7 @@ const AIChat = () => {
     {
       id: '1',
       role: 'assistant',
-      content: 'Hi! I\'m Monica, your bookkeeping assistant. I can help you with:\n\n• Recording and categorizing transactions\n• Understanding financial statements\n• Tax preparation guidance\n• Cash flow analysis\n• Expense tracking best practices\n\nWhat bookkeeping task can I assist you with today?',
+      content: "Hi! I'm Monica, your AI financial insights assistant. I can help you with:\n\n• Financial insights and analysis\n• Understanding your cash flow patterns\n• Tax preparation guidance\n• Expense trend analysis\n• Budget recommendations\n\nWhat financial insights can I provide for you today?",
       timestamp: new Date(),
     }
   ]);
@@ -111,10 +111,10 @@ const AIChat = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Bot className="h-5 w-5" />
-          Monica - AI Bookkeeping Assistant
+          Monica - AI Financial Insights
         </CardTitle>
         <CardDescription>
-          Your expert AI bookkeeper for transaction management, financial analysis, and compliance
+          Your expert AI assistant for financial analysis, insights, and tax guidance
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col p-0">
