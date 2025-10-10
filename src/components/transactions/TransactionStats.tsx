@@ -7,22 +7,20 @@ interface TransactionStatsProps {
 }
 
 export function TransactionStats({ transactions }: TransactionStatsProps) {
-  // Exclude internal transfers from income/expense calculations
-  const financialTransactions = transactions.filter(t => !t.is_internal_transfer);
-  
-  const totalIncome = financialTransactions
+  // Calculate total income and expenses (including internal transfers to match bank)
+  const totalIncome = transactions
     .filter(t => t.type === 'income')
     .reduce((sum, t) => sum + Number(t.amount), 0);
     
-  const totalExpenses = financialTransactions
+  const totalExpenses = transactions
     .filter(t => t.type === 'expense')
     .reduce((sum, t) => sum + Number(t.amount), 0);
     
   const netProfit = totalIncome - totalExpenses;
   const profitMargin = totalIncome > 0 ? ((netProfit / totalIncome) * 100).toFixed(1) : '0';
   
-  // Calculate monthly average (excluding internal transfers)
-  const uniqueMonths = new Set(financialTransactions.map(t => 
+  // Calculate monthly average
+  const uniqueMonths = new Set(transactions.map(t => 
     new Date(t.transaction_date).toISOString().slice(0, 7)
   ));
   const monthCount = Math.max(uniqueMonths.size, 1);
