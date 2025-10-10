@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Upload, FileText, Table } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Papa from "papaparse";
+import { format } from "date-fns";
 
 export function BankAccounts() {
   const { user } = useAuth();
@@ -90,33 +90,92 @@ export function BankAccounts() {
     return new Promise((resolve, reject) => {
       Papa.parse(file, {
         header: true,
+        skipEmptyLines: true,
         complete: async (results) => {
           try {
-            const transactions = results.data
-              .filter((row: any) => row.Date && row.Amount)
-              .map((row: any) => ({
-                user_id: user!.id,
-                transaction_date: row.Date,
-                description: row.Description || row.Memo || "No description",
-                amount: parseFloat(row.Amount),
-                type: parseFloat(row.Amount) >= 0 ? "income" : "expense",
-                status: "cleared",
-              }));
+            const rows = results.data as any[];
+            
+            // Extract and transform transaction data
+            const transactions = rows
+              .filter((row: any) => {
+                const dateField = row.Date || row.date || row.Transaction_Date || row['Transaction Date'];
+                const amountField = row.Amount || row.amount || row.Debit || row.Credit;
+                return dateField && amountField;
+              })
+              .map((row: any) => {
+                const dateStr = row.Date || row.date || row.Transaction_Date || row['Transaction Date'];
+                const description = row.Description || row.description || row.Memo || row.memo || row.Merchant || 'No description';
+                const amountStr = row.Amount || row.amount || row.Debit || row.Credit || '0';
+                const amount = parseFloat(String(amountStr).replace(/[^0-9.-]/g, ''));
+                
+                // Parse date
+                let transactionDate: string;
+                try {
+                  const parsedDate = new Date(dateStr);
+                  transactionDate = format(parsedDate, 'yyyy-MM-dd');
+                } catch {
+                  transactionDate = new Date().toISOString().split('T')[0];
+                }
+                
+                // Determine type based on amount
+                const type = amount >= 0 ? 'income' : 'expense';
+                
+                return {
+                  user_id: user!.id,
+                  transaction_date: transactionDate,
+                  description: description.substring(0, 255),
+                  amount: Math.abs(amount),
+                  type,
+                  status: 'completed',
+                };
+              })
+              .filter(t => t.amount > 0 && new Date(t.transaction_date).getFullYear() === 2025);
 
-            if (transactions.length > 0) {
-              const { error } = await supabase.from("transactions").insert(transactions);
-              
-              if (error) throw error;
-
-              toast({
-                title: "Success",
-                description: `Imported ${transactions.length} transactions from CSV`,
-              });
-              resolve(transactions);
-            } else {
-              throw new Error("No valid transactions found in CSV");
+            if (transactions.length === 0) {
+              throw new Error("No valid transactions found for 2025");
             }
+
+            // Check for duplicates
+            const { data: existingTransactions } = await supabase
+              .from('transactions')
+              .select('transaction_date, description, amount')
+              .eq('user_id', user!.id);
+
+            const uniqueTransactions = transactions.filter(newTx => {
+              return !existingTransactions?.some(existing => 
+                existing.transaction_date === newTx.transaction_date &&
+                existing.description === newTx.description &&
+                Math.abs(Number(existing.amount) - newTx.amount) < 0.01
+              );
+            });
+
+            if (uniqueTransactions.length === 0) {
+              toast({
+                title: "Info",
+                description: "All transactions already exist in the database",
+              });
+              resolve([]);
+              return;
+            }
+
+            // Insert transactions
+            const { error } = await supabase
+              .from("transactions")
+              .insert(uniqueTransactions);
+            
+            if (error) throw error;
+
+            toast({
+              title: "Success",
+              description: `Imported ${uniqueTransactions.length} new transactions from CSV`,
+            });
+
+            // Refresh the page
+            window.location.reload();
+            
+            resolve(uniqueTransactions);
           } catch (error) {
+            console.error('CSV processing error:', error);
             reject(error);
           }
         },
