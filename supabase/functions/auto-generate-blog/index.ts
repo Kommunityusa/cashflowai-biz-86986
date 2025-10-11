@@ -79,28 +79,44 @@ serve(async (req) => {
     console.log(`Generating blog post ${postCount + 1} with topic:`, selectedTopic.topic);
 
     // Generate blog post with AI
-    const prompt = `Generate a comprehensive, SEO-optimized blog post for a Philadelphia bookkeeping and accounting software company called Cash Flow AI.
+    const prompt = `Generate a comprehensive, SEO and AI-search optimized blog post for a Philadelphia bookkeeping and accounting software company called Cash Flow AI.
 
 Topic: ${selectedTopic.topic}
 Category: ${selectedTopic.category}
 Target Keywords: ${selectedTopic.keywords}
 
 Requirements:
-1. Write for Philadelphia business owners
-2. Include local references (neighborhoods: Fishtown, Center City, South Philly, University City, Old City)
-3. Focus on practical bookkeeping and tax advice
-4. Optimize for SEO with natural keyword integration
-5. Use a professional yet friendly tone
-6. Include actionable tips and examples
-7. Reference IRS Publication 334 where relevant
-8. Mention Pennsylvania-specific tax rules when applicable
+1. Write for Philadelphia business owners with local references (Fishtown, Center City, South Philly, University City, Old City)
+2. Focus on practical bookkeeping and tax advice with actionable steps
+3. Optimize for AI search engines (ChatGPT, Perplexity, Claude) with direct answers
+4. Include a comprehensive FAQ section (5-8 Q&A pairs) at the end
+5. Structure content with clear H2/H3 headings for easy scanning
+6. Add "Quick Answer" section at the top for voice search optimization
+7. Include step-by-step HowTo sections where applicable
+8. Reference IRS Publication 334 and Pennsylvania-specific tax rules
+9. Use numbered lists and bullet points for better AI parsing
+10. Include example scenarios with real Philadelphia business types
 
 Generate the following in JSON format:
 {
   "title": "Engaging, SEO-optimized title (55-60 characters, include primary keyword)",
   "slug": "url-friendly-slug",
   "excerpt": "Compelling excerpt (150-160 characters)",
-  "content": "Full blog post in markdown format (minimum 1500 words, include H2 and H3 headings, bullet points, examples, local Philadelphia business references)",
+  "quick_answer": "Direct 2-3 sentence answer to the main question (optimized for voice search and AI chat responses)",
+  "content": "Full blog post in markdown format (minimum 1500 words, include H2 and H3 headings, bullet points, examples, local Philadelphia business references). Start with Quick Answer section, then main content, end with comprehensive FAQ section",
+  "faq": [
+    {
+      "question": "Common question about the topic",
+      "answer": "Clear, concise answer (2-3 sentences)"
+    }
+  ],
+  "how_to_steps": [
+    {
+      "step_number": 1,
+      "name": "Step name",
+      "description": "Detailed step description"
+    }
+  ],
   "meta_title": "SEO meta title (50-60 characters)",
   "meta_description": "SEO meta description (150-160 characters)",
   "meta_keywords": "comma-separated keywords (focus on Philadelphia + topic)"
@@ -138,7 +154,7 @@ Generate the following in JSON format:
     const content = data.choices[0].message.content;
     const blogPost = JSON.parse(content);
 
-    // Insert blog post into database
+    // Insert blog post into database with structured data
     const { data: insertedPost, error: insertError } = await supabase
       .from('blog_posts')
       .insert([{
@@ -153,6 +169,11 @@ Generate the following in JSON format:
         meta_keywords: blogPost.meta_keywords.split(',').map((k: string) => k.trim()),
         is_published: true,
         published_at: new Date().toISOString(),
+        structured_data: {
+          quick_answer: blogPost.quick_answer,
+          faq: blogPost.faq || [],
+          how_to_steps: blogPost.how_to_steps || []
+        }
       }])
       .select()
       .single();

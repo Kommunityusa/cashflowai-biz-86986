@@ -33,6 +33,7 @@ import Checkout from "./pages/Checkout";
 import AdminBlog from "./pages/admin/AdminBlog";
 import BlogPost from "./pages/blog/BlogPost";
 import TaxCenter from "./pages/TaxCenter";
+import BlogRSS from "./pages/BlogRSS";
 
 const queryClient = new QueryClient();
 
@@ -238,6 +239,7 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/blog/:slug" element={<BlogPost />} />
+            <Route path="/blog/rss" element={<BlogRSS />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

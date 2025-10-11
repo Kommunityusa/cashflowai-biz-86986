@@ -165,6 +165,7 @@ export type Database = {
           meta_title: string | null
           published_at: string | null
           slug: string
+          structured_data: Json | null
           title: string
           updated_at: string | null
         }
@@ -183,6 +184,7 @@ export type Database = {
           meta_title?: string | null
           published_at?: string | null
           slug: string
+          structured_data?: Json | null
           title: string
           updated_at?: string | null
         }
@@ -201,6 +203,7 @@ export type Database = {
           meta_title?: string | null
           published_at?: string | null
           slug?: string
+          structured_data?: Json | null
           title?: string
           updated_at?: string | null
         }

@@ -20,6 +20,11 @@ interface BlogPost {
   meta_title?: string;
   meta_description?: string;
   meta_keywords?: string[];
+  structured_data?: {
+    quick_answer?: string;
+    faq?: Array<{ question: string; answer: string }>;
+    how_to_steps?: Array<{ step_number: number; name: string; description: string }>;
+  };
 }
 
 export default function BlogPost() {
@@ -48,7 +53,7 @@ export default function BlogPost() {
         return;
       }
 
-      setPost(data);
+      setPost(data as BlogPost);
     } catch (error) {
       console.error('Error loading post:', error);
       navigate('/blog');
@@ -78,6 +83,65 @@ export default function BlogPost() {
         publishedTime={post.published_at}
         author={post.author}
       />
+      
+      {/* Structured Data for AI Search Engines */}
+      {post.structured_data?.faq && post.structured_data.faq.length > 0 && (
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": post.structured_data.faq.map(faq => ({
+              "@type": "Question",
+              "name": faq.question,
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": faq.answer
+              }
+            }))
+          })}
+        </script>
+      )}
+      
+      {post.structured_data?.how_to_steps && post.structured_data.how_to_steps.length > 0 && (
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "HowTo",
+            "name": post.title,
+            "description": post.excerpt,
+            "step": post.structured_data.how_to_steps.map(step => ({
+              "@type": "HowToStep",
+              "position": step.step_number,
+              "name": step.name,
+              "text": step.description
+            }))
+          })}
+        </script>
+      )}
+      
+      {/* Article Structured Data */}
+      <script type="application/ld+json">
+        {JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Article",
+          "headline": post.title,
+          "description": post.excerpt,
+          "author": {
+            "@type": "Organization",
+            "name": "Cash Flow AI"
+          },
+          "datePublished": post.published_at,
+          "publisher": {
+            "@type": "Organization",
+            "name": "Cash Flow AI",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://cashflow-ai.lovable.app/cashflow-ai-logo.png"
+            }
+          }
+        })}
+      </script>
+      
       <div className="min-h-screen bg-background">
         <Header />
         <main className="container mx-auto px-4 py-8">
