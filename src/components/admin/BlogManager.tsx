@@ -31,6 +31,7 @@ export function BlogManager() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<string | null>(null);
+  const [generatingAI, setGeneratingAI] = useState(false);
   const [formData, setFormData] = useState<Partial<BlogPost>>({
     title: '',
     slug: '',
@@ -39,6 +40,7 @@ export function BlogManager() {
     category: '',
     author: '',
     is_published: false,
+    published_at: undefined,
   });
   const { toast } = useToast();
 
@@ -161,6 +163,71 @@ export function BlogManager() {
       .trim();
   };
 
+  const handleGenerateWithAI = async () => {
+    if (!formData.category) {
+      toast({
+        title: 'Error',
+        description: 'Please select a category first',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setGeneratingAI(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-blog-post', {
+        body: {
+          topic: formData.title || 'bookkeeping tips for Philadelphia small businesses',
+          category: formData.category,
+          targetKeywords: formData.meta_keywords ? formData.meta_keywords.join(', ') : 'Philadelphia bookkeeping, small business accounting'
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.blogPost) {
+        setFormData({
+          ...formData,
+          title: data.blogPost.title,
+          slug: data.blogPost.slug,
+          content: data.blogPost.content,
+          excerpt: data.blogPost.excerpt,
+          meta_title: data.blogPost.meta_title,
+          meta_description: data.blogPost.meta_description,
+          meta_keywords: data.blogPost.meta_keywords.split(',').map((k: string) => k.trim()),
+        });
+        toast({
+          title: 'Success',
+          description: 'Blog post generated successfully!',
+        });
+      }
+    } catch (error) {
+      console.error('Error generating blog post:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate blog post. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setGeneratingAI(false);
+    }
+  };
+
+  const scheduleNextDayPublish = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(9, 0, 0, 0); // 9 AM
+    setFormData({
+      ...formData,
+      published_at: tomorrow.toISOString(),
+      is_published: true
+    });
+    toast({
+      title: 'Scheduled',
+      description: 'Post will be published tomorrow at 9 AM',
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center p-8">
@@ -202,6 +269,28 @@ export function BlogManager() {
           </div>
 
           <Card className="p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">
+                {editing ? 'Edit Blog Post' : 'Create New Blog Post'}
+              </h3>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  onClick={handleGenerateWithAI}
+                  disabled={generatingAI}
+                  variant="outline"
+                >
+                  {generatingAI ? 'Generating...' : '✨ Generate with AI'}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={scheduleNextDayPublish}
+                  variant="outline"
+                >
+                  📅 Schedule Tomorrow
+                </Button>
+              </div>
+            </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -291,12 +380,25 @@ export function BlogManager() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Switch
-              checked={formData.is_published}
-              onCheckedChange={(checked) => setFormData({ ...formData, is_published: checked })}
-            />
-            <Label>Publish</Label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-center space-x-2">
+              <Switch
+                checked={formData.is_published}
+                onCheckedChange={(checked) => setFormData({ ...formData, is_published: checked })}
+              />
+              <Label>Publish</Label>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Publish Date/Time (Optional)</Label>
+              <Input
+                type="datetime-local"
+                value={formData.published_at ? new Date(formData.published_at).toISOString().slice(0, 16) : ''}
+                onChange={(e) =>
+                  setFormData({ ...formData, published_at: e.target.value ? new Date(e.target.value).toISOString() : undefined })
+                }
+              />
+            </div>
           </div>
 
           <div className="flex gap-2">

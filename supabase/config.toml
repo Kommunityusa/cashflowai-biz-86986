@@ -1,5 +1,8 @@
 project_id = "awszwetvzugirgacpcem"
 
+[functions.generate-blog-post]
+verify_jwt = false
+
 [functions.ai-reclassify-types]
 verify_jwt = true
 
