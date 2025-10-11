@@ -358,6 +358,8 @@ export type Database = {
           followup_sent_at: string | null
           id: string
           monthly_sent_at: string | null
+          success_sent_at: string | null
+          tips_sent_at: string | null
           updated_at: string | null
           user_id: string
           user_name: string | null
@@ -369,6 +371,8 @@ export type Database = {
           followup_sent_at?: string | null
           id?: string
           monthly_sent_at?: string | null
+          success_sent_at?: string | null
+          tips_sent_at?: string | null
           updated_at?: string | null
           user_id: string
           user_name?: string | null
@@ -380,6 +384,8 @@ export type Database = {
           followup_sent_at?: string | null
           id?: string
           monthly_sent_at?: string | null
+          success_sent_at?: string | null
+          tips_sent_at?: string | null
           updated_at?: string | null
           user_id?: string
           user_name?: string | null

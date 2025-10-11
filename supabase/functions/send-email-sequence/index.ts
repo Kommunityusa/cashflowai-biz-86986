@@ -4,6 +4,8 @@ import { renderAsync } from 'npm:@react-email/components@0.0.22';
 import { WelcomeEmail } from './_templates/welcome-email.tsx';
 import { FollowUpEmail } from './_templates/followup-email.tsx';
 import { MonthlyInsightsEmail } from './_templates/monthly-insights-email.tsx';
+import { TipsEmail } from './_templates/tips-email.tsx';
+import { SuccessStoriesEmail } from './_templates/success-stories-email.tsx';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,7 +13,7 @@ const corsHeaders = {
 };
 
 interface EmailRequest {
-  type: 'welcome' | 'followup' | 'monthly';
+  type: 'welcome' | 'followup' | 'monthly' | 'tips' | 'success';
   to: string;
   name: string;
 }
@@ -66,9 +68,23 @@ serve(async (req) => {
         subject = 'Your Monthly Bookkeeping Insights from Cash Flow AI';
         break;
       
+      case 'tips':
+        html = await renderAsync(
+          React.createElement(TipsEmail, { name })
+        );
+        subject = '5 Quick Tips to Save Time with Cash Flow AI';
+        break;
+      
+      case 'success':
+        html = await renderAsync(
+          React.createElement(SuccessStoriesEmail, { name })
+        );
+        subject = 'How Businesses Like Yours Are Saving Time';
+        break;
+      
       default:
         return new Response(
-          JSON.stringify({ error: 'Invalid email type. Use: welcome, followup, or monthly' }),
+          JSON.stringify({ error: 'Invalid email type. Use: welcome, followup, tips, success, or monthly' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
     }
