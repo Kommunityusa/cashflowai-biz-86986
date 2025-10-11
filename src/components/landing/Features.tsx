@@ -13,12 +13,12 @@ const features = [
   {
     icon: Brain,
     title: "AI-Powered Tax Categorization",
-    description: "Automatically categorize transactions using IRS Publication 334 guidelines—built for PA tax compliance."
+    description: "Automatically categorize transactions using IRS Publication 334 guidelines—built for Philadelphia business owners."
   },
   {
     icon: FileText,
     title: "Tax-Ready Reports",
-    description: "Generate Schedule C-ready P&L statements, cash flow reports, and tax summaries for federal and state filings."
+    description: "Generate Schedule C-ready P&L statements, cash flow reports, and tax summaries for federal and Philadelphia filings."
   },
   {
     icon: Shield,
@@ -28,27 +28,27 @@ const features = [
   {
     icon: Zap,
     title: "Real-Time Bookkeeping",
-    description: "Connect your PA bank accounts and watch your books update automatically."
+    description: "Connect your Philly bank accounts and watch your books update automatically."
   },
   {
     icon: BarChart3,
-    title: "PA Business Insights",
-    description: "Track profitability, expenses, and cash flow with dashboards designed for Pennsylvania entrepreneurs."
+    title: "Philly Business Insights",
+    description: "Track profitability, expenses, and cash flow with dashboards designed for Philadelphia entrepreneurs."
   },
   {
     icon: CreditCard,
     title: "Smart Transaction Tracking",
-    description: "Manual uploads, bank connections, and custom categories for construction, restaurants, retail, and more."
+    description: "Manual uploads, bank connections, and custom categories for restaurants, retail, construction, and service businesses."
   },
   {
     icon: Clock,
     title: "Save 10+ Hours Weekly",
-    description: "Stop doing data entry. Let AI handle the busywork while you run your PA business."
+    description: "Stop doing data entry. Let AI handle the busywork while you focus on growing your Philadelphia business."
   },
   {
     icon: Download,
     title: "CPA-Ready Exports",
-    description: "Export to CSV, PDF, or Excel—perfect for sharing with your Pennsylvania accountant."
+    description: "Export to CSV, PDF, or Excel—perfect for sharing with your Philadelphia accountant."
   }
 ];
 
@@ -60,12 +60,12 @@ export function Features() {
           <h2 className="text-4xl font-bold text-foreground mb-4">
             Built for{" "}
             <span className="bg-gradient-primary bg-clip-text text-transparent">
-              Pennsylvania
+              Philadelphia
             </span>{" "}
             Business Owners
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Whether you're running a restaurant in Philly, a construction company in Pittsburgh, or a shop in Harrisburg—get tax-ready books without the headache.
+            Whether you're running a restaurant in Fishtown, a shop in Center City, a construction business in South Philly, or a service company in University City—get tax-ready books without the headache.
           </p>
         </div>
         
