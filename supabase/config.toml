@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.webhook-handler]
 verify_jwt = false
+
+[functions.resend-marketing]
+verify_jwt = false

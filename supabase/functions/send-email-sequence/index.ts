@@ -1,9 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import React from 'npm:react@18.3.1';
 import { renderAsync } from 'npm:@react-email/components@0.0.22';
+import { Resend } from 'npm:resend@4.0.0';
 import { WelcomeEmail } from './_templates/welcome-email.tsx';
 import { FollowUpEmail } from './_templates/followup-email.tsx';
 import { MonthlyInsightsEmail } from './_templates/monthly-insights-email.tsx';
+
+const resend = new Resend(Deno.env.get('RESEND_API_KEY') as string);
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -31,9 +34,9 @@ serve(async (req) => {
       );
     }
 
-    const apiKey = Deno.env.get('MAILERSEND_API_KEY');
+    const apiKey = Deno.env.get('RESEND_API_KEY');
     if (!apiKey) {
-      console.error('MAILERSEND_API_KEY is not set');
+      console.error('RESEND_API_KEY is not set');
       return new Response(
         JSON.stringify({ error: 'Email service not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -75,35 +78,19 @@ serve(async (req) => {
 
     console.log(`Sending ${type} email to: ${to}`);
 
-    // Send email via MailerSend
-    const response = await fetch('https://api.mailersend.com/v1/email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        from: {
-          email: 'hello@cashflowai.biz',
-          name: 'Cash Flow AI Team',
-        },
-        to: [
-          {
-            email: to,
-            name: name,
-          },
-        ],
-        subject: subject,
-        html: html,
-      }),
+    // Send email via Resend
+    const { error: emailError } = await resend.emails.send({
+      from: 'Cash Flow AI <hello@cashflowai.biz>',
+      to: [to],
+      subject: subject,
+      html: html,
     });
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('MailerSend API error:', response.status, errorData);
+    if (emailError) {
+      console.error('Resend API error:', emailError);
       return new Response(
-        JSON.stringify({ error: 'Failed to send email', details: errorData }),
-        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Failed to send email', details: emailError }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
