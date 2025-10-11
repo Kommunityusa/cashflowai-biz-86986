@@ -4,12 +4,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Target, Lightbulb, Users, TrendingUp, Shield, Heart, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { SEO } from "@/components/SEO";
 
 export default function About() {
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="About Us - Philadelphia's AI-Powered Bookkeeping Solution"
+        description="Learn about Cash Flow AI's mission to empower Philadelphia small businesses with intelligent, automated bookkeeping solutions. Democratizing financial management for growing businesses."
+        keywords={['about Cash Flow AI', 'Philadelphia bookkeeping company', 'AI accounting mission', 'small business financial tools']}
+      />
       <Header />
       
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-20">
@@ -17,7 +23,7 @@ export default function About() {
           {/* Hero Section */}
           <div className="text-center mb-16">
             <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-6">
-              Empowering <span className="bg-gradient-primary bg-clip-text text-transparent">Financial Clarity</span> for Every Business
+              Philadelphia's AI Bookkeeping Solution: <span className="bg-gradient-primary bg-clip-text text-transparent">Financial Clarity</span> for Every Business
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
               Cash Flow AI was born from a simple belief: every business owner deserves access to professional-grade bookkeeping tools without the complexity or high costs.

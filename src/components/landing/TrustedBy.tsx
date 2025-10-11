@@ -23,7 +23,7 @@ export const TrustedBy = () => {
             >
               <img
                 src={logo.src}
-                alt={logo.name}
+                alt={`${logo.name} - Philadelphia business using Cash Flow AI bookkeeping software`}
                 className="h-16 md:h-20 w-auto object-contain"
               />
             </div>

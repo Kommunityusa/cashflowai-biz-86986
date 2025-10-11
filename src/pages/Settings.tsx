@@ -370,7 +370,7 @@ const Settings = () => {
       <Header />
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Settings</h1>
+          <h1 className="text-3xl font-bold text-foreground">Account Settings & Preferences</h1>
           <p className="text-muted-foreground mt-2">Manage your account and application preferences</p>
         </div>
 

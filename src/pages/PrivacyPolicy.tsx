@@ -2,15 +2,21 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
 import { Card } from "@/components/ui/card";
 import { Shield, Lock, Eye, FileText, Server, Key } from "lucide-react";
+import { SEO } from "@/components/SEO";
 
 export default function PrivacyPolicy() {
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Privacy Policy - How We Protect Your Financial Data"
+        description="Cash Flow AI's privacy policy explains how we collect, use, and protect your financial data. GDPR compliant, SOC 2 certified, with AES-256 encryption."
+        keywords={['privacy policy', 'data protection', 'GDPR compliance', 'financial data security']}
+      />
       <Header />
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
-            <h1 className="text-4xl font-bold text-foreground mb-4">Privacy Policy</h1>
+            <h1 className="text-4xl font-bold text-foreground mb-4">Privacy Policy - Data Protection & Security Standards</h1>
             <p className="text-muted-foreground">Effective Date: January 1, 2024</p>
             <p className="text-muted-foreground">Last Updated: {new Date().toLocaleDateString()}</p>
           </div>

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
+import { SEO } from "@/components/SEO";
 import { 
   PlayCircle, 
   TrendingUp, 
@@ -104,6 +105,11 @@ const Demo = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Live Demo - Philadelphia Bookkeeping Software Walkthrough"
+        description="See Cash Flow AI in action. Watch how Philadelphia small businesses use our AI-powered bookkeeping software to automate transactions, generate reports, and get financial insights."
+        keywords={['bookkeeping software demo', 'Philadelphia accounting demo', 'financial software tutorial', 'AI bookkeeping walkthrough']}
+      />
       <Header />
       
       <main className="pt-24 pb-16">
@@ -115,7 +121,7 @@ const Demo = () => {
               Interactive Demo
             </Badge>
             <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              See How It Works
+              Philadelphia Bookkeeping Software Demo - See How It Works
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
               Discover how our platform simplifies your financial management with AI-powered automation
@@ -180,7 +186,7 @@ const Demo = () => {
                     <div className={`bg-gradient-to-br ${step.color} p-8 md:p-12 flex items-center justify-center`}>
                       <img 
                         src={step.screenshot} 
-                        alt={`${step.title} screenshot`}
+                        alt={`Cash Flow AI ${step.title} - Philadelphia bookkeeping software interface showing ${step.description}`}
                         className="rounded-lg shadow-2xl w-full h-auto object-cover"
                       />
                     </div>

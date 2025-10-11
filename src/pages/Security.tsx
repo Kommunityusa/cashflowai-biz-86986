@@ -3,16 +3,22 @@ import { Footer } from "@/components/landing/Footer";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Shield, Lock, Key, Database, Cloud, Users, AlertTriangle, CheckCircle } from "lucide-react";
+import { SEO } from "@/components/SEO";
 
 export default function Security() {
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Bank-Level Security & Data Protection for Philadelphia Businesses"
+        description="Learn how Cash Flow AI protects your financial data with AES-256 encryption, SOC 2 compliance, and enterprise-grade security measures trusted by Philadelphia businesses."
+        keywords={['bookkeeping security', 'financial data protection', 'Philadelphia secure accounting', 'encrypted bookkeeping software', 'SOC 2 compliance']}
+      />
       <Header />
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <Badge className="mb-4" variant="secondary">Enterprise-Grade Security</Badge>
-            <h1 className="text-5xl font-bold text-foreground mb-4">Security Overview</h1>
+            <h1 className="text-5xl font-bold text-foreground mb-4">Bank-Level Security for Philadelphia Business Financial Data</h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
               Your financial data deserves bank-level protection. Learn how we safeguard your information 
               with multiple layers of security.

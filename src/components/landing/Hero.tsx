@@ -75,7 +75,7 @@ export function Hero() {
             <div className="absolute inset-0 bg-gradient-primary rounded-3xl blur-3xl opacity-20"></div>
             <img 
               src="/hero-dashboard.png" 
-              alt="Cash Flow AI Dashboard" 
+              alt="Cash Flow AI Dashboard - Philadelphia small business bookkeeping software showing real-time financial insights and automated transaction categorization" 
               className="relative rounded-2xl shadow-2xl border border-border"
             />
           </div>
