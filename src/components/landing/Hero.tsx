@@ -20,11 +20,11 @@ export function Hero() {
             </div>
             
             <h1 className="text-5xl lg:text-6xl font-bold text-foreground leading-tight">
-              {t.hero.title}
+              Pennsylvania's Smart Bookkeeping Solution for Small Businesses
             </h1>
             
             <p className="text-xl text-muted-foreground">
-              {t.hero.subtitle}
+              Built for PA business owners who need accurate, IRS-compliant books without the hassle. Automated categorization, tax-ready reports, and PA-specific insights—all in one platform.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4">
@@ -58,15 +58,15 @@ export function Hero() {
             <div className="pt-4 space-y-3">
               <div className="flex items-center text-muted-foreground">
                 <CheckCircle className="h-5 w-5 text-success mr-3" />
-                {t.features.secureEncryption}
+                IRS Publication 334 Compliant Categories
               </div>
               <div className="flex items-center text-muted-foreground">
                 <CheckCircle className="h-5 w-5 text-success mr-3" />
-                {t.features.aiInsights}
+                Trusted by Pennsylvania Businesses
               </div>
               <div className="flex items-center text-muted-foreground">
                 <CheckCircle className="h-5 w-5 text-success mr-3" />
-                {t.features.cancelAnytime}
+                Bank-Level Security & Encryption
               </div>
             </div>
           </div>

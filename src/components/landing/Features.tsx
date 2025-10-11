@@ -12,43 +12,43 @@ import {
 const features = [
   {
     icon: Brain,
-    title: "AI-Powered Insights",
-    description: "Get intelligent insights about your finances with advanced machine learning analysis."
+    title: "AI-Powered Tax Categorization",
+    description: "Automatically categorize transactions using IRS Publication 334 guidelines—built for PA tax compliance."
   },
   {
     icon: FileText,
-    title: "Smart Reports",
-    description: "Generate P&L statements, cash flow reports, and tax summaries instantly."
+    title: "Tax-Ready Reports",
+    description: "Generate Schedule C-ready P&L statements, cash flow reports, and tax summaries for federal and state filings."
   },
   {
     icon: Shield,
-    title: "Bank-Level Security",
-    description: "Your data is encrypted and secured with industry-leading protection."
+    title: "Secure & Compliant",
+    description: "Bank-level encryption keeps your financial data protected and audit-ready."
   },
   {
     icon: Zap,
-    title: "Real-Time Updates",
-    description: "See your financial position update as transactions flow in."
+    title: "Real-Time Bookkeeping",
+    description: "Connect your PA bank accounts and watch your books update automatically."
   },
   {
     icon: BarChart3,
-    title: "Visual Analytics",
-    description: "Understand your finances at a glance with intuitive charts and graphs."
+    title: "PA Business Insights",
+    description: "Track profitability, expenses, and cash flow with dashboards designed for Pennsylvania entrepreneurs."
   },
   {
     icon: CreditCard,
-    title: "Transaction Management",
-    description: "Track and categorize business transactions with manual uploads and custom categories."
+    title: "Smart Transaction Tracking",
+    description: "Manual uploads, bank connections, and custom categories for construction, restaurants, retail, and more."
   },
   {
     icon: Clock,
     title: "Save 10+ Hours Weekly",
-    description: "Automate repetitive tasks and focus on what matters most."
+    description: "Stop doing data entry. Let AI handle the busywork while you run your PA business."
   },
   {
     icon: Download,
-    title: "Easy Data Export",
-    description: "Export your financial data to CSV, PDF, or Excel anytime you need."
+    title: "CPA-Ready Exports",
+    description: "Export to CSV, PDF, or Excel—perfect for sharing with your Pennsylvania accountant."
   }
 ];
 
@@ -58,15 +58,14 @@ export function Features() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-foreground mb-4">
-            Everything You Need to{" "}
+            Built for{" "}
             <span className="bg-gradient-primary bg-clip-text text-transparent">
-              Automate
+              Pennsylvania
             </span>{" "}
-            Your Books
+            Business Owners
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Powerful features designed specifically for small business owners who want to 
-            save time and make smarter financial decisions.
+            Whether you're running a restaurant in Philly, a construction company in Pittsburgh, or a shop in Harrisburg—get tax-ready books without the headache.
           </p>
         </div>
         

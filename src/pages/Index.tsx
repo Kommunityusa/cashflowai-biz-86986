@@ -34,9 +34,9 @@ const Index = () => {
   return (
     <>
       <SEO
-        title="AI-Powered Bookkeeping & Financial Management"
-        description="Streamline your business finances with Cash Flow AI. Automated bookkeeping, real-time insights, and intelligent categorization for small businesses."
-        keywords={['bookkeeping software', 'financial management', 'AI accounting', 'small business finance', 'automated bookkeeping']}
+        title="Pennsylvania Small Business Bookkeeping Software | Cash Flow AI"
+        description="AI-powered bookkeeping for Pennsylvania businesses. Automated tax categorization, IRS-compliant reports, and real-time insights. Built for PA entrepreneurs."
+        keywords={['Pennsylvania bookkeeping software', 'PA small business accounting', 'Pennsylvania tax software', 'bookkeeping Philadelphia', 'Pittsburgh small business accounting', 'Pennsylvania financial management', 'PA business bookkeeping']}
       />
       <div className="min-h-screen bg-background">
         <Header />
