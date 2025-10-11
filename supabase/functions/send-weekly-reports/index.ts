@@ -1,8 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
-import { Resend } from 'npm:resend@4.0.0';
-
-const resend = new Resend(Deno.env.get('RESEND_API_KEY') as string);
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -97,30 +94,38 @@ serve(async (req) => {
 
         const netCashFlow = totalIncome - totalExpenses;
 
-        // Send email via Resend
-        const { error: emailError } = await resend.emails.send({
-          from: 'Cash Flow AI <noreply@cashflowai.app>',
-          to: [user.email],
-          subject: 'Your Weekly Financial Report',
-          html: `
-            <h1>Weekly Financial Summary</h1>
-            <p>Hello ${profile?.full_name || 'there'},</p>
-            <p>Here's your financial summary for the past week:</p>
-            <ul>
-              <li><strong>Total Income:</strong> $${totalIncome.toFixed(2)}</li>
-              <li><strong>Total Expenses:</strong> $${totalExpenses.toFixed(2)}</li>
-              <li><strong>Net Cash Flow:</strong> $${netCashFlow.toFixed(2)}</li>
-              <li><strong>Transactions:</strong> ${transactions?.length || 0}</li>
-            </ul>
-            <p>Keep up the great work managing your finances!</p>
-            <p>Best regards,<br>The Cash Flow AI Team</p>
-          `,
-          text: `Weekly Financial Summary\n\nHello ${profile?.full_name || 'there'},\n\nHere's your financial summary for the past week:\n\n- Total Income: $${totalIncome.toFixed(2)}\n- Total Expenses: $${totalExpenses.toFixed(2)}\n- Net Cash Flow: $${netCashFlow.toFixed(2)}\n- Transactions: ${transactions?.length || 0}\n\nKeep up the great work managing your finances!\n\nBest regards,\nThe Cash Flow AI Team`
+        // Send email via Resend REST API
+        const emailResponse = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${resendApiKey}`,
+          },
+          body: JSON.stringify({
+            from: 'Cash Flow AI <noreply@cashflowai.app>',
+            to: [user.email],
+            subject: 'Your Weekly Financial Report',
+            html: `
+              <h1>Weekly Financial Summary</h1>
+              <p>Hello ${profile?.full_name || 'there'},</p>
+              <p>Here's your financial summary for the past week:</p>
+              <ul>
+                <li><strong>Total Income:</strong> $${totalIncome.toFixed(2)}</li>
+                <li><strong>Total Expenses:</strong> $${totalExpenses.toFixed(2)}</li>
+                <li><strong>Net Cash Flow:</strong> $${netCashFlow.toFixed(2)}</li>
+                <li><strong>Transactions:</strong> ${transactions?.length || 0}</li>
+              </ul>
+              <p>Keep up the great work managing your finances!</p>
+              <p>Best regards,<br>The Cash Flow AI Team</p>
+            `,
+            text: `Weekly Financial Summary\n\nHello ${profile?.full_name || 'there'},\n\nHere's your financial summary for the past week:\n\n- Total Income: $${totalIncome.toFixed(2)}\n- Total Expenses: $${totalExpenses.toFixed(2)}\n- Net Cash Flow: $${netCashFlow.toFixed(2)}\n- Transactions: ${transactions?.length || 0}\n\nKeep up the great work managing your finances!\n\nBest regards,\nThe Cash Flow AI Team`
+          }),
         });
 
-        if (emailError) {
-          console.error(`Failed to send email to ${user.email}:`, emailError);
-          emailResults.push({ user_id: userPref.user_id, success: false, error: emailError.message });
+        if (!emailResponse.ok) {
+          const errorText = await emailResponse.text();
+          console.error(`Failed to send email to ${user.email}:`, errorText);
+          emailResults.push({ user_id: userPref.user_id, success: false, error: errorText });
           continue;
         }
 
