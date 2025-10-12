@@ -54,8 +54,8 @@ serve(async (req) => {
       'send-email-sequence',
       {
         body: {
-          email,
-          userName,
+          to: email,
+          name: userName,
           type: 'welcome'
         }
       }

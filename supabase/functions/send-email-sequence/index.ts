@@ -1,11 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import React from 'npm:react@18.3.1';
-import { renderAsync } from 'npm:@react-email/components@0.0.22';
-import { WelcomeEmail } from './_templates/welcome-email.tsx';
-import { FollowUpEmail } from './_templates/followup-email.tsx';
-import { MonthlyInsightsEmail } from './_templates/monthly-insights-email.tsx';
-import { TipsEmail } from './_templates/tips-email.tsx';
-import { SuccessStoriesEmail } from './_templates/success-stories-email.tsx';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -45,41 +38,94 @@ serve(async (req) => {
     let html: string;
     let subject: string;
 
-    // Render the appropriate email template
+    // Create simple HTML email templates
     switch (type) {
       case 'welcome':
-        html = await renderAsync(
-          React.createElement(WelcomeEmail, { name, email: to })
-        );
         subject = 'Welcome to Cash Flow AI - Let\'s Get Started!';
+        html = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #333;">Welcome to Cash Flow AI, ${name}!</h1>
+            <p>We're excited to have you on board. Cash Flow AI makes bookkeeping simple and intelligent.</p>
+            <p>Here's what you can do next:</p>
+            <ul>
+              <li>Connect your bank accounts for automatic transaction imports</li>
+              <li>Let AI categorize your transactions</li>
+              <li>Generate tax-ready reports instantly</li>
+            </ul>
+            <p><a href="https://cashflowai.biz" style="background: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Get Started</a></p>
+            <p>Best regards,<br>The Cash Flow AI Team</p>
+          </div>
+        `;
         break;
       
       case 'followup':
-        html = await renderAsync(
-          React.createElement(FollowUpEmail, { name })
-        );
         subject = 'How are things going with Cash Flow AI?';
+        html = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #333;">Hi ${name},</h1>
+            <p>We wanted to check in and see how you're doing with Cash Flow AI.</p>
+            <h2>Quick Tips:</h2>
+            <ul>
+              <li>Review your transaction categories for accuracy</li>
+              <li>Set up budget alerts to stay on track</li>
+              <li>Export reports for your accountant</li>
+            </ul>
+            <p>Need help? Just reply to this email.</p>
+            <p>Best regards,<br>The Cash Flow AI Team</p>
+          </div>
+        `;
         break;
       
       case 'monthly':
-        html = await renderAsync(
-          React.createElement(MonthlyInsightsEmail, { name })
-        );
         subject = 'Your Monthly Bookkeeping Insights from Cash Flow AI';
+        html = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #333;">Monthly Insights for ${name}</h1>
+            <p>Here are your key bookkeeping habits for this month:</p>
+            <ul>
+              <li>Review and categorize transactions weekly</li>
+              <li>Reconcile bank accounts monthly</li>
+              <li>Track expenses against budget</li>
+            </ul>
+            <p><a href="https://cashflowai.biz/dashboard" style="background: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View Dashboard</a></p>
+            <p>Best regards,<br>The Cash Flow AI Team</p>
+          </div>
+        `;
         break;
       
       case 'tips':
-        html = await renderAsync(
-          React.createElement(TipsEmail, { name })
-        );
         subject = '5 Quick Tips to Save Time with Cash Flow AI';
+        html = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #333;">5 Time-Saving Tips, ${name}</h1>
+            <ol>
+              <li>Use AI categorization to save hours each month</li>
+              <li>Set up recurring transaction rules</li>
+              <li>Enable bank sync for automatic imports</li>
+              <li>Use bulk operations for multiple transactions</li>
+              <li>Export reports directly to your accountant</li>
+            </ol>
+            <p><a href="https://cashflowai.biz" style="background: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Start Saving Time</a></p>
+            <p>Best regards,<br>The Cash Flow AI Team</p>
+          </div>
+        `;
         break;
       
       case 'success':
-        html = await renderAsync(
-          React.createElement(SuccessStoriesEmail, { name })
-        );
         subject = 'How Businesses Like Yours Are Saving Time';
+        html = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #333;">Success Stories</h1>
+            <p>Hi ${name},</p>
+            <p>See how other businesses are using Cash Flow AI:</p>
+            <div style="background: #f3f4f6; padding: 20px; margin: 20px 0; border-radius: 8px;">
+              <h3>Founder's Alley</h3>
+              <p>"Saved 15 hours per month on bookkeeping"</p>
+            </div>
+            <p><a href="https://cashflowai.biz" style="background: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Join Them</a></p>
+            <p>Best regards,<br>The Cash Flow AI Team</p>
+          </div>
+        `;
         break;
       
       default:
