@@ -25,21 +25,16 @@ export function NewsletterSignup({ compact = false }: NewsletterSignupProps) {
     setLoading(true);
 
     try {
-      // First add to MailerLite
-      const { data, error } = await supabase.functions.invoke("mailerlite-subscribe", {
-        body: {
-          email,
-          fields: {
-            company: "Cash Flow AI User",
-          },
-        },
+      // Subscribe to newsletter and drip campaign
+      const { data, error } = await supabase.functions.invoke("newsletter-subscribe", {
+        body: { email },
       });
 
       if (error) throw error;
 
       console.log("Subscription successful:", data);
       setSubscribed(true);
-      toast.success("Successfully subscribed to our newsletter!");
+      toast.success("Welcome! Check your email for your first tip.");
       
       // Reset form after 3 seconds
       setTimeout(() => {

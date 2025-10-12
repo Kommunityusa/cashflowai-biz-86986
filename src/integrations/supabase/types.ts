@@ -361,7 +361,7 @@ export type Database = {
           success_sent_at: string | null
           tips_sent_at: string | null
           updated_at: string | null
-          user_id: string
+          user_id: string | null
           user_name: string | null
           welcome_sent_at: string | null
         }
@@ -374,7 +374,7 @@ export type Database = {
           success_sent_at?: string | null
           tips_sent_at?: string | null
           updated_at?: string | null
-          user_id: string
+          user_id?: string | null
           user_name?: string | null
           welcome_sent_at?: string | null
         }
@@ -387,7 +387,7 @@ export type Database = {
           success_sent_at?: string | null
           tips_sent_at?: string | null
           updated_at?: string | null
-          user_id?: string
+          user_id?: string | null
           user_name?: string | null
           welcome_sent_at?: string | null
         }
