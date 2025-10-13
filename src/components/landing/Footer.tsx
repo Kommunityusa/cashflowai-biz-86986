@@ -18,6 +18,13 @@ export function Footer() {
             <p className="text-muted-foreground text-sm">
               AI-powered bookkeeping for modern small businesses.
             </p>
+            <p className="text-muted-foreground text-xs">
+              A project by <a href="https://connex2.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Connex II Inc</a>, a venture studio behind{" "}
+              <a href="https://kommunity.app" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Kommunity</a>,{" "}
+              <a href="https://referredai.org" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">ReferredAI</a>,{" "}
+              <a href="https://kensingtondeals.org" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Kensington Deals</a>, and{" "}
+              <a href="https://memocredai.org" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">MemoCredAI</a>.
+            </p>
           </div>
 
           <div>

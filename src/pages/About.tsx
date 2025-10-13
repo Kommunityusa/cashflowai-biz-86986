@@ -175,6 +175,62 @@ export default function About() {
             </div>
           </div>
 
+          {/* Connex II Inc Section */}
+          <div className="mb-16">
+            <Card className="relative overflow-hidden border-primary/20">
+              <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-primary opacity-5 rounded-full blur-3xl"></div>
+              <CardContent className="p-8 relative">
+                <div className="text-center mb-6">
+                  <h2 className="text-2xl font-bold text-foreground mb-4">
+                    Built by Connex II Inc
+                  </h2>
+                  <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+                    Cash Flow AI is a project by <a href="https://connex2.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-semibold">Connex II Inc</a>, a venture studio dedicated to building innovative solutions for modern businesses.
+                  </p>
+                </div>
+                <div className="mt-6">
+                  <p className="text-center text-muted-foreground mb-4">
+                    Explore our portfolio of products:
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-4">
+                    <a 
+                      href="https://kommunity.app" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium"
+                    >
+                      Kommunity
+                    </a>
+                    <a 
+                      href="https://referredai.org" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium"
+                    >
+                      ReferredAI
+                    </a>
+                    <a 
+                      href="https://kensingtondeals.org" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium"
+                    >
+                      Kensington Deals
+                    </a>
+                    <a 
+                      href="https://memocredai.org" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium"
+                    >
+                      MemoCredAI
+                    </a>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* CTA Section */}
           <div className="text-center bg-gradient-subtle rounded-2xl p-12">
             <h2 className="text-3xl font-bold text-foreground mb-4">
