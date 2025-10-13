@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate Blog Post Now</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        button { background: #22c55e; color: white; padding: 15px 30px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+        button:hover { background: #16a34a; }
+        #result { margin-top: 20px; padding: 20px; border-radius: 8px; }
+        .success { background: #dcfce7; border: 1px solid #22c55e; }
+        .error { background: #fee2e2; border: 1px solid #ef4444; }
+        .loading { background: #e0e7ff; border: 1px solid #6366f1; }
+    </style>
+</head>
+<body>
+    <h1>Generate Blog Post Now</h1>
+    <p>Click the button below to immediately generate and publish a new SEO and AI-search optimized blog post.</p>
+    <button onclick="generateBlog()">Generate & Publish Blog Post</button>
+    <div id="result"></div>
+
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.74.0';
+
+        const supabase = createClient(
+            'https://awszwetvzugirgacpcem.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3c3p3ZXR2enVnaXJnYWNwY2VtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MDQ1MjQsImV4cCI6MjA3NTQ4MDUyNH0.-0ToTDxMYjEfwAmVzcnCku5KbkjZdsemGbviGzXEdrI'
+        );
+
+        window.generateBlog = async function() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'loading';
+            resultDiv.innerHTML = '<h2>Generating blog post...</h2><p>This may take 30-60 seconds. Please wait...</p>';
+            
+            try {
+                const { data, error } = await supabase.functions.invoke('auto-generate-blog', {
+                    body: {}
+                });
+
+                if (error) throw error;
+
+                resultDiv.className = 'success';
+                resultDiv.innerHTML = `
+                    <h2>✅ Success!</h2>
+                    <p><strong>Blog post published successfully!</strong></p>
+                    <h3>${data.post.title}</h3>
+                    <p><strong>Category:</strong> ${data.post.category}</p>
+                    <p><strong>Slug:</strong> ${data.post.slug}</p>
+                    <p><strong>Excerpt:</strong> ${data.post.excerpt}</p>
+                    <p><strong>Published at:</strong> ${new Date(data.post.published_at).toLocaleString()}</p>
+                    <a href="/blog/${data.post.slug}" target="_blank" style="display: inline-block; margin-top: 10px; padding: 10px 20px; background: #22c55e; color: white; text-decoration: none; border-radius: 6px;">View Blog Post</a>
+                `;
+            } catch (error) {
+                resultDiv.className = 'error';
+                resultDiv.innerHTML = `
+                    <h2>❌ Error</h2>
+                    <p style="color: #ef4444;"><strong>${error.message}</strong></p>
+                    <p>Please check the console for more details.</p>
+                `;
+                console.error('Error details:', error);
+            }
+        };
+    </script>
+</body>
+</html>
