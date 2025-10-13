@@ -155,6 +155,7 @@ Generate the following in JSON format:
     const blogPost = JSON.parse(content);
 
     // Insert blog post into database with structured data
+    console.log('Inserting blog post into database...');
     const { data: insertedPost, error: insertError } = await supabase
       .from('blog_posts')
       .insert([{
@@ -180,7 +181,13 @@ Generate the following in JSON format:
 
     if (insertError) {
       console.error('Error inserting blog post:', insertError);
+      console.error('Insert error details:', JSON.stringify(insertError, null, 2));
       throw insertError;
+    }
+
+    if (!insertedPost) {
+      console.error('No post returned after insert');
+      throw new Error('Failed to retrieve inserted post');
     }
 
     console.log('Successfully published blog post:', insertedPost.title);
