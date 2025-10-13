@@ -78,22 +78,24 @@ serve(async (req) => {
 
     console.log(`Generating blog post ${postCount + 1} with topic:`, selectedTopic.topic);
 
-    // Generate blog post with AI - simplified to avoid truncation
-    const prompt = `Write an SEO-optimized blog post about: ${selectedTopic.topic}
+    // Generate blog post with AI - much shorter to avoid truncation
+    const prompt = `Write a concise blog post about: ${selectedTopic.topic}
 
-Target audience: Philadelphia small business owners
+Target: Philadelphia small business owners
 Keywords: ${selectedTopic.keywords}
 
-Generate a JSON response with:
-- title: Engaging title (55-60 chars)
-- slug: url-friendly-slug
-- excerpt: Compelling summary (150-160 chars)
-- content: Blog post in markdown (800-1000 words with H2/H3 headings, include Philadelphia references)
-- meta_title: SEO title (50-60 chars)
-- meta_description: SEO description (150-160 chars)
-- meta_keywords: comma-separated keywords
+Return ONLY valid JSON with these exact fields:
+{
+  "title": "Catchy title under 60 chars",
+  "slug": "url-friendly-slug",
+  "excerpt": "Summary under 160 chars",
+  "content": "Blog post in markdown, 400-600 words max, 2-3 H2 sections, practical tips",
+  "meta_title": "SEO title under 60 chars",
+  "meta_description": "SEO description under 160 chars",
+  "meta_keywords": "keyword1, keyword2, keyword3"
+}
 
-Keep it practical and actionable for Philadelphia business owners.`;
+Keep content SHORT and actionable.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -106,14 +108,15 @@ Keep it practical and actionable for Philadelphia business owners.`;
         messages: [
           {
             role: "system",
-            content: "You are an expert content writer. Always respond with valid JSON only."
+            content: "You are a concise blog writer. Return ONLY valid, complete JSON. Keep content brief."
           },
           {
             role: "user",
             content: prompt
           }
         ],
-        response_format: { type: "json_object" }
+        response_format: { type: "json_object" },
+        max_completion_tokens: 2000
       }),
     });
 
