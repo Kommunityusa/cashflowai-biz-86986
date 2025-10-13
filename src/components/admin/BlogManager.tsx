@@ -32,6 +32,7 @@ export function BlogManager() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<string | null>(null);
   const [generatingAI, setGeneratingAI] = useState(false);
+  const [autoGenerating, setAutoGenerating] = useState(false);
   const [formData, setFormData] = useState<Partial<BlogPost>>({
     title: '',
     slug: '',
@@ -213,6 +214,34 @@ export function BlogManager() {
     }
   };
 
+  const handleAutoGenerateAndPublish = async () => {
+    setAutoGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('auto-generate-blog', {
+        body: {}
+      });
+
+      if (error) throw error;
+
+      if (data?.post) {
+        toast({
+          title: 'Success! 🎉',
+          description: `Published: ${data.post.title}`,
+        });
+        loadPosts();
+      }
+    } catch (error) {
+      console.error('Error generating blog post:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate blog post. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setAutoGenerating(false);
+    }
+  };
+
   const scheduleNextDayPublish = () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -251,21 +280,39 @@ export function BlogManager() {
         <TabsContent value="blog" className="space-y-6">
           <div className="flex justify-between items-center">
             <h3 className="text-xl font-semibold">Blog Management</h3>
-            <Button onClick={() => {
-              setEditing(null);
-              setFormData({
-                title: '',
-                slug: '',
-                excerpt: '',
-                content: '',
-                category: '',
-                author: '',
-                is_published: false,
-              });
-            }}>
-              <Plus className="h-4 w-4 mr-2" />
-              New Post
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleAutoGenerateAndPublish}
+                disabled={autoGenerating}
+                variant="default"
+              >
+                {autoGenerating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    ✨ Quick Generate & Publish
+                  </>
+                )}
+              </Button>
+              <Button onClick={() => {
+                setEditing(null);
+                setFormData({
+                  title: '',
+                  slug: '',
+                  excerpt: '',
+                  content: '',
+                  category: '',
+                  author: '',
+                  is_published: false,
+                });
+              }}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Post
+              </Button>
+            </div>
           </div>
 
           <Card className="p-6">
