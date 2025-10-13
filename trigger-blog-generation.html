@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Trigger Blog Generation</title>
+</head>
+<body>
+    <h1>Blog Generation Trigger</h1>
+    <button onclick="generateBlog()">Generate New Blog Post</button>
+    <div id="result"></div>
+
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.74.0';
+
+        const supabase = createClient(
+            'https://awszwetvzugirgacpcem.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3c3p3ZXR2enVnaXJnYWNwY2VtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MDQ1MjQsImV4cCI6MjA3NTQ4MDUyNH0.-0ToTDxMYjEfwAmVzcnCku5KbkjZdsemGbviGzXEdrI'
+        );
+
+        window.generateBlog = async function() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Generating blog post...';
+            
+            try {
+                const { data, error } = await supabase.functions.invoke('auto-generate-blog', {
+                    body: {}
+                });
+
+                if (error) throw error;
+
+                resultDiv.innerHTML = `
+                    <h2>Success!</h2>
+                    <p>${data.message}</p>
+                    <pre>${JSON.stringify(data.post, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h2>Error</h2>
+                    <p style="color: red;">${error.message}</p>
+                `;
+            }
+        };
+    </script>
+</body>
+</html>
