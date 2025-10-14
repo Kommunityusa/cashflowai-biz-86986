@@ -18,23 +18,36 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const prompt = `Write a professional blog post about: ${topic}
+    const prompt = `Write a professional, SEO-optimized blog post about: ${topic}
 
 Category: ${category}
 Target audience: Small business owners
 
+CRITICAL SEO & AI SEARCH OPTIMIZATION REQUIREMENTS:
+- Use primary keyword naturally in title, first paragraph, H2s, and conclusion
+- Include semantic keywords and LSI terms throughout
+- Write for Featured Snippets: include clear definitions, numbered lists, and how-to steps
+- Optimize for AI search engines (ChatGPT, Perplexity, Gemini):
+  * Answer questions directly and concisely
+  * Use clear, structured information
+  * Include actionable steps and examples
+  * Add context and explanations
+- Use E-E-A-T principles: demonstrate expertise, experience, authoritativeness, trustworthiness
+- Include practical examples and real-world scenarios
+- Add data points, statistics, or specific numbers when relevant
+
 Return ONLY valid JSON with these exact fields:
 {
-  "title": "Engaging title under 60 chars",
-  "slug": "url-friendly-slug",
-  "excerpt": "Compelling summary under 160 chars",
-  "content": "Blog post in markdown format, 600-800 words, include H2 headings and practical tips",
-  "meta_title": "SEO title under 60 chars",
-  "meta_description": "SEO description under 160 chars",
-  "meta_keywords": "keyword1, keyword2, keyword3"
+  "title": "Engaging, keyword-rich title under 60 chars (include main keyword at start)",
+  "slug": "keyword-rich-url-friendly-slug",
+  "excerpt": "Compelling summary under 160 chars with primary keyword",
+  "content": "Blog post in markdown format, 800-1200 words. MUST include:\n- Introduction with primary keyword in first 100 words\n- 3-5 H2 sections with semantic keywords\n- H3 subsections with specific how-to steps\n- Bullet points and numbered lists for scannability\n- Practical examples and actionable tips\n- FAQ section answering common questions\n- Conclusion with clear call-to-action",
+  "meta_title": "SEO-optimized title under 60 chars with primary keyword at start",
+  "meta_description": "Compelling meta description under 160 chars with primary keyword and secondary keywords",
+  "meta_keywords": "primary-keyword, secondary-keyword-1, secondary-keyword-2, lsi-keyword-1, lsi-keyword-2"
 }
 
-Make the content practical, actionable, and valuable for small business owners.`;
+Make the content authoritative, practical, and optimized for both traditional SEO and AI search engines.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
