@@ -6,7 +6,7 @@ import { Footer } from '@/components/landing/Footer';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Calendar, User } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Tag } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface BlogPost {
@@ -101,7 +101,7 @@ export default function BlogPost() {
             Back to Blog
           </Button>
 
-          <article className="prose prose-lg max-w-none">
+          <article>
             {post.featured_image_url && (
               <img
                 src={post.featured_image_url}
@@ -110,26 +110,33 @@ export default function BlogPost() {
               />
             )}
 
-            <div className="mb-8">
-              <Badge variant="secondary" className="mb-4">
+            <header className="mb-12">
+              <Badge variant="secondary" className="mb-4 text-xs">
+                <Tag className="h-3 w-3 mr-1" />
                 {post.category}
               </Badge>
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">{post.title}</h1>
-              <p className="text-xl text-muted-foreground mb-6">{post.excerpt}</p>
               
-              <div className="flex items-center gap-6 text-muted-foreground">
-                <div className="flex items-center gap-2">
+              <h1 className="text-4xl font-bold mb-4 text-foreground">
+                {post.title}
+              </h1>
+              
+              <p className="text-lg text-muted-foreground mb-6">
+                {post.excerpt}
+              </p>
+              
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1">
                   <User className="h-4 w-4" />
-                  <span>{post.author}</span>
-                </div>
-                <div className="flex items-center gap-2">
+                  {post.author}
+                </span>
+                <span className="flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
-                  <span>{formatDate(post.published_at || post.created_at)}</span>
-                </div>
+                  {formatDate(post.published_at || post.created_at)}
+                </span>
               </div>
-            </div>
+            </header>
 
-            <div className="border-t pt-8">
+            <div className="article-content">
               <ReactMarkdown>{post.content}</ReactMarkdown>
             </div>
           </article>
