@@ -65,6 +65,7 @@ interface Translations {
     settings: string;
     funding: string;
     about: string;
+    blog: string;
     demo: string;
     pricing: string;
     features: string;
@@ -418,6 +419,7 @@ const translations: Record<Language, Translations> = {
       settings: "Settings",
       funding: "Funding",
       about: "About",
+      blog: "Blog",
       demo: "Demo",
       pricing: "Pricing",
       features: "Features"
@@ -745,6 +747,7 @@ const translations: Record<Language, Translations> = {
       settings: "Configuración",
       funding: "Financiamiento",
       about: "Acerca de",
+      blog: "Blog",
       demo: "Demostración",
       pricing: "Precios",
       features: "Características"

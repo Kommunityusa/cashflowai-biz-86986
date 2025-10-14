@@ -25,6 +25,9 @@ import Demo from "./pages/Demo";
 import Investors from "./pages/Investors";
 import Checkout from "./pages/Checkout";
 import TaxCenter from "./pages/TaxCenter";
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/blog/BlogPost";
+import AdminBlog from "./pages/admin/AdminBlog";
 
 const queryClient = new QueryClient();
 
@@ -217,6 +220,13 @@ const App = () => (
             <Route path="/tax-center" element={
               <ProtectedRoute>
                 <TaxCenter />
+              </ProtectedRoute>
+            } />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
+            <Route path="/admin/blog" element={
+              <ProtectedRoute>
+                <AdminBlog />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

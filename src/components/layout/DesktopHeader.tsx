@@ -33,7 +33,9 @@ export const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isLandingPage = location.pathname === "/" || 
                         location.pathname === "/about" || 
-                        location.pathname === "/demo";
+                        location.pathname === "/demo" ||
+                        location.pathname === "/blog" ||
+                        location.pathname.startsWith("/blog/");
 
   const navigation = [
     { name: "Features", href: "#features" },
