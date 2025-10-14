@@ -43,9 +43,7 @@ export function Header() {
   
   const isLandingPage = location.pathname === "/" || 
                         location.pathname === "/about" || 
-                        location.pathname === "/demo" ||
-                        location.pathname === "/blog" ||
-                        location.pathname.startsWith("/blog/");
+                        location.pathname === "/demo";
 
   const navigationLinks = [
     { href: "/dashboard", label: t.nav.dashboard, icon: Home },
@@ -58,7 +56,6 @@ export function Header() {
   const landingLinks = [
     { href: "/#features", label: t.nav.features },
     { href: "/#pricing", label: t.nav.pricing },
-    { href: "/blog", label: t.nav.blog },
     { href: "/about", label: t.nav.about },
   ];
 

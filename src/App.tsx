@@ -20,20 +20,11 @@ import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Terms from "./pages/Terms";
 import Security from "./pages/Security";
-
-
-import Blog from "./pages/Blog";
 import About from "./pages/About";
-import SmallBusinessBookkeepingGuide from "./pages/blog/SmallBusinessBookkeepingGuide";
-import DoubleEntryBookkeeping from "./pages/blog/DoubleEntryBookkeeping";
-import TaxSeasonChecklist from "./pages/blog/TaxSeasonChecklist";
 import Demo from "./pages/Demo";
 import Investors from "./pages/Investors";
 import Checkout from "./pages/Checkout";
-import AdminBlog from "./pages/admin/AdminBlog";
-import BlogPost from "./pages/blog/BlogPost";
 import TaxCenter from "./pages/TaxCenter";
-import BlogRSS from "./pages/BlogRSS";
 
 const queryClient = new QueryClient();
 
@@ -219,12 +210,7 @@ const App = () => (
                 <Security />
               </ProtectedRoute>
             } />
-            
-            <Route path="/blog" element={<Blog />} />
             <Route path="/about" element={<About />} />
-            <Route path="/blog/small-business-bookkeeping-guide" element={<SmallBusinessBookkeepingGuide />} />
-            <Route path="/blog/double-entry-bookkeeping-essentials" element={<DoubleEntryBookkeeping />} />
-            <Route path="/blog/tax-season-bookkeeping-checklist" element={<TaxSeasonChecklist />} />
             <Route path="/demo" element={<Demo />} />
             <Route path="/investors" element={<Investors />} />
             <Route path="/checkout" element={<Checkout />} />
@@ -233,13 +219,6 @@ const App = () => (
                 <TaxCenter />
               </ProtectedRoute>
             } />
-            <Route path="/admin/blog" element={
-              <ProtectedRoute>
-                <AdminBlog />
-              </ProtectedRoute>
-            } />
-            <Route path="/blog/:slug" element={<BlogPost />} />
-            <Route path="/blog/rss" element={<BlogRSS />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
