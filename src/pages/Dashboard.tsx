@@ -67,6 +67,15 @@ export default function Dashboard() {
     const checkoutStatus = urlParams.get('checkout');
     
     if (checkoutStatus === 'success' && user) {
+      // Fire Google Analytics conversion event
+      if (typeof window !== 'undefined' && (window as any).gtag) {
+        (window as any).gtag('event', 'conversion_event_purchase', {
+          value: 10.00,
+          currency: 'USD',
+          transaction_id: `sub_${user.id}_${Date.now()}`,
+        });
+      }
+      
       toast({
         title: "Subscription Active!",
         description: "Your subscription is now active. Explore all premium features!",
